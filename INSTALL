@@ -1,0 +1,9 @@
+#To build biphy you will have to have OpenMP and CMake installed.
+
+#Install
+
+sh build.sh install
+
+#Clean
+
+sh build.sh clean
