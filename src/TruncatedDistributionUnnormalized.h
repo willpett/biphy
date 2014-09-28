@@ -19,23 +19,23 @@
 
 
 
-#ifndef TruncatedDistribution_H
-#define TruncatedDistribution_H
+#ifndef TruncatedDistributionUnnormalized_H
+#define TruncatedDistributionUnnormalized_H
 
 #include "ContinuousDistribution.h"
 #include "TypedDagNode.h"
 
 namespace RevBayesCore {
     
-	class TruncatedDistribution : public TypedDistribution<double> {
+	class TruncatedDistributionUnnormalized : public TypedDistribution<double> {
         
     public:
-        TruncatedDistribution(TypedDistribution<double> *f, const TypedDagNode<double> *min, const TypedDagNode<double> *max);
-        TruncatedDistribution(const TruncatedDistribution &n);                                                                              //!< Copy constructor
-        virtual                                            ~TruncatedDistribution(void);                                                  //!< Virtual destructor
+        TruncatedDistributionUnnormalized(TypedDistribution<double> *f, const TypedDagNode<double> *min, const TypedDagNode<double> *max);
+        TruncatedDistributionUnnormalized(const TruncatedDistributionUnnormalized &n);                                                                              //!< Copy constructor
+        virtual                                            ~TruncatedDistributionUnnormalized(void);                                                  //!< Virtual destructor
         
         // public member functions
-        TruncatedDistribution*                              clone(void) const;                                                          //!< Create an independent clone
+        TruncatedDistributionUnnormalized*                              clone(void) const;                                                          //!< Create an independent clone
         double                                              computeLnProbability(void);
         double                                              getMax(void) const;
         double                                              getMin(void) const;                                                   //!< Qu

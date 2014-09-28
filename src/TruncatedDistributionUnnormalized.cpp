@@ -1,10 +1,10 @@
-#include "TruncatedDistribution.h"
+#include "TruncatedDistributionUnnormalized.h"
 #include "RandomNumberFactory.h"
 #include "RbConstants.h"
 
 using namespace RevBayesCore;
 
-TruncatedDistribution::TruncatedDistribution(TypedDistribution<double> *fin, const TypedDagNode<double> *mi, const TypedDagNode<double> *ma) : TypedDistribution<double>( new double( 0.0 ) ), min( mi ), max( ma ), f( fin ){
+TruncatedDistributionUnnormalized::TruncatedDistributionUnnormalized(TypedDistribution<double> *fin, const TypedDagNode<double> *mi, const TypedDagNode<double> *ma) : TypedDistribution<double>( new double( 0.0 ) ), min( mi ), max( ma ), f( fin ){
     // add the parameters to the parents set
     addParameter( min );
     addParameter( max );
@@ -17,23 +17,23 @@ TruncatedDistribution::TruncatedDistribution(TypedDistribution<double> *fin, con
 }
 
 
-TruncatedDistribution::TruncatedDistribution(const TruncatedDistribution &n) : TypedDistribution<double>( n ), min( n.min ), max( n.max ), f( n.f ) {
+TruncatedDistributionUnnormalized::TruncatedDistributionUnnormalized(const TruncatedDistributionUnnormalized &n) : TypedDistribution<double>( n ), min( n.min ), max( n.max ), f( n.f ) {
     // parameters are automatically copied
 }
 
 
-TruncatedDistribution::~TruncatedDistribution( void ) {
+TruncatedDistributionUnnormalized::~TruncatedDistributionUnnormalized( void ) {
     // We don't delete the parameters, because they might be used somewhere else too. The model needs to do that!
 }
 
 
-TruncatedDistribution* TruncatedDistribution::clone( void ) const {
+TruncatedDistributionUnnormalized* TruncatedDistributionUnnormalized::clone( void ) const {
     
-    return new TruncatedDistribution( *this );
+    return new TruncatedDistributionUnnormalized( *this );
 }
 
 
-double TruncatedDistribution::computeLnProbability( void ) {
+double TruncatedDistributionUnnormalized::computeLnProbability( void ) {
     
 	if(*value < min->getValue() || *value > max->getValue())
 		return RbConstants::Double::neginf;
@@ -42,19 +42,19 @@ double TruncatedDistribution::computeLnProbability( void ) {
 }
 
 
-double TruncatedDistribution::getMax( void ) const {
+double TruncatedDistributionUnnormalized::getMax( void ) const {
     
     return max->getValue();
 }
 
 
-double TruncatedDistribution::getMin( void ) const {
+double TruncatedDistributionUnnormalized::getMin( void ) const {
     
     return min->getValue();
 }
 
 
-void TruncatedDistribution::redrawValue( void ) {
+void TruncatedDistributionUnnormalized::redrawValue( void ) {
     
 	f->redrawValue();
 	while(f->getValue() < min->getValue() || f->getValue() > max->getValue()){
@@ -65,7 +65,7 @@ void TruncatedDistribution::redrawValue( void ) {
 }
 
 
-void TruncatedDistribution::swapParameter(const DagNode *oldP, const DagNode *newP) {
+void TruncatedDistributionUnnormalized::swapParameter(const DagNode *oldP, const DagNode *newP) {
     
     if (oldP == min) 
     {

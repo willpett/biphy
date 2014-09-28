@@ -44,7 +44,7 @@
 #include "TreeAssemblyFunction.h"
 #include "TreeLengthStatistic.h"
 #include "TreeScale.h"
-#include "TruncatedDistribution.h"
+#include "TruncatedDistributionUnnormalized.h"
 #include "UniformDistribution.h"
 #include "UniformConstrainedTimeTreeDistribution.h"
 #include "UniformRootedTopologyDistribution.h"
@@ -184,7 +184,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     TypedDagNode<double> *pi;
     if(rootprior){
     	std::vector<const TypedDagNode<double> *> rf_vec(2);
-    	pi = new StochasticNode<double>( "pi", new TruncatedDistribution( new BetaDistribution( alpha, beta ), new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
+    	pi = new StochasticNode<double>( "pi", new TruncatedDistributionUnnormalized( new BetaDistribution( alpha, beta ), new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
     	rf_vec[1] = pi;
     	rf_vec[0] = new DeterministicNode<double>( "pi0", new BinarySubtraction<double,double,double>(one,pi));
     	rf = new DeterministicNode< std::vector< double > >( "rf", new VectorFunction< double >( rf_vec ) );
