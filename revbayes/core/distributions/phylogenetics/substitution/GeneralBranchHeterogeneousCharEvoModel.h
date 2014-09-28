@@ -16,7 +16,7 @@ namespace RevBayesCore {
     class GeneralBranchHeterogeneousCharEvoModel : public AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType> {
         
     public:
-        GeneralBranchHeterogeneousCharEvoModel(const TypedDagNode< treeType > *t, size_t nChars, bool c, size_t nSites, bool m);
+        GeneralBranchHeterogeneousCharEvoModel(const TypedDagNode< treeType > *t, size_t nChars, bool c, size_t nSites);
         GeneralBranchHeterogeneousCharEvoModel(const GeneralBranchHeterogeneousCharEvoModel &n);                                                                                                //!< Copy constructor
         virtual                                            ~GeneralBranchHeterogeneousCharEvoModel(void);                                                                   //!< Virtual destructor
         
@@ -50,14 +50,12 @@ namespace RevBayesCore {
         const TypedDagNode< RbVector< RateMatrix > >*       heterogeneousRateMatrices;
         const TypedDagNode< std::vector< double > >*        rootFrequencies;
         const TypedDagNode< std::vector< double > >*        siteRates;
-        std::vector< double >								meanRootFrequencies;
         
         
         // flags specifying which model variants we use
         bool                                                branchHeterogeneousClockRates;
         bool                                                branchHeterogeneousSubstitutionMatrices;
         bool                                                rateVariationAcrossSites;
-        bool                                                meanRoot;
     };
     
 }
@@ -74,7 +72,7 @@ namespace RevBayesCore {
 #include <cstring>
 
 template<class charType, class treeType>
-RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::GeneralBranchHeterogeneousCharEvoModel(const TypedDagNode<treeType> *t, size_t nChars, bool c, size_t nSites, bool m) : AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>(  t, nChars, 1, c, nSites ) {
+RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::GeneralBranchHeterogeneousCharEvoModel(const TypedDagNode<treeType> *t, size_t nChars, bool c, size_t nSites) : AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>(  t, nChars, 1, c, nSites ) {
     
     // initialize with default parameters
     homogeneousClockRate        = new ConstantNode<double>("clockRate", new double(1.0) );
@@ -83,15 +81,12 @@ RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::Genera
     heterogeneousRateMatrices   = NULL;
     rootFrequencies             = NULL;
     siteRates                   = NULL;
-    
-    meanRootFrequencies.resize(nChars);
 
     
     // flags specifying which model variants we use
     branchHeterogeneousClockRates               = false;
     branchHeterogeneousSubstitutionMatrices     = false;
     rateVariationAcrossSites                    = false;
-    meanRoot									= m;
     
     // add the parameters to the parents list
     this->addParameter( homogeneousClockRate );
@@ -112,14 +107,12 @@ RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::Genera
     heterogeneousRateMatrices   = d.heterogeneousRateMatrices;
     rootFrequencies             = d.rootFrequencies;
     siteRates                   = d.siteRates;
-    meanRootFrequencies			= d.meanRootFrequencies;
     
     
     // flags specifying which model variants we use
     branchHeterogeneousClockRates               = d.branchHeterogeneousClockRates;
     branchHeterogeneousSubstitutionMatrices     = d.branchHeterogeneousSubstitutionMatrices;
     rateVariationAcrossSites                    = d.rateVariationAcrossSites;
-    meanRoot									= d.meanRoot;
 }
 
 
@@ -385,20 +378,7 @@ const std::vector<double>& RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<
     
     if ( branchHeterogeneousSubstitutionMatrices || rootFrequencies != NULL ) 
     {
-    	if(meanRoot){
-    		size_t left = this->tau->getValue().getRoot().getChild(0).getIndex();
-    		size_t right = this->tau->getValue().getRoot().getChild(1).getIndex();
-    		const RateMatrix *rm_left = &this->heterogeneousRateMatrices->getValue()[left];
-    		const RateMatrix *rm_right = &this->heterogeneousRateMatrices->getValue()[right];
-    		const std::vector<double>& pi_left = rm_left->getStationaryFrequencies();
-    		const std::vector<double>& pi_right = rm_right->getStationaryFrequencies();
-    		for(size_t i = 0; i < pi_left.size(); i++){
-    			meanRootFrequencies[i] = (pi_left[i]+pi_right[i])/2.0;
-    		}
-    		return meanRootFrequencies;
-    	}else{
-    		return rootFrequencies->getValue();
-    	}
+    	return rootFrequencies->getValue();
     } 
     else 
     {

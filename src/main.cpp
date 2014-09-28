@@ -26,6 +26,9 @@ int main (int argc, const char * argv[])
 		bool heterogeneous = false;
 		bool overwrite = false;
 		bool ppred = false;
+		bool rootprior = false;
+		double rootmin = 0.0;
+		double rootmax = 1.0;
 
 		int every = 1;
 		int until = -1;
@@ -84,6 +87,14 @@ int main (int argc, const char * argv[])
 					i++;
 					if (i == argc) throw(0);
 					until = atoi(argv[i]);
+				}else if (s == "-rp")	{
+					i++;
+					if (i == argc) throw(0);
+					rootmin = atof(argv[i]);
+					i++;
+					if (i == argc) throw(0);
+					rootmax = atof(argv[i]);
+					rootprior = true;
 				}else if (s == "-ppred")	{
 					ppred = true;
 				}else{
@@ -103,9 +114,10 @@ int main (int argc, const char * argv[])
 			std::cerr << "Model options:\n";
 			std::cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
 			std::cerr << "\t-nh\t\tnon-homogeneous binary substitution model\n";
-			std::cerr << "Optional constraint files:\n";
+			std::cerr << "Optional constraints:\n";
 			std::cerr << "\t-t <file>\tfixed tree filename\n";
-			std::cerr << "\t-o <file>\toutgroup clade file\n\n";
+			std::cerr << "\t-o <file>\toutgroup clade file\n";
+			std::cerr << "\t-rp <min> <max>\ttruncate root frequency prior\n\n";
 			std::cerr << "MCMCMC options:\n";
 			std::cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
 			std::cerr << "\t-delta <float>\t(default = 0.1)\n";
@@ -140,7 +152,7 @@ int main (int argc, const char * argv[])
 		if(cvfile != "None")
 			remove((name+".cv").c_str());
 	}
-    RevBayesCore::TestBranchHeterogeneousBinaryModel t = RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,cvfile,heterogeneous,ppred,every,until,numChains,swapInterval,deltaTemp,sigmaTemp);
+    RevBayesCore::TestBranchHeterogeneousBinaryModel t = RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,cvfile,heterogeneous,ppred,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp);
     t.run();
     
     return 0;

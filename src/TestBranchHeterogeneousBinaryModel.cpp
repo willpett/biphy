@@ -44,11 +44,13 @@
 #include "TreeAssemblyFunction.h"
 #include "TreeLengthStatistic.h"
 #include "TreeScale.h"
+#include "TruncatedDistribution.h"
 #include "UniformDistribution.h"
 #include "UniformConstrainedTimeTreeDistribution.h"
 #include "UniformRootedTopologyDistribution.h"
 #include "UniformTimeTreeDistribution.h"
 #include "VectorFunction.h"
+#include "MeanFunction.h"
 
 using namespace RevBayesCore;
 
@@ -59,6 +61,9 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 									const std::string &cvfile,
 									bool heterogeneous,
 									bool ppred,
+									bool rootprior,
+									double rootmin,
+									double rootmax,
 									int every,
 									int until,
 									int numchains,
@@ -72,6 +77,9 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 		cvfile( cvfile ),
 		heterogeneous( heterogeneous ),
 		ppred( ppred ),
+		rootprior( rootprior),
+		rootmin( rootmin),
+		rootmax( rootmax),
 		every( every ),
 		until( until ),
 		numChains( numchains),
@@ -128,8 +136,31 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     	std::cout << std::endl;
     }
     
-    /* set up the model graph */
-    
+    if(heterogeneous){
+		std::cout << "branch-wise constant time-heterogeneous model:\n";
+		std::cout << "branch frequencies = pi_[i] ~ iid Beta(alpha,beta)\n";
+	}else{
+		std::cout << "time-homogeneous model:\n";
+	}
+    if(rootprior){
+		std::cout << "root frequency  = pi ~ Beta(alpha,beta) truncated on (" << rootmin << "," << rootmax << ")\n";
+	}else{
+		std::cout << "root frequency = pi ~ Beta(alpha,beta)\n";
+	}
+    std::cout << "alpha, beta ~ exponential of mean 1\n";
+
+    std::cout << "\n";
+
+    std::cout << "branch lengths ~ exponential of mean mu\n";
+    std::cout << "mu ~ exponential of mean 0.1\n";
+
+    std::cout << "\n";
+
+    std::cout << "ras ~ gamma of mean 1 and variance 1/lambda^2\n";
+    std::cout << "lambda ~ exponential of mean 1\n";
+
+    std::cout << "\n";
+
     //////////////////////
     // first the priors //
     //////////////////////
@@ -140,18 +171,27 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     ConstantNode<double> *ten = new ConstantNode<double>("ten", new double(10.0) );
 
     // base frequencies hyperprior
-    StochasticNode<double> *bf_alpha = new StochasticNode<double>( "bf_alpha", new ExponentialDistribution(one) );
-    StochasticNode<double> *bf_beta = new StochasticNode<double>( "bf_beta", new ExponentialDistribution(one) );
+    StochasticNode<double> *alpha = new StochasticNode<double>( "alpha", new ExponentialDistribution(one) );
+    StochasticNode<double> *beta = new StochasticNode<double>( "beta", new ExponentialDistribution(one) );
 
-    std::vector< const TypedDagNode<double>* > bf_rootvec(2);
-    bf_rootvec[0] = bf_alpha;
-    bf_rootvec[1] = bf_beta;
-    DeterministicNode<std::vector<double> > *bf = new DeterministicNode<std::vector<double> >( "bf", new VectorFunction< double >( bf_rootvec ) );
+    std::vector< const TypedDagNode<double>* > bf_vec(2);
+    bf_vec[0] = alpha;
+    bf_vec[1] = beta;
+    DeterministicNode<std::vector<double> > *bf = new DeterministicNode<std::vector<double> >( "bf", new VectorFunction< double >( bf_vec ) );
 
     // base frequencies prior
     TypedDagNode<std::vector<double> > *rf;
-    if(!meanRootFreq)
+    TypedDagNode<double> *pi;
+    if(rootprior){
+    	std::vector<const TypedDagNode<double> *> rf_vec(2);
+    	pi = new StochasticNode<double>( "pi", new TruncatedDistribution( new BetaDistribution( alpha, beta ), new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
+    	rf_vec[1] = pi;
+    	rf_vec[0] = new DeterministicNode<double>( "pi0", new BinarySubtraction<double,double,double>(one,pi));
+    	rf = new DeterministicNode< std::vector< double > >( "rf", new VectorFunction< double >( rf_vec ) );
+    }else{
     	rf = new StochasticNode<std::vector<double> >( "rf", new DirichletDistribution( bf ) );
+    	pi = new DeterministicNode<double>( "pi", new VectorIndexOperator<double>(rf,idx));
+    }
 
 	//Declaring a vector of matrices
 	size_t numBranches = 2*data[0]->getNumberOfTaxa() - 2;
@@ -192,8 +232,8 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		//qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q", new FreeBinaryRateMatrixVectorFunction(pi_vector) );
 	}
 
-	ContinuousStochasticNode *rec_lambda = new ContinuousStochasticNode("rec_lambda", new ExponentialDistribution(ten) );
-	DeterministicNode<double> *lambda = new DeterministicNode<double>( "lambda", new BinaryDivision<double,double,double>(one,rec_lambda));
+	ContinuousStochasticNode *mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(ten) );
+	DeterministicNode<double> *rec_mu = new DeterministicNode<double>( "rec_mu", new BinaryDivision<double,double,double>(one,mu));
     	for (unsigned int i = 0 ; i < numBranches ; i++ ) {
     		if(heterogeneous){
 			std::ostringstream pi_name;
@@ -207,26 +247,26 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 
 		std::ostringstream br_name;
 		br_name << "br(" << i << ")";
-		ContinuousStochasticNode* tmp_branch_rate = new ContinuousStochasticNode( br_name.str(), new ExponentialDistribution(lambda));
+		ContinuousStochasticNode* tmp_branch_rate = new ContinuousStochasticNode( br_name.str(), new ExponentialDistribution(rec_mu));
 		branchRates.push_back( tmp_branch_rate );
 		branchRates_nonConst.push_back( tmp_branch_rate );
 	}
-    DeterministicNode< std::vector< double > >* pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction< double >( pi_stat ) );
+    DeterministicNode< std::vector< double > >* pi_vector = new DeterministicNode< std::vector< double > >( "pi_vector", new VectorFunction< double >( pi_stat ) );
 	DeterministicNode< std::vector< double > >* br_vector = new DeterministicNode< std::vector< double > >( "br_vector", new VectorFunction< double >( branchRates ) );
 
 	if(heterogeneous){
 		qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new RbVectorFunction<RateMatrix>(qs) );
 	}
 
-    ContinuousStochasticNode *alpha = new ContinuousStochasticNode("alpha", new ExponentialDistribution(one) );
+    ContinuousStochasticNode *lambda = new ContinuousStochasticNode("lambda", new ExponentialDistribution(one) );
     ConstantNode<double> *q1 = new ConstantNode<double>("q1", new double(0.125) );
-    DeterministicNode<double> *q1_value = new DeterministicNode<double>("q1_value", new QuantileFunction(q1, new GammaDistribution(alpha, alpha) ) );
+    DeterministicNode<double> *q1_value = new DeterministicNode<double>("q1_value", new QuantileFunction(q1, new GammaDistribution(lambda, lambda) ) );
     ConstantNode<double> *q2 = new ConstantNode<double>("q2", new double(0.375) );
-    DeterministicNode<double> *q2_value = new DeterministicNode<double>("q2_value", new QuantileFunction(q2, new GammaDistribution(alpha, alpha) ) );
+    DeterministicNode<double> *q2_value = new DeterministicNode<double>("q2_value", new QuantileFunction(q2, new GammaDistribution(lambda, lambda) ) );
     ConstantNode<double> *q3 = new ConstantNode<double>("q3", new double(0.625) );
-    DeterministicNode<double> *q3_value = new DeterministicNode<double>("q3_value", new QuantileFunction(q3, new GammaDistribution(alpha, alpha) ) );
+    DeterministicNode<double> *q3_value = new DeterministicNode<double>("q3_value", new QuantileFunction(q3, new GammaDistribution(lambda, lambda) ) );
     ConstantNode<double> *q4 = new ConstantNode<double>("q4", new double(0.875) );
-    DeterministicNode<double> *q4_value = new DeterministicNode<double>("q4_value", new QuantileFunction(q4, new GammaDistribution(alpha, alpha) ) );
+    DeterministicNode<double> *q4_value = new DeterministicNode<double>("q4_value", new QuantileFunction(q4, new GammaDistribution(lambda, lambda) ) );
     std::vector<const TypedDagNode<double>* > gamma_rates = std::vector<const TypedDagNode<double>* >();
     gamma_rates.push_back(q1_value);
     gamma_rates.push_back(q2_value);
@@ -247,7 +287,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     
     DeterministicNode<BranchLengthTree> *psi = new DeterministicNode<BranchLengthTree>( "psi", new TreeAssemblyFunction(tau, br_vector) );
     std::cout << "tree okay\n";
-    GeneralBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree> *charModel = new GeneralBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, 2, true, data[0]->getNumberOfCharacters(), meanRootFreq);
+    GeneralBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree> *charModel = new GeneralBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, 2, true, data[0]->getNumberOfCharacters());
     //GeneralBranchHeterogeneousCharEvoModel<StandardState, TimeTree> *charModel = new GeneralBranchHeterogeneousCharEvoModel<StandardState, TimeTree>(tau, 2, true, data[0]->getNumberOfCharacters() );
 
     if(heterogeneous){
@@ -272,12 +312,16 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     if(!treeFixed)
     	moves.push_back( new SubtreePruneRegraft( tau, 5.0 ) );
 
-    moves.push_back( new SimplexSingleElementScale((StochasticNode<std::vector<double> >*)rf, 1.0, true, 1.0 ) );
+    if(rootprior){
+    	moves.push_back( new ScaleMove((StochasticNode<double>*)pi, 1.0, true, 5.0 ) );
+    }else{
+    	moves.push_back( new SimplexSingleElementScale((StochasticNode<std::vector<double> >*)rf, 1.0, true, 1.0 ) );
+    }
 
+    moves.push_back( new ScaleMove(lambda, 1.0, true, 1.0) );
     moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
-    moves.push_back( new ScaleMove(bf_alpha, 1.0, true, 1.0) );
-    moves.push_back( new ScaleMove(bf_beta, 1.0, true, 1.0) );
-    moves.push_back( new ScaleMove(rec_lambda, 1.0, true, 1.0) );
+    moves.push_back( new ScaleMove(beta, 1.0, true, 1.0) );
+    moves.push_back( new ScaleMove(mu, 1.0, true, 1.0) );
     //moves.push_back( new ScaleMove(dpA, 1.0, true, 1.0) );
     //moves.push_back( new ScaleMove(dpB, 1.0, true, 1.0) );
     //moves.push_back( new DPPScaleCatValsMove( pi_vector, log(2.0), 2.0 ) );
@@ -290,7 +334,6 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     	}
     	moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0, true, 1.0 ) );
     }
-    std::cout << "moves okay\n";
     bool useParallelMcmcmc = (numChains > 1);
 
     /* add the monitors */
@@ -298,28 +341,33 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 	std::vector<DagNode*> monitoredNodes;
 	DeterministicNode<double>* treeLength = new DeterministicNode<double >( "length", new TreeLengthStatistic<BranchLengthTree>(psi) );
 	monitoredNodes.push_back( treeLength );
-	monitoredNodes.push_back( alpha );
+
+	DeterministicNode<double>* meanpi;
+	if(heterogeneous){
+		meanpi = new DeterministicNode<double >( "mean_pi", new MeanFunction(pi_vector) );
+		monitoredNodes.push_back( meanpi );
+	}
+
+	monitoredNodes.push_back( mu );
 	monitoredNodes.push_back( lambda );
-	monitoredNodes.push_back( bf_alpha );
-	monitoredNodes.push_back( bf_beta );
+	monitoredNodes.push_back( pi );
+	monitoredNodes.push_back( alpha );
+	monitoredNodes.push_back( beta );
 	//monitoredNodes.push_back( numCats );
 	//monitoredNodes.push_back( cp );
 	//monitoredNodes.push_back( dpA );
 	//monitoredNodes.push_back( dpB );
-	monitoredNodes.push_back( rf );
 
 	monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc, useParallelMcmcmc, false ) );
 	if(!treeFixed){
-		/*
 		if(heterogeneous){
 			std::set<TypedDagNode<std::vector<double> > *> piset;
 			piset.insert(pi_vector);
 			monitors.push_back( new NexusTreeMonitor( psi, piset, every, name+".treelist", useParallelMcmcmc) );
 			//monitors.push_back( new ExtendedNewickTreeMonitor( tau, piset, every, name+".treelist", "\t", false, false, false, useParallelMcmcmc) );
 		}else{
-		*/
 			monitors.push_back( new NewickTreeMonitor( psi, every, name+".treelist", useParallelMcmcmc) );
-		//}
+		}
 	}
 	if(ppred){
 		monitors.push_back( new PosteriorPredictiveStateFrequencyMonitor( charactermodel, every, name+".ppred", useParallelMcmcmc) );
@@ -327,9 +375,8 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 	if(cvdata.size() > 0){
 		monitors.push_back( new CrossValidationScoreMonitor( charactermodel, cvdata[0], every, name+".cv", useParallelMcmcmc) );
 	}
-	std::cout << "monitors okay\n";
-    	Model myModel = Model(charactermodel);
-    	std::cout << "model okay\n";
+	Model myModel = Model(charactermodel);
+	std::cout << "model okay\n";
 
 	int numProcesses = numChains;
 	double startingHeat = 1.0;

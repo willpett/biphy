@@ -3,6 +3,7 @@ ${PROJECT_SRC_DIR}/TestBranchHeterogeneousBinaryModel.cpp
 ${PROJECT_SRC_DIR}/UniformRootedTopologyDistribution.cpp
 ${PROJECT_SRC_DIR}/UniformConstrainedTimeTreeDistribution.cpp
 ${PROJECT_SRC_DIR}/FreeBinaryRateMatrixVectorFunction.cpp
+${PROJECT_SRC_DIR}/TruncatedDistribution.cpp
 ${PROJECT_SRC_DIR}/CladeReader.cpp
 ${PROJECT_SRC_DIR}/NewickTreeMonitor.cpp
 ${PROJECT_SRC_DIR}/NexusTreeMonitor.cpp

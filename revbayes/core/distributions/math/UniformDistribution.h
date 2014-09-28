@@ -36,7 +36,7 @@ namespace RevBayesCore {
         
         // public member functions
         double                                              cdf(void) const;                                                                  //!< Cummulative density function
-        UniformDistribution*                                clone(void) const;                                                          //!< Create an independent clone
+        UniformDistribution*                              clone(void) const;                                                          //!< Create an independent clone
         double                                              computeLnProbability(void);
         double                                              getMax(void) const;
         double                                              getMin(void) const;
