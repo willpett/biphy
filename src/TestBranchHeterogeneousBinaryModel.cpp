@@ -59,7 +59,6 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 									const std::string &cvfile,
 									bool heterogeneous,
 									bool ppred,
-									bool meanRootFreq,
 									int every,
 									int until,
 									int numchains,
@@ -73,7 +72,6 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 		cvfile( cvfile ),
 		heterogeneous( heterogeneous ),
 		ppred( ppred ),
-		meanRootFreq( meanRootFreq),
 		every( every ),
 		until( until ),
 		numChains( numchains),
@@ -254,8 +252,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 
     if(heterogeneous){
     	charModel->setRateMatrix( qs_node );
-    	if(!meanRootFreq)
-    		charModel->setRootFrequencies( rf );
+    	charModel->setRootFrequencies( rf );
     }else{
     	charModel->setRateMatrix( q );
     	charModel->setRootFrequencies( rf );
@@ -275,8 +272,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     if(!treeFixed)
     	moves.push_back( new SubtreePruneRegraft( tau, 5.0 ) );
 
-    if(!meanRootFreq)
-    	moves.push_back( new SimplexSingleElementScale((StochasticNode<std::vector<double> >*)rf, 1.0, true, 1.0 ) );
+    moves.push_back( new SimplexSingleElementScale((StochasticNode<std::vector<double> >*)rf, 1.0, true, 1.0 ) );
 
     moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
     moves.push_back( new ScaleMove(bf_alpha, 1.0, true, 1.0) );
@@ -310,8 +306,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 	//monitoredNodes.push_back( cp );
 	//monitoredNodes.push_back( dpA );
 	//monitoredNodes.push_back( dpB );
-	if(!meanRootFreq)
-		monitoredNodes.push_back( rf );
+	monitoredNodes.push_back( rf );
 
 	monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc, useParallelMcmcmc, false ) );
 	if(!treeFixed){

@@ -40,7 +40,6 @@ namespace RevBayesCore {
     										const std::string &cvfile,
     										bool heterogeneous,
     										bool ppred,
-    										bool meanRootFreq,
     										int every,
     										int until,
     										int numchains,
@@ -62,7 +61,6 @@ namespace RevBayesCore {
 
         bool									heterogeneous;
         bool									ppred;
-        bool									meanRootFreq;
         int                                     every;
         int                                     until;
         int                                     numChains;

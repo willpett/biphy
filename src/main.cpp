@@ -24,7 +24,6 @@ int main (int argc, const char * argv[])
 		double deltaTemp = 0.1;
 		double sigmaTemp = 1;
 		bool heterogeneous = false;
-		bool meanroot = false;
 		bool overwrite = false;
 		bool ppred = false;
 
@@ -45,8 +44,6 @@ int main (int argc, const char * argv[])
 					datafile = argv[i];
 				}else if (s == "-f")	{
 					overwrite = true;
-				}else if (s == "-m")	{
-					meanroot = true;
 				}
 				else if ((s == "-t") || (s == "-T"))	{
 					i++;
@@ -114,7 +111,6 @@ int main (int argc, const char * argv[])
 			std::cerr << "\t-delta <float>\t(default = 0.1)\n";
 			std::cerr << "\t-sigma <float>\t(default = 1)\n\n";
 			std::cerr << "Other options:\n";
-			std::cerr << "\t-m\t\tuse mean root frequency (-nh only)\n";
 			std::cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
 			std::cerr << "\t-cv <file>\tcross-validation test alignment\n";
 			exit(1);
@@ -144,7 +140,7 @@ int main (int argc, const char * argv[])
 		if(cvfile != "None")
 			remove((name+".cv").c_str());
 	}
-    RevBayesCore::TestBranchHeterogeneousBinaryModel t = RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,cvfile,heterogeneous,ppred,meanroot,every,until,numChains,swapInterval,deltaTemp,sigmaTemp);
+    RevBayesCore::TestBranchHeterogeneousBinaryModel t = RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,cvfile,heterogeneous,ppred,every,until,numChains,swapInterval,deltaTemp,sigmaTemp);
     t.run();
     
     return 0;
