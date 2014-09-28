@@ -1,8 +1,0 @@
-**/*.[oa]
-**/*~
-build/
-biphy
-gmon.out
-.settings/
-.cproject
-.project
