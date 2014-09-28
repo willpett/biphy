@@ -35,7 +35,7 @@ namespace RevBayesCore {
         virtual                                            ~TruncatedDistributionUnnormalized(void);                                                  //!< Virtual destructor
         
         // public member functions
-        TruncatedDistributionUnnormalized*                              clone(void) const;                                                          //!< Create an independent clone
+        TruncatedDistributionUnnormalized*                  clone(void) const;                                                          //!< Create an independent clone
         double                                              computeLnProbability(void);
         double                                              getMax(void) const;
         double                                              getMin(void) const;                                                   //!< Qu

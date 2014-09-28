@@ -17,7 +17,7 @@ TruncatedDistributionUnnormalized::TruncatedDistributionUnnormalized(TypedDistri
 }
 
 
-TruncatedDistributionUnnormalized::TruncatedDistributionUnnormalized(const TruncatedDistributionUnnormalized &n) : TypedDistribution<double>( n ), min( n.min ), max( n.max ), f( n.f ) {
+TruncatedDistributionUnnormalized::TruncatedDistributionUnnormalized(const TruncatedDistributionUnnormalized &n) : TypedDistribution<double>( n ), min( n.min ), max( n.max ), f( n.f->clone() ) {
     // parameters are automatically copied
 }
 

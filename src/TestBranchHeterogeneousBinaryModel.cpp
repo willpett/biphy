@@ -138,7 +138,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     
     if(heterogeneous){
 		std::cout << "branch-wise constant time-heterogeneous model:\n";
-		std::cout << "branch frequencies = pi_[i] ~ iid Beta(alpha,beta)\n";
+		std::cout << "branch frequencies = pi(i) ~ iid Beta(alpha,beta)\n";
 	}else{
 		std::cout << "time-homogeneous model:\n";
 	}
@@ -147,7 +147,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 	}else{
 		std::cout << "root frequency = pi ~ Beta(alpha,beta)\n";
 	}
-    std::cout << "alpha, beta ~ exponential of mean 1\n";
+    std::cout << "alpha, beta ~ iid exponential of mean 1\n";
 
     std::cout << "\n";
 
@@ -234,8 +234,8 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 
 	ContinuousStochasticNode *mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(ten) );
 	DeterministicNode<double> *rec_mu = new DeterministicNode<double>( "rec_mu", new BinaryDivision<double,double,double>(one,mu));
-    	for (unsigned int i = 0 ; i < numBranches ; i++ ) {
-    		if(heterogeneous){
+	for (unsigned int i = 0 ; i < numBranches ; i++ ) {
+		if(heterogeneous){
 			std::ostringstream pi_name;
 			pi_name << "pi(" << i << ")";
 			pis.push_back(new StochasticNode<std::vector<double> >( pi_name.str(), new DirichletDistribution(bf) ) );
@@ -243,7 +243,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 			std::ostringstream q_name;
 			q_name << "q(" << i << ")";
 			qs.push_back(new DeterministicNode<RateMatrix>( q_name.str(), new FreeBinaryRateMatrixFunction(pis[i]) ));
-    		}
+		}
 
 		std::ostringstream br_name;
 		br_name << "br(" << i << ")";
