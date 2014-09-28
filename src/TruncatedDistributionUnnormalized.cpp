@@ -8,6 +8,11 @@ TruncatedDistributionUnnormalized::TruncatedDistributionUnnormalized(TypedDistri
     // add the parameters to the parents set
     addParameter( min );
     addParameter( max );
+    const std::set<const DagNode*> fparams = fin->getParameters();
+
+	for (std::set<const DagNode*>::iterator it = fparams.begin(); it != fparams.end(); ++it) {
+		addParameter(*it);
+	}
     
     f->redrawValue();
 	while(f->getValue() < min->getValue() || f->getValue() > max->getValue()){
@@ -74,6 +79,9 @@ void TruncatedDistributionUnnormalized::swapParameter(const DagNode *oldP, const
     else if (oldP == max) 
     {
         max = static_cast<const TypedDagNode<double>* >( newP );
+    }
+    else{
+    	f->swapParameter(oldP,newP);
     }
     
 }
