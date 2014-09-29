@@ -20,8 +20,6 @@
 #ifndef TestBranchHeterogeneousBinaryModel_H
 #define TestBranchHeterogeneousBinaryModel_H
 
-#include "Clade.h"
-
 #include <string>
 #include <vector>
 
@@ -39,6 +37,8 @@ namespace RevBayesCore {
     										const std::string &outgroupfile,
     										const std::string &cvfile,
     										bool heterogeneous,
+    										int mixture,
+    										bool dpp,
     										bool ppred,
     										bool rootprior,
     										double rootmin,
@@ -63,6 +63,8 @@ namespace RevBayesCore {
         std::string                             cvfile;
 
         bool									heterogeneous;
+        int 									mixture;
+        bool									dpp;
         bool									ppred;
         bool									rootprior;
         double                                  rootmin;

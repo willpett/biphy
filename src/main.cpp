@@ -1,4 +1,5 @@
 #include "TestBranchHeterogeneousBinaryModel.h"
+#include "RbException.h";
 #include <iostream>
 #include <stdlib.h>
 #include <fstream>
@@ -24,6 +25,8 @@ int main (int argc, const char * argv[])
 		double deltaTemp = 0.1;
 		double sigmaTemp = 1;
 		bool heterogeneous = false;
+		bool dpp = false;
+		int mixture = -1;
 		bool overwrite = false;
 		bool ppred = false;
 		bool rootprior = false;
@@ -65,9 +68,17 @@ int main (int argc, const char * argv[])
 				}
 				else if (s == "-h")	{
 					heterogeneous = false;
+				}else if (s == "-dpp")	{
+					heterogeneous = true;
+					dpp = true;
 				}else if (s == "-n")	{
 					i++;
 					numChains = atoi(argv[i]);
+				}else if (s == "-m")	{
+					i++;
+					mixture = atoi(argv[i]);
+					if(mixture > 1)
+						heterogeneous = true;
 				}
 				else if (s == "-delta")	{
 					i++;
@@ -108,12 +119,18 @@ int main (int argc, const char * argv[])
 
 			if(name == "")
 				throw(0);
+			if(dpp && !heterogeneous)
+				throw(0);
+			if(mixture && !heterogeneous)
+				throw(0);
 		}
 		catch(...)	{
 			std::cerr << "biphy -d <alignment> [-x <every> <until>] <chainname>\n\n";
 			std::cerr << "Model options:\n";
 			std::cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
 			std::cerr << "\t-nh\t\tnon-homogeneous binary substitution model\n";
+			std::cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
+			std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n";
 			std::cerr << "Optional constraints:\n";
 			std::cerr << "\t-t <file>\tfixed tree filename\n";
 			std::cerr << "\t-o <file>\toutgroup clade file\n";
@@ -152,8 +169,16 @@ int main (int argc, const char * argv[])
 		if(cvfile != "None")
 			remove((name+".cv").c_str());
 	}
-    RevBayesCore::TestBranchHeterogeneousBinaryModel t = RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,cvfile,heterogeneous,ppred,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp);
-    t.run();
+    RevBayesCore::TestBranchHeterogeneousBinaryModel t = RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,cvfile,heterogeneous,mixture,dpp,ppred,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp);
+    try
+	{
+    	t.run();
+	}
+	catch (RbException& e)
+	{
+		std::cout << "Error:\t" << e.getMessage() << '\n';
+		exit(1);
+	}
     
     return 0;
 }

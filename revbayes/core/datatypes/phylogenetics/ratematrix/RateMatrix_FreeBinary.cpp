@@ -53,13 +53,13 @@ double RateMatrix_FreeBinary::averageRate(void) const
 /** Calculate the transition probabilities */
 void RateMatrix_FreeBinary::calculateTransitionProbabilities(double t, TransitionProbabilityMatrix& P) const {
  
-    double expPart = exp( - (transitionRates[0] + transitionRates[1]) * t);
-    double pi0 = transitionRates[0] / (transitionRates[0] + transitionRates[1]);
-    double pi1 = 1.0 - pi0;
-    P[0][0] = pi0 + pi1 * expPart;
-    P[0][1] = pi1 - pi1 * expPart;
-    P[1][0] = pi0 - pi0 * expPart;
-    P[1][1] = pi1 + pi0 * expPart;
+	double expPart = exp( - (transitionRates[0] + transitionRates[1]) * t);
+	double pi0 = transitionRates[0] / (transitionRates[0] + transitionRates[1]);
+	double pi1 = 1.0 - pi0;
+	P[0][0] = pi0 + pi1 * expPart;
+	P[0][1] = pi1 - pi1 * expPart;
+	P[1][0] = pi0 - pi0 * expPart;
+	P[1][1] = pi1 + pi0 * expPart;
     
 }
 

@@ -11,15 +11,15 @@
 
 using namespace RevBayesCore;
 
-FreeBinaryRateMatrixFunction::FreeBinaryRateMatrixFunction(const TypedDagNode<std::vector<double> > *tr) : TypedFunction<RateMatrix>( new RateMatrix_FreeBinary() ), transitionRates( tr ) {
+FreeBinaryRateMatrixFunction::FreeBinaryRateMatrixFunction(const TypedDagNode<double > *pin) : TypedFunction<RateMatrix>( new RateMatrix_FreeBinary() ), pi( pin ) {
     // add the lambda parameter as a parent
-    addParameter( transitionRates );
+    addParameter( pi );
     
     update();
 }
 
 
-FreeBinaryRateMatrixFunction::FreeBinaryRateMatrixFunction(const FreeBinaryRateMatrixFunction &n) : TypedFunction<RateMatrix>( n ), transitionRates( n.transitionRates ) {
+FreeBinaryRateMatrixFunction::FreeBinaryRateMatrixFunction(const FreeBinaryRateMatrixFunction &n) : TypedFunction<RateMatrix>( n ), pi( n.pi ) {
     // no need to add parameters, happens automatically
 }
 
@@ -37,10 +37,14 @@ FreeBinaryRateMatrixFunction* FreeBinaryRateMatrixFunction::clone( void ) const 
 
 void FreeBinaryRateMatrixFunction::update( void ) {
     // get the information from the arguments for reading the file
-    const std::vector<double>& r = transitionRates->getValue();
-    
-    // set the base frequencies
-    static_cast< RateMatrix_FreeBinary* >(value)->setTransitionRates(r);
+    const double& p = pi->getValue();
+    // get the information from the arguments for reading the file
+	std::vector<double> r(2);
+	r[0] = 1- p;
+	r[1] = p;
+
+	// set the base frequencies
+	static_cast< RateMatrix_FreeBinary* >(value)->setTransitionRates(r);
     
     value->updateMatrix();
 }
@@ -48,8 +52,8 @@ void FreeBinaryRateMatrixFunction::update( void ) {
 
 
 void FreeBinaryRateMatrixFunction::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
-    if (oldP == transitionRates) {
-        transitionRates = static_cast<const TypedDagNode<std::vector<double> >* >( newP );
+    if (oldP == pi) {
+        pi = static_cast<const TypedDagNode<double >* >( newP );
     }
 }
 

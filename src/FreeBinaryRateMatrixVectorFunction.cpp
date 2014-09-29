@@ -11,11 +11,11 @@
 
 using namespace RevBayesCore;
 
-FreeBinaryRateMatrixVectorFunction::FreeBinaryRateMatrixVectorFunction(const TypedDagNode<std::vector<double> > *tr) : TypedFunction<RbVector<RateMatrix> >( new RbVector<RateMatrix>() ), transitionRates( tr ) {
+FreeBinaryRateMatrixVectorFunction::FreeBinaryRateMatrixVectorFunction(const TypedDagNode<std::vector<double> > *tr, bool rt) : TypedFunction<RbVector<RateMatrix> >( new RbVector<RateMatrix>() ), transitionRates( tr ), root( rt) {
     // add the lambda parameter as a parent
     addParameter( transitionRates );
     const std::vector<double>& r = transitionRates->getValue();
-    for (size_t i = 0; i < r.size(); ++i) {
+    for (size_t i = root; i < r.size(); ++i) {
     	value->push_back(new RateMatrix_FreeBinary());
     }
     
@@ -23,7 +23,7 @@ FreeBinaryRateMatrixVectorFunction::FreeBinaryRateMatrixVectorFunction(const Typ
 }
 
 
-FreeBinaryRateMatrixVectorFunction::FreeBinaryRateMatrixVectorFunction(const FreeBinaryRateMatrixVectorFunction &n) : TypedFunction<RbVector<RateMatrix> >( n ), transitionRates( n.transitionRates ) {
+FreeBinaryRateMatrixVectorFunction::FreeBinaryRateMatrixVectorFunction(const FreeBinaryRateMatrixVectorFunction &n) : TypedFunction<RbVector<RateMatrix> >( n ), transitionRates( n.transitionRates ), root( n.root) {
     // no need to add parameters, happens automatically
 }
 
@@ -42,7 +42,7 @@ FreeBinaryRateMatrixVectorFunction* FreeBinaryRateMatrixVectorFunction::clone( v
 void FreeBinaryRateMatrixVectorFunction::update( void ) {
     // get the information from the arguments for reading the file
     const std::vector<double>& r = transitionRates->getValue();
-    for (size_t i = 0; i < value->size(); ++i) {
+    for (size_t i = root; i < value->size(); ++i) {
     	std::vector<double> pi;
     	pi.push_back(r[i]);
     	pi.push_back(1.0-r[i]);
