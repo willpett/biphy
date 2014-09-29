@@ -1,0 +1,9 @@
+**/*.[oa]
+**/*~
+build/
+test/
+gmon.out
+biphy
+.cproject
+.project
+.settings/

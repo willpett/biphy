@@ -26,7 +26,7 @@ int main (int argc, const char * argv[])
 		double sigmaTemp = 1;
 		bool heterogeneous = false;
 		bool dpp = false;
-		int mixture = -1;
+		int mixture = 0;
 		bool overwrite = false;
 		bool ppred = false;
 		bool rootprior = false;
@@ -77,8 +77,11 @@ int main (int argc, const char * argv[])
 				}else if (s == "-m")	{
 					i++;
 					mixture = atoi(argv[i]);
-					if(mixture > 1)
+					if(mixture > 1){
 						heterogeneous = true;
+					}else{
+						mixture = 0;
+					}
 				}
 				else if (s == "-delta")	{
 					i++;
@@ -121,7 +124,7 @@ int main (int argc, const char * argv[])
 				throw(0);
 			if(dpp && !heterogeneous)
 				throw(0);
-			if(mixture && !heterogeneous)
+			if(mixture > 1 && !heterogeneous)
 				throw(0);
 		}
 		catch(...)	{

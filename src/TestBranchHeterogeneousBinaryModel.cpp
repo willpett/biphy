@@ -144,15 +144,25 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     }
     
     if(heterogeneous){
-		std::cout << "branch-wise constant time-heterogeneous model:\n";
-		std::cout << "branch frequencies = pi(i) ~ iid Beta(alpha,beta)\n";
+    	std::cout << "branch-wise constant time-heterogeneous model:\n";
+    	if(dpp){
+    		std::cout << "branch frequencies = pi(i) ~ DPP(cp)\n";
+    	}else if(mixture > 1){
+    		std::cout << "branch frequencies = pi(i) ~ mixture of " << mixture << " Beta(alpha,beta) distributions\n";
+    	}else{
+    		std::cout << "branch frequencies = pi(i) ~ iid Beta(alpha,beta)\n";
+    	}
 	}else{
 		std::cout << "time-homogeneous model:\n";
 	}
     if(rootprior){
-		std::cout << "root frequency  = pi ~ Beta(alpha,beta) truncated on (" << rootmin << "," << rootmax << ")\n";
+		std::cout << "root frequency  = phi ~ Beta(alpha,beta) truncated on (" << rootmin << "," << rootmax << ")\n";
+	}else if(dpp){
+		std::cout << "root frequency = phi ~ DPP(cp)\n";
+	}else if(mixture > 1){
+		std::cout << "root frequency = phi ~ mixture of " << mixture << " Beta(alpha,beta) distributions\n";
 	}else{
-		std::cout << "root frequency = pi ~ Beta(alpha,beta)\n";
+		std::cout << "root frequency = phi ~ Beta(alpha,beta)\n";
 	}
     std::cout << "alpha, beta ~ iid exponential of mean 1\n";
 
@@ -407,7 +417,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 
 			moves.push_back( new DPPScaleCatValsMove( (StochasticNode<std::vector<double> >*)pi_vector, log(2.0), 2.0 ) );
 			moves.push_back( new DPPAllocateAuxGibbsMove<double>( (StochasticNode<std::vector<double> >*)pi_vector, 4, 2.0 ) );
-			moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, (int)numBranches, 2.0 ) );
+			moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, (int)numBranches + 1, 2.0 ) );
 		}else if(mixture > 1){
 			std::vector<Move*> mixmoves;
 			for (size_t i = 0 ; i < mixture; i ++ ) {
