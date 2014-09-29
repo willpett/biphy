@@ -4,6 +4,7 @@ build/
 test/
 gmon.out
 biphy
+.gitignore
 .cproject
 .project
 .settings/
