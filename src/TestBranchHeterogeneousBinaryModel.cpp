@@ -228,7 +228,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		if(dpp){
 			// The prior mean number of rate categories induces an expected concentration parameter of ~meanCP
 			double priorMean = 12.0;
-			double meanCP = RbStatistics::Helper::dppConcParamFromNumTables(priorMean, (double)numBranches);
+			double meanCP = RbStatistics::Helper::dppConcParamFromNumTables(priorMean, (double)numBranches + 1);
 
 			// Setting up the hyper prior on the concentratino parameter
 			// This hyperprior is fully conditional on the DPP using a gamma distribution

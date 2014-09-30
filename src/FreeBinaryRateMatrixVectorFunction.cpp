@@ -46,7 +46,7 @@ void FreeBinaryRateMatrixVectorFunction::update( void ) {
     	std::vector<double> pi;
     	pi.push_back(r[i]);
     	pi.push_back(1.0-r[i]);
-    	((RateMatrix_FreeBinary&)(*value)[i]).setTransitionRates(r);
+    	((RateMatrix_FreeBinary&)(*value)[i]).setTransitionRates(pi);
     	(*value)[i].updateMatrix();
     }
 }
