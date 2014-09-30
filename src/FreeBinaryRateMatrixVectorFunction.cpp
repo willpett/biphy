@@ -42,7 +42,7 @@ FreeBinaryRateMatrixVectorFunction* FreeBinaryRateMatrixVectorFunction::clone( v
 void FreeBinaryRateMatrixVectorFunction::update( void ) {
     // get the information from the arguments for reading the file
     const std::vector<double>& r = transitionRates->getValue();
-    for (size_t i = root; i < value->size(); ++i) {
+    for (size_t i = root; i < r.size(); ++i) {
     	std::vector<double> pi;
     	pi.push_back(1.0-r[i]);
     	pi.push_back(r[i]);
