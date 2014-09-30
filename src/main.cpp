@@ -1,5 +1,5 @@
 #include "TestBranchHeterogeneousBinaryModel.h"
-#include "RbException.h";
+#include "RbException.h"
 #include <iostream>
 #include <stdlib.h>
 #include <fstream>

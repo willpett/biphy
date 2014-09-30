@@ -44,8 +44,8 @@ void FreeBinaryRateMatrixVectorFunction::update( void ) {
     const std::vector<double>& r = transitionRates->getValue();
     for (size_t i = root; i < value->size(); ++i) {
     	std::vector<double> pi;
-    	pi.push_back(r[i]);
     	pi.push_back(1.0-r[i]);
+    	pi.push_back(r[i]);
     	((RateMatrix_FreeBinary&)(*value)[i]).setTransitionRates(pi);
     	(*value)[i].updateMatrix();
     }
