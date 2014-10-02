@@ -372,8 +372,9 @@ template<class charType>
 const charType& RevBayesCore::DiscreteCharacterData<charType>::getCharacter( size_t tn, size_t cn ) const 
 {
     
-    if ( cn >= getNumberOfCharacters() )
+    if ( cn >= getNumberOfCharacters() ){
         throw RbException( "Character index out of range" );
+    }
     
     return getTaxonData( tn )[cn];
 }
@@ -540,8 +541,9 @@ template<class charType>
 const RevBayesCore::DiscreteTaxonData<charType>& RevBayesCore::DiscreteCharacterData<charType>::getTaxonData( size_t tn ) const 
 {
     
-    if ( tn >= getNumberOfTaxa() )
+    if ( tn >= getNumberOfTaxa() ){
         throw RbException( "Taxon index out of range" );
+    }
     
     const std::string& name = sequenceNames[tn];
     const typename std::map<std::string, DiscreteTaxonData<charType> >::const_iterator& i = taxonMap.find( name ); 
@@ -567,8 +569,9 @@ template<class charType>
 RevBayesCore::DiscreteTaxonData<charType>& RevBayesCore::DiscreteCharacterData<charType>::getTaxonData( size_t tn ) 
 {
     
-    if ( tn >= getNumberOfTaxa() )
+    if ( tn >= getNumberOfTaxa() ){
         throw RbException( "Taxon index out of range" );
+    }
     
     const std::string& name = sequenceNames[tn];
     const typename std::map<std::string, DiscreteTaxonData<charType> >::iterator& i = taxonMap.find( name ); 
@@ -607,6 +610,7 @@ const RevBayesCore::DiscreteTaxonData<charType>& RevBayesCore::DiscreteCharacter
     }
     else 
     {
+    	std::cerr << "TaxonData9\n";
         throw RbException("Cannot find taxon '" + tn + "' in the CharacterData matrix.");
     }
     
@@ -636,7 +640,6 @@ RevBayesCore::DiscreteTaxonData<charType>& RevBayesCore::DiscreteCharacterData<c
     }
     else 
     {
-        
         throw RbException("Cannot find taxon '" + tn + "' in the CharacterData matrix.");
     }
     
@@ -859,9 +862,9 @@ template<class charType>
 void RevBayesCore::DiscreteCharacterData<charType>::restoreCharacter(size_t i) 
 {
     
-    if (i >= getNumberOfCharacters() )
+    if (i >= getNumberOfCharacters() ){
         throw RbException( "Character index out of range" );
-    
+    }
     deletedCharacters.erase( i );
     
 }

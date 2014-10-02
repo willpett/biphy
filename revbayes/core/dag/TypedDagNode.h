@@ -44,7 +44,7 @@ namespace RevBayesCore {
         virtual bool                                        isSimpleNumeric(void) const;                                                //!< Is this variable a simple numeric variable? Currently only integer and real number are.
         virtual void                                        printName(std::ostream &o, const std::string &sep) const;                   //!< Monitor/Print this variable 
         virtual void                                        printValue(std::ostream &o, const std::string &sep) const;                  //!< Monitor/Print this variable 
-        virtual void                                        printValue(std::ostream &o, size_t i) const;                                //!< Monitor/Print the i-th element of this variable 
+        virtual void                                        printValue(std::ostream &o, size_t i) const;                                //!< Monitor/Print the i-th element of this variable
 
         // getters and setters
         virtual valueType&                                  getValue(void) = 0;

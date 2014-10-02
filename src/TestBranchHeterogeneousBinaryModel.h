@@ -35,11 +35,9 @@ namespace RevBayesCore {
     										const std::string &treefile,
     										const std::string &name,
     										const std::string &outgroupfile,
-    										const std::string &cvfile,
     										bool heterogeneous,
     										int mixture,
     										bool dpp,
-    										bool ppred,
     										bool rootprior,
     										double rootmin,
     										double rootmax,
@@ -48,10 +46,14 @@ namespace RevBayesCore {
     										int numchains,
     										int swapInterval,
     										double deltaTemp,
-    										double sigmaTemp);
+    										double sigmaTemp,
+    										bool saveall);
+    	TestBranchHeterogeneousBinaryModel(const std::string &name, const std::string &cvfile, bool ppred);
         virtual                                ~TestBranchHeterogeneousBinaryModel(void);                                                            //!< Virtual destructor
         
         bool                                    run();
+        void                                    open();
+        void                                    save();
         
     private:
         
@@ -75,6 +77,8 @@ namespace RevBayesCore {
         int                                     swapInterval;
         double                                  deltaTemp;
         double                                  sigmaTemp;
+        bool									saveall;
+        bool									readstream;
         
     };
     

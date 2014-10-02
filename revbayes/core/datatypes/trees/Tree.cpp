@@ -20,6 +20,8 @@
 #include "RbOptions.h"
 #include "Topology.h"
 #include "TopologyNode.h"
+#include "NewickConverter.h"
+#include "TreeUtilities.h"
 
 using namespace RevBayesCore;
 

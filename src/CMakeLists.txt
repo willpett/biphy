@@ -5,6 +5,8 @@ ${PROJECT_SRC_DIR}/UniformConstrainedTimeTreeDistribution.cpp
 ${PROJECT_SRC_DIR}/FreeBinaryRateMatrixVectorFunction.cpp
 ${PROJECT_SRC_DIR}/TruncatedDistributionUnnormalized.cpp
 ${PROJECT_SRC_DIR}/MultiMove.cpp
+${PROJECT_SRC_DIR}/ModelStreamMonitor.cpp
+${PROJECT_SRC_DIR}/ModelStreamReader.cpp
 ${PROJECT_SRC_DIR}/CladeReader.cpp
 ${PROJECT_SRC_DIR}/NewickTreeMonitor.cpp
 ${PROJECT_SRC_DIR}/NexusTreeMonitor.cpp

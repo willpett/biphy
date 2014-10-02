@@ -54,10 +54,9 @@ namespace RevBayesCore {
 
     };
 
+    // Global functions using the class
+    std::ostream&                       operator<<(std::ostream& o, const BranchLengthTree& x);                                         //!< Overloaded output operator
+    std::istream&                       operator>>(std::istream& is, BranchLengthTree& x);                                         //!< Overloaded input operator
 }
-
-// Global functions using the class
-std::ostream&                       operator<<(std::ostream& o, const RevBayesCore::BranchLengthTree& x);                                         //!< Overloaded output operator
-
 #endif
 

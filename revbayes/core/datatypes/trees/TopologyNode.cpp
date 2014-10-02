@@ -63,7 +63,7 @@ TopologyNode::TopologyNode(const std::string& n, int indx) :
 
 /** Copy constructor. We use a shallow copy. */
 TopologyNode::TopologyNode(const TopologyNode &n) : 
-    tree( NULL ) 
+    tree( n.tree )
 {
     
     // copy the members

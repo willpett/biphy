@@ -2,6 +2,7 @@
 #include "BinaryMultiplication.h"
 #include "BinarySubtraction.h"
 #include "BetaDistribution.h"
+#include "BetaSimplexMove.h"
 #include "Clade.h"
 #include "CladeReader.h"
 #include "ConstantNode.h"
@@ -25,7 +26,8 @@
 #include "MixtureAllocationMove.h"
 #include "Mcmc.h"
 #include "Model.h"
-#include "ModelMonitor.h"
+#include "ModelStreamMonitor.h"
+#include "ModelStreamReader.h"
 #include "Monitor.h"
 #include "Move.h"
 #include "MultiMove.h"
@@ -61,11 +63,9 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 									const std::string &name,
 									const std::string &treefile,
 									const std::string &outgroupfile,
-									const std::string &cvfile,
 									bool heterogeneous,
 									int mixture,
 									bool dpp,
-									bool ppred,
 									bool rootprior,
 									double rootmin,
 									double rootmax,
@@ -74,16 +74,17 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 									int numchains,
 									int swapInterval,
 									double deltaTemp,
-									double sigmaTemp) :
+									double sigmaTemp,
+									bool saveall) :
 		dataFile( datafile ),
 		name( name ),
 		treeFile( treefile ),
 		outgroupFile( outgroupfile ),
-		cvfile( cvfile ),
+		cvfile("None"),
 		heterogeneous( heterogeneous ),
 		mixture( mixture),
+		ppred(false),
 		dpp( dpp),
-		ppred( ppred ),
 		rootprior( rootprior),
 		rootmin( rootmin),
 		rootmax( rootmax),
@@ -92,13 +93,76 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 		numChains( numchains),
 		swapInterval( swapInterval ),
 		deltaTemp( deltaTemp ),
-		sigmaTemp( sigmaTemp )
+		sigmaTemp( sigmaTemp ),
+		saveall( saveall)
 {
-    
+    save();
+    readstream = false;
+}
+
+TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std::string &name, const std::string &cvfile, bool ppred) :
+		name( name ),
+		cvfile(cvfile),
+		ppred(ppred)
+{
+    open();
+    readstream = true;
 }
 
 TestBranchHeterogeneousBinaryModel::~TestBranchHeterogeneousBinaryModel() {
     // nothing to do
+}
+
+void TestBranchHeterogeneousBinaryModel::open( void ) {
+	std::ifstream is((name + ".param").c_str());
+	if (!is)        {
+		std::cerr << "error : cannot find file : " << name << ".param\n";
+		exit(1);
+	}
+
+	is >> dataFile;
+	is >> name;
+	is >> treeFile;
+	is >> outgroupFile;
+	is >> heterogeneous;
+	is >> mixture;
+	is >> dpp;
+	is >> rootprior;
+	is >> rootmin;
+	is >> rootmax;
+	is >> every;
+	is >> until;
+	is >> numChains;
+	is >> swapInterval;
+	is >> deltaTemp;
+	is >> sigmaTemp;
+	is >> saveall;
+
+	is.close();
+}
+
+void TestBranchHeterogeneousBinaryModel::save( void ) {
+	std::ofstream os((name + ".param").c_str());
+
+	os << dataFile << "\n";
+	os << name << "\n";
+	os << treeFile << "\n";
+	os << outgroupFile << "\n";
+	os << heterogeneous << "\n";
+	os << mixture << "\n";
+	os << dpp << "\n";
+	os << rootprior << "\n";
+	os << rootmin << "\n";
+	os << rootmax << "\n";
+	os << every << "\n";
+	os << until << "\n";
+	os << numChains << "\n";
+	os << swapInterval << "\n";
+	os << deltaTemp << "\n";
+	os << sigmaTemp << "\n";
+	os << saveall << "\n";
+
+	os.close();
 }
 
 
@@ -356,115 +420,117 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     StochasticNode< AbstractCharacterData > *charactermodel = new StochasticNode< AbstractCharacterData >("S", charModel );
     charactermodel->clamp( data[0] );
     std::cout << "data ok\n";
-    
+
     
     /* add the moves */
     std::vector<Move*> moves;
 	std::vector<Monitor*> monitors;
 	std::vector<DagNode*> monitoredNodes;
 
-    //moves.push_back( new NearestNeighborInterchange( tau, 2.0 ) );
-    if(!treeFixed)
-    	moves.push_back( new SubtreePruneRegraft( tau, 5.0 ) );
+	if(readstream){
+		if(ppred)
+			monitors.push_back( new PosteriorPredictiveStateFrequencyMonitor( charactermodel, every, name+".ppred") );
+		if(cvdata.size() > 0)
+			monitors.push_back( new CrossValidationScoreMonitor( charactermodel, cvdata[0], every, name+".cv") );
 
-    DeterministicNode<double>* treeLength = new DeterministicNode<double >( "length", new TreeLengthStatistic<BranchLengthTree>(psi) );
-    monitoredNodes.push_back( treeLength );
+		Model myModel = Model(charactermodel);
+		std::cout << "model okay\n";
 
-    DeterministicNode<double>* meanpi;
-	if(heterogeneous){
-		meanpi = new DeterministicNode<double >( "mean_pi", new MeanFunction(pi_vector) );
-		monitoredNodes.push_back( meanpi );
-	}
+		ModelStreamReader stream(myModel,monitors,every,name+".chain");
+		std::cout << "reading from stream\n";
+		stream.run(until);
+	}else{
+		//moves.push_back( new NearestNeighborInterchange( tau, 2.0 ) );
+		if(!treeFixed)
+			moves.push_back( new SubtreePruneRegraft( tau, 5.0 ) );
 
-    moves.push_back( new ScaleMove(mu, 1.0, true, 1.0) );
-    monitoredNodes.push_back( mu );
+		DeterministicNode<double>* treeLength = new DeterministicNode<double >( "length", new TreeLengthStatistic<BranchLengthTree>(psi) );
+		monitoredNodes.push_back( treeLength );
 
-    moves.push_back( new ScaleMove(lambda, 1.0, true, 1.0) );
-    monitoredNodes.push_back( lambda );
-
-    if(mixture > 1){
-    	moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 2.0 ) );
-    }else if(!dpp){
-    	moves.push_back( new ScaleMove((StochasticNode<double>*)phi, 1.0, true, 5.0 ) );
-    }
-    monitoredNodes.push_back( phi );
-
-    moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
-    monitoredNodes.push_back( alpha );
-
-    moves.push_back( new ScaleMove(beta, 1.0, true, 1.0) );
-	monitoredNodes.push_back( beta );
-
-	for (size_t i = 0 ; i < numBranches ; i ++ ) {
-		if(heterogeneous && !mixture && !dpp){
-			moves.push_back( new ScaleMove((StochasticNode<double>*)pi_stat[i], 1.0, true, 2.0 ) );
-		}else if(mixture > 1){
-			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 2.0 ) );
-		}
-		moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0, true, 1.0 ) );
-	}
-
-	if(heterogeneous){
-		if(dpp){
-			monitoredNodes.push_back(numCats);
-			monitoredNodes.push_back(cp);
-
-			moves.push_back( new ScaleMove(dpA, 1.0, true, 1.0) );
-			monitoredNodes.push_back(dpA);
-
-			moves.push_back( new ScaleMove(dpB, 1.0, true, 1.0) );
-			monitoredNodes.push_back(dpB);
-
-			moves.push_back( new DPPScaleCatValsMove( (StochasticNode<std::vector<double> >*)pi_vector, log(2.0), 2.0 ) );
-			moves.push_back( new DPPAllocateAuxGibbsMove<double>( (StochasticNode<std::vector<double> >*)pi_vector, 4, 2.0 ) );
-			moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, (int)numBranches + 1, 2.0 ) );
-		}else if(mixture > 1){
-			std::vector<Move*> mixmoves;
-			for (size_t i = 0 ; i < mixture; i ++ ) {
-				//mixmoves.push_back( new ScaleMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
-				moves.push_back( new ScaleMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
-				monitoredNodes.push_back((StochasticNode<double>*)pi_cats[i]);
-			}
-			//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
-		}
-	}
-
-
-    bool useParallelMcmcmc = (numChains > 1);
-	monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc, useParallelMcmcmc, false ) );
-	if(!treeFixed){
+		DeterministicNode<double>* meanpi;
 		if(heterogeneous){
-			std::set<TypedDagNode<std::vector<double> > *> piset;
-			piset.insert(pi_vector);
-			monitors.push_back( new NexusTreeMonitor( psi, piset, every, name+".treelist", useParallelMcmcmc) );
-			//monitors.push_back( new ExtendedNewickTreeMonitor( tau, piset, every, name+".treelist", "\t", false, false, false, useParallelMcmcmc) );
-		}else{
-			monitors.push_back( new NewickTreeMonitor( psi, every, name+".treelist", useParallelMcmcmc) );
+			meanpi = new DeterministicNode<double >( "mean_pi", new MeanFunction(pi_vector) );
+			monitoredNodes.push_back( meanpi );
 		}
-	}
-	if(ppred){
-		monitors.push_back( new PosteriorPredictiveStateFrequencyMonitor( charactermodel, every, name+".ppred", useParallelMcmcmc) );
-	}
-	if(cvdata.size() > 0){
-		monitors.push_back( new CrossValidationScoreMonitor( charactermodel, cvdata[0], every, name+".cv", useParallelMcmcmc) );
-	}
-	Model myModel = Model(charactermodel);
-	std::cout << "model okay\n";
 
-	int numProcesses = numChains;
-	double startingHeat = 1.0;
-	ParallelMcmcmc myPmc3(myModel, moves, monitors, "random", numChains, numProcesses, swapInterval, deltaTemp, sigmaTemp, startingHeat);
-    std::cout << "running\n";
-	myPmc3.run(until);
-    
-	for (std::vector<Move*>::iterator it = moves.begin(); it != moves.end(); ++it) {
-		const Move *theMove = *it;
-		delete theMove;
+		moves.push_back( new ScaleMove(mu, 1.0, true, 1.0) );
+		monitoredNodes.push_back( mu );
+
+		moves.push_back( new ScaleMove(lambda, 1.0, true, 1.0) );
+		monitoredNodes.push_back( lambda );
+
+		if(mixture > 1){
+			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 2.0 ) );
+		}else if(!dpp){
+			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1.0, true, 5.0 ) );
+		}
+		monitoredNodes.push_back( phi );
+
+		moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
+		monitoredNodes.push_back( alpha );
+
+		moves.push_back( new ScaleMove(beta, 1.0, true, 1.0) );
+		monitoredNodes.push_back( beta );
+
+		for (size_t i = 0 ; i < numBranches ; i ++ ) {
+			if(heterogeneous && !mixture && !dpp){
+				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 1.0, true, 2.0 ) );
+			}else if(mixture > 1){
+				moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 2.0 ) );
+			}
+			moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0, true, 1.0 ) );
+		}
+
+		if(heterogeneous){
+			if(dpp){
+				monitoredNodes.push_back(numCats);
+				monitoredNodes.push_back(cp);
+
+				moves.push_back( new ScaleMove(dpA, 1.0, true, 1.0) );
+				monitoredNodes.push_back(dpA);
+
+				moves.push_back( new ScaleMove(dpB, 1.0, true, 1.0) );
+				monitoredNodes.push_back(dpB);
+
+				moves.push_back( new DPPScaleCatValsMove( (StochasticNode<std::vector<double> >*)pi_vector, log(2.0), 2.0 ) );
+				moves.push_back( new DPPAllocateAuxGibbsMove<double>( (StochasticNode<std::vector<double> >*)pi_vector, 4, 2.0 ) );
+				moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, (int)numBranches + 1, 2.0 ) );
+			}else if(mixture > 1){
+				std::vector<Move*> mixmoves;
+				for (size_t i = 0 ; i < mixture; i ++ ) {
+					//mixmoves.push_back( new ScaleMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
+					moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
+					monitoredNodes.push_back((StochasticNode<double>*)pi_cats[i]);
+				}
+				//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
+			}
+		}
+
+		bool useParallelMcmcmc = (numChains > 1);
+		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc, useParallelMcmcmc, false ) );
+		if(!treeFixed){
+			if(heterogeneous){
+				std::set<TypedDagNode<std::vector<double> > *> piset;
+				piset.insert(pi_vector);
+				monitors.push_back( new NexusTreeMonitor( psi, piset, every, name+".treelist", useParallelMcmcmc) );
+				//monitors.push_back( new ExtendedNewickTreeMonitor( tau, piset, every, name+".treelist", "\t", false, false, false, useParallelMcmcmc) );
+			}else{
+				monitors.push_back( new NewickTreeMonitor( psi, every, name+".treelist", useParallelMcmcmc) );
+			}
+		}
+
+		Model myModel = Model(charactermodel);
+		std::cout << "model okay\n";
+
+		if(saveall)
+			monitors.push_back( new ModelStreamMonitor( myModel, every, name+".chain", (numChains > 1)) );
+
+		int numProcesses = numChains;
+		double startingHeat = 1.0;
+		ParallelMcmcmc myPmc3(myModel, moves, monitors, "random", numChains, numProcesses, swapInterval, deltaTemp, sigmaTemp, startingHeat);
+		std::cout << "running\n";
+		myPmc3.run(until);
 	}
-	for (std::vector<Monitor*>::iterator it = monitors.begin(); it != monitors.end(); ++it) {
-		const Monitor *theMonitor = *it;
-		delete theMonitor;
-	}
-    
+
     return true;
 }

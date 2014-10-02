@@ -10,7 +10,6 @@
 #define __rb_mlandis__TimeAtlasDataReader__
 
 #include "DelimitedDataReader.h"
-#include "GeographicArea.h"
 #include <boost/property_tree/ptree.hpp>
 
 #include <vector>
@@ -24,7 +23,6 @@ namespace RevBayesCore {
         TimeAtlasDataReader(const TimeAtlasDataReader& tadr);
         
         std::vector<double> getEpochs(void);
-        std::vector<std::vector<GeographicArea*> > getAreas(void);
         void readJson(void);
         void printJson(boost::property_tree::ptree const& pt);
         void fillData(boost::property_tree::ptree const& pt);

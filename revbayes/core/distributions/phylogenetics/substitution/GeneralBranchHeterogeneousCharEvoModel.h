@@ -278,7 +278,7 @@ void RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::c
     updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
     
     double*   p_mixture      = p_node;
-    
+
     // iterate over all mixture categories
     for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
     {

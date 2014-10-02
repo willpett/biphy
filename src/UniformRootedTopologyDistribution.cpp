@@ -76,7 +76,7 @@ void UniformRootedTopologyDistribution::buildRandomBinaryTree(std::vector<Topolo
         buildRandomBinaryTree(tips,size);
     }
 }
-
+/*
 void UniformRootedTopologyDistribution::rearrangeRandomBinaryTree(std::vector<TopologyNode*> &tips, std::vector<TopologyNode*> &children) {
 
 	if (children.size() > 0) {
@@ -120,7 +120,7 @@ void UniformRootedTopologyDistribution::rearrangeRandomBinaryTree(std::vector<To
 		rearrangeRandomBinaryTree(tips,children);
     }
 }
-
+*/
 
 UniformRootedTopologyDistribution* UniformRootedTopologyDistribution::clone( void ) const {
     return new UniformRootedTopologyDistribution( *this );
@@ -140,6 +140,7 @@ double UniformRootedTopologyDistribution::computeLnProbability( void ) {
 
 bool UniformRootedTopologyDistribution::matchesConstraints( void ) {
 
+
     const TopologyNode &root = value->getRoot();
 
     for (std::vector<Clade>::iterator it = constraints.begin(); it != constraints.end(); ++it)
@@ -154,8 +155,8 @@ bool UniformRootedTopologyDistribution::matchesConstraints( void ) {
 }
 
 void UniformRootedTopologyDistribution::redrawValue( void ) {
-    rearrangeTree();
-	//simulateTree();
+    //rearrangeTree();
+	simulateTree();
 }
 
 bool UniformRootedTopologyDistribution::hasOutgroup( void ) {
@@ -266,7 +267,7 @@ void UniformRootedTopologyDistribution::simulateTree( void ) {
 
     value = tau;
 }
-
+/*
 void UniformRootedTopologyDistribution::rearrangeTree( void ) {
 
 	RandomNumberGenerator* rng = GLOBAL_RNG;
@@ -333,7 +334,7 @@ void UniformRootedTopologyDistribution::rearrangeTree( void ) {
     tips.push_back(root);
 	rearrangeRandomBinaryTree(tips,internal);
 }
-
+*/
 void UniformRootedTopologyDistribution::swapParameter(const DagNode *oldP, const DagNode *newP) {
     
 }

@@ -44,7 +44,7 @@ namespace RevBayesCore {
         double                                      getTime(size_t idx) const;
         double                                      getTreeLength(void) const;
         void                                        setAge(size_t idx, double a);
-    
+
     protected:
         void                                        resizeElementVectors(size_t n);
         
@@ -56,8 +56,8 @@ namespace RevBayesCore {
     };
 
     // Global functions using the class
-    std::ostream&                       operator<<(std::ostream& o, const TimeTree& x);                                         //!< Overloaded output operator
-
+    std::ostream&                       		operator<<(std::ostream& o, const TimeTree& x);                                         //!< Overloaded output operator
+    std::istream&                       		operator>>(std::istream& is, TimeTree& x);                                         //!< Overloaded input operator
 }
 
 #endif

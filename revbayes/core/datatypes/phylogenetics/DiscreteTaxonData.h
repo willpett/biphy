@@ -90,8 +90,9 @@ template<class charType>
 charType& RevBayesCore::DiscreteTaxonData<charType>::operator[](size_t i) 
 {
     
-    if (i >= sequence.size())
+    if (i >= sequence.size()){
         throw RbException("Index out of bounds");
+    }
     
     return sequence[i];
 }
@@ -108,8 +109,9 @@ template<class charType>
 const charType& RevBayesCore::DiscreteTaxonData<charType>::operator[](size_t i) const 
 {
     
-    if (i >= sequence.size())
-        throw RbException("Index out of bounds");
+	if (i >= sequence.size()){
+		throw RbException("Index out of bounds");
+	}
     
     return sequence[i];
 }
@@ -181,8 +183,9 @@ template<class charType>
 charType& RevBayesCore::DiscreteTaxonData<charType>::getCharacter(size_t index) 
 {
     
-    if (index >= sequence.size())
-        throw RbException("Index out of bounds");
+	if (index >= sequence.size()){
+		throw RbException("Index out of bounds");
+	}
     
     return sequence[index];
 }
@@ -199,8 +202,9 @@ template<class charType>
 const charType& RevBayesCore::DiscreteTaxonData<charType>::getCharacter(size_t index) const 
 {
     
-    if (index >= sequence.size())
-        throw RbException("Index out of bounds");
+	if (index >= sequence.size()){
+		throw RbException("Index out of bounds");
+	}
     
     return sequence[index];
 }
@@ -217,8 +221,9 @@ template<class charType>
 charType& RevBayesCore::DiscreteTaxonData<charType>::getElement(size_t i) 
 {
     
-    if (i >= sequence.size())
-        throw RbException("Index out of bounds");
+	if (i >= sequence.size()){
+		throw RbException("Index out of bounds");
+	}
     
     return sequence[i];
 }
@@ -235,8 +240,9 @@ template<class charType>
 const charType& RevBayesCore::DiscreteTaxonData<charType>::getElement(size_t i) const 
 {
     
-    if (i >= sequence.size())
-        throw RbException("Index out of bounds");
+	if (i >= sequence.size()){
+		throw RbException("Index out of bounds");
+	}
     
     return sequence[i];
 }

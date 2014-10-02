@@ -58,6 +58,7 @@ namespace RevBayesCore {
         void                                                setRoot(TopologyNode* r);                                               //!< Set the root and bootstrap the Tree from it
         void                                                setRooted(bool tf);
         
+
     private:
 //        void                                                fillNodesByPreorderTraversal(TopologyNode* node);                   //!< fill the nodes vector by a preorder traversal recursively starting with this node.
         void                                                fillNodesByPhylogeneticTraversal(TopologyNode* node);               //!< fill the nodes vector by a preorder traversal recursively starting with this node.
@@ -76,6 +77,7 @@ namespace RevBayesCore {
     
     // Global functions using the class
     std::ostream&                       operator<<(std::ostream& o, const Topology& x);                                         //!< Overloaded output operator
+    std::istream&                       operator>>(std::istream& is, Topology& x);                                         //!< Overloaded input operator
     
 }
 

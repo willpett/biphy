@@ -164,7 +164,7 @@ void RevBayesCore::TypedDistribution<valueType>::setValue( const valueType &v ) 
     
     // free memory
     delete value;
-    
+
     value = Cloner<valueType, IsDerivedFrom<valueType, Cloneable>::Is >::createClone( v );
     
 }

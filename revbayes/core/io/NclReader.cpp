@@ -1414,7 +1414,7 @@ std::vector<TimeTree*> NclReader::readTimeTrees( const std::string &treeFilename
             } 
             catch (RbException e) 
             {
-                ;
+            	;
             }
         }
         
@@ -1479,29 +1479,6 @@ std::vector<TimeTree*> NclReader::readTimeTrees( const std::string &treeFilename
     }
     
     return trees;
-}
-
-std::vector<AdmixtureTree*> NclReader::readAdmixtureTrees(const std::string treeFileName, const std::string fileFormat)
-{
-    std::vector<AdmixtureTree*> adm_trees;
-    std::vector<BranchLengthTree*>* m = readBranchLengthTrees(treeFileName, fileFormat);
-    std::vector<BranchLengthTree*>::iterator it;
-    
-    if ( m != NULL && m->size() == 0 ) {
-        delete m;
-        m = readBranchLengthTrees( treeFileName, fileFormat );
-    }
-    
-    std::vector<std::string> names;
-    if (m != NULL) {
-        for (std::vector<BranchLengthTree*>::iterator it = m->begin(); it != m->end(); it++) {
-            AdmixtureTree* convertedTree = TreeUtilities::convertToAdmixtureTree( *(*it), names);
-            delete (*it);
-            adm_trees.push_back( convertedTree );
-        }
-    }
-    
-    return adm_trees;
 }
 
 

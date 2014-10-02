@@ -9,16 +9,28 @@ bool fexists(const std::string& filename) {
   return ifile;
 }
 
+void our_terminate (void);
+
+namespace {
+    static const bool SET_TERMINATE = std::set_terminate(our_terminate);
+}
+
+void our_terminate (void) { // try 1
+    try { throw; }
+    catch (RbException& e) {
+    	std::cout << "RbException:\t" << e.getMessage() << '\n';
+    }
+    exit(1);
+}
+
+
 int main (int argc, const char * argv[])
 {
-	std::cerr << "biphy version 1.0\n";
-	std::cerr << '\n';
-
-	std::string datafile = "";
-	std::string treefile = "None";
-	std::string cvfile = "None";
-	std::string outgroupfile = "None";
-	std::string name = "";
+		std::string datafile = "None";
+		std::string treefile = "None";
+		std::string cvfile = "None";
+		std::string outgroupfile = "None";
+		std::string name = "";
 
 		int numChains = 1;
 		int swapInterval = 1;
@@ -32,12 +44,13 @@ int main (int argc, const char * argv[])
 		bool rootprior = false;
 		double rootmin = 0.0;
 		double rootmax = 1.0;
+		bool saveall = false;
 
 		int every = 1;
 		int until = -1;
 		try	{
 
-			if (argc == 1)	{
+			if (argc <= 2)	{
 				throw(0);
 			}
 
@@ -62,6 +75,8 @@ int main (int argc, const char * argv[])
 				else if (s == "-o")	{
 					i++;
 					outgroupfile = argv[i];
+				}else if (s == "-s")	{
+					saveall = true;
 				}
 				else if (s == "-nh")	{
 					heterogeneous = true;
@@ -126,9 +141,13 @@ int main (int argc, const char * argv[])
 				throw(0);
 			if(mixture > 1 && !heterogeneous)
 				throw(0);
+			if(rootprior && (dpp || mixture))
+				throw(0);
 		}
 		catch(...)	{
-			std::cerr << "biphy -d <alignment> [-x <every> <until>] <chainname>\n\n";
+			std::cerr << "biphy version 1.0\n";
+			std::cerr << '\n';
+			std::cerr << "usage: biphy -d <alignment> [-x <every> <until>] <chainname>\n\n";
 			std::cerr << "Model options:\n";
 			std::cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
 			std::cerr << "\t-nh\t\tnon-homogeneous binary substitution model\n";
@@ -137,45 +156,60 @@ int main (int argc, const char * argv[])
 			std::cerr << "Optional constraints:\n";
 			std::cerr << "\t-t <file>\tfixed tree filename\n";
 			std::cerr << "\t-o <file>\toutgroup clade file\n";
-			std::cerr << "\t-rp <min> <max>\ttruncate root frequency prior\n\n";
+			std::cerr << "\t-rp <min> <max>\ttruncate root frequency prior (-nh or -h only)\n\n";
 			std::cerr << "MCMCMC options:\n";
 			std::cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
 			std::cerr << "\t-delta <float>\t(default = 0.1)\n";
 			std::cerr << "\t-sigma <float>\t(default = 1)\n\n";
 			std::cerr << "Other options:\n";
+			std::cerr << "\t-s\t\tsave entire output (default: disabled)\n";
 			std::cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
 			std::cerr << "\t-cv <file>\tcross-validation test alignment\n";
 			exit(1);
 		}
 
-	if(datafile.at(0) != '.' && datafile.at(0) != '/'){
-		datafile = "./"+datafile;
-	}
-	if(treefile != "None" && treefile.at(0) != '.' && treefile.at(0) != '/'){
-		treefile = "./"+treefile;
-	}
-	if(outgroupfile != "None" && outgroupfile.at(0) != '.' && outgroupfile.at(0) != '/'){
-		outgroupfile = "./"+outgroupfile;
-	}
-	if(cvfile != "None" && cvfile.at(0) != '.' && cvfile.at(0) != '/'){
-		cvfile = "./"+cvfile;
+	RevBayesCore::TestBranchHeterogeneousBinaryModel *chain;
+
+	if(datafile != "None"){
+		if(datafile.at(0) != '.' && datafile.at(0) != '/'){
+			datafile = "./"+datafile;
+		}
+		if(treefile != "None" && treefile.at(0) != '.' && treefile.at(0) != '/'){
+			treefile = "./"+treefile;
+		}
+		if(outgroupfile != "None" && outgroupfile.at(0) != '.' && outgroupfile.at(0) != '/'){
+			outgroupfile = "./"+outgroupfile;
+		}
+		if(cvfile != "None" && cvfile.at(0) != '.' && cvfile.at(0) != '/'){
+			cvfile = "./"+cvfile;
+		}
+
+		if(fexists(name+".param") && !overwrite){
+			std::cerr << "chain '" << name << "' exists. use overwrite option -f\n";
+			exit(1);
+		}else if(overwrite){
+			remove((name+".chain").c_str());
+			remove((name+".param").c_str());
+			remove((name+".trace").c_str());
+			remove((name+".treelist").c_str());
+			if(ppred)
+				remove((name+".ppred").c_str());
+			if(cvfile != "None")
+				remove((name+".cv").c_str());
+		}
+
+		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,heterogeneous,mixture,dpp,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall);
+	}else{
+		if(!fexists(name+".chain")){
+			std::cerr << "chain '" << name << "' does not exist\n";
+			exit(1);
+		}
+		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(name,cvfile,ppred);
 	}
 
-	if(fexists(name+".trace") && !overwrite){
-		std::cerr << "chain '" << name << "' exists. use overwrite option -f\n";
-		exit(1);
-	}else if(overwrite){
-		remove((name+".trace").c_str());
-		remove((name+".treelist").c_str());
-		if(ppred)
-			remove((name+".ppred").c_str());
-		if(cvfile != "None")
-			remove((name+".cv").c_str());
-	}
-    RevBayesCore::TestBranchHeterogeneousBinaryModel t = RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,cvfile,heterogeneous,mixture,dpp,ppred,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp);
-    try
+	try
 	{
-    	t.run();
+    	chain->run();
 	}
 	catch (RbException& e)
 	{

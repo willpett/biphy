@@ -48,6 +48,7 @@ namespace RevBayesCore {
         virtual void                                                redraw(void) = 0;                                                               //!< Redraw the current value of the node (applies only to stochastic nodes)
         
         // public member functions
+        virtual void												extractValue(std::istream& is){ std::string tmp; is >> tmp;};
         void                                                        addChild(DagNode *child) const;                                                 //!< Add a new child node
         void                                                        addParent(const DagNode *p);                                                    //!< Add a parent node
         void                                                        addTouchedElementIndex(size_t i);                                               //!< Add the index of an element that has been touch (usually for vector-like values)
@@ -106,12 +107,21 @@ namespace RevBayesCore {
         std::set<const DagNode*>                                    parents;                                                                        //!< The parents in the DAG of this node
         std::set<size_t>                                            touchedElements;
         DagNodeTypes                                                type;
-
     
     private:
         
         mutable size_t                                              refCount;
     };
+
+    inline std::ostream&                       						operator<<(std::ostream& o, DagNode* x){
+    	x->printValue(o,"\t");
+    	return o;
+    }
+
+    inline std::istream&                       						operator>>(std::istream& i, DagNode* x){
+		x->extractValue(i);
+		return i;
+	}
 
 }
 

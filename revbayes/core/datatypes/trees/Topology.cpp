@@ -9,6 +9,8 @@
 #include "RbException.h"
 #include "Topology.h"
 #include "TopologyNode.h"
+#include "NewickConverter.h"
+#include "TreeUtilities.h"
 
 #include <ostream>
 
@@ -292,4 +294,15 @@ std::ostream& RevBayesCore::operator<<(std::ostream& o, const Topology& x) {
     o << x.getNewickRepresentation();
     
     return o;
+}
+
+std::istream& RevBayesCore::operator>>(std::istream& is, Topology& x) {
+    std::string tmp;
+    is >> tmp;
+    const std::string tmp2 = tmp;
+    NewickConverter c;
+    BranchLengthTree * tree = c.convertFromNewick(tmp2);
+    x = (RevBayesCore::TreeUtilities::convertTree( *tree))->getTopology();
+
+    return is;
 }

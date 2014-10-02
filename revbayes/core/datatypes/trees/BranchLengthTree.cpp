@@ -21,6 +21,8 @@
 #include "TreeChangeEventListener.h"
 #include "Topology.h"
 #include "TopologyNode.h"
+#include "NewickConverter.h"
+#include "TreeUtilities.h"
 
 #include <cmath>
 
@@ -131,8 +133,18 @@ void BranchLengthTree::setBranchLength(size_t idx, double bl) {
 
 
 
-std::ostream& operator<<(std::ostream& o, const BranchLengthTree& x) {
+std::ostream& RevBayesCore::operator<<(std::ostream& o, const BranchLengthTree& x) {
     o << x.getNewickRepresentation();
     
     return o;
+}
+
+std::istream& RevBayesCore::operator>>(std::istream& is, BranchLengthTree& x) {
+    std::string tmp;
+    is >> tmp;
+    const std::string tmp2 = tmp;
+    NewickConverter c;
+    x = *(c.convertFromNewick(tmp2));
+
+    return is;
 }

@@ -52,7 +52,7 @@ void TreeAssemblyFunction::touch(DagNode *toucher) {
 
 
 void TreeAssemblyFunction::update( void ) {
-    
+
     if ( touchedNodeIndices.size() > 0 ) {
         const std::vector<double> &v = brlen->getValue();
         for (std::set<size_t>::iterator it = touchedNodeIndices.begin(); it != touchedNodeIndices.end(); ++it) {
@@ -65,6 +65,9 @@ void TreeAssemblyFunction::update( void ) {
             value->setBranchLength(i, v[i]);
         }
     }
+    if(&(tau->getValue()) != &(value->getTopology())){
+		value->setTopology( &(tau->getValue()), false );
+	}
 }
 
 

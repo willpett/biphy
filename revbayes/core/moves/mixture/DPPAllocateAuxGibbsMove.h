@@ -127,7 +127,7 @@ void RevBayesCore::DPPAllocateAuxGibbsMove<valueType>::performGibbsMove( void ) 
 				lnProb.push_back( log(numSeated) + tabLnL );
 			}
 			else{
-				tableVals[j] = NULL;
+				tableVals[j] = valueType();
 				numPerTab[j] = 0;
 			}
 		}

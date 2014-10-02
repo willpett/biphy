@@ -21,6 +21,8 @@
 #include "TreeChangeEventListener.h"
 #include "Topology.h"
 #include "TopologyNode.h"
+#include "NewickConverter.h"
+#include "TreeUtilities.h"
 
 using namespace RevBayesCore;
 
@@ -165,4 +167,15 @@ std::ostream& RevBayesCore::operator<<(std::ostream& o, const TimeTree& x) {
     o << x.getNewickRepresentation();
     
     return o;
+}
+
+std::istream& RevBayesCore::operator>>(std::istream& is, TimeTree& x) {
+    std::string tmp;
+    is >> tmp;
+    const std::string tmp2 = tmp;
+    NewickConverter c;
+    BranchLengthTree * tree = c.convertFromNewick(tmp2);
+    x = *(RevBayesCore::TreeUtilities::convertTree( *tree));
+
+    return is;
 }

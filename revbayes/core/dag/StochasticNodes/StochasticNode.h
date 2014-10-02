@@ -23,6 +23,7 @@
 #define StochasticNode_H
 
 #include "DynamicNode.h"
+#include "AbstractCharacterData.h"
 
 namespace RevBayesCore {
     
@@ -41,7 +42,8 @@ namespace RevBayesCore {
     
         // pure virtual methods
         virtual StochasticNode<valueType>*                  clone(void) const;
-    
+        virtual void										extractValue(std::istream& is);
+
         // methods    
         void                                                clamp(valueType *val);                                                      //!< Clamp an observation to this random variable
         virtual TypedDistribution<valueType>&               getDistribution(void);
@@ -76,6 +78,11 @@ namespace RevBayesCore {
         TypedDistribution<valueType>*                       distribution;
     
     };
+
+    template<>
+    inline void RevBayesCore::StochasticNode<RevBayesCore::AbstractCharacterData>::extractValue(std::istream &is) {
+    	throw RbException("StochasticNode<AbstractCharacterData>::extractValue not implemented");
+    }
 }
 
 
@@ -84,6 +91,12 @@ namespace RevBayesCore {
 #include "TypedDistribution.h"
 #include "UserInterface.h"
 
+template<class valueType>
+void RevBayesCore::StochasticNode<valueType>::extractValue(std::istream &is) {
+	valueType value;
+	is >> value;
+	setValue(value);
+}
 
 template<class valueType>
 RevBayesCore::StochasticNode<valueType>::StochasticNode( const std::string &n, TypedDistribution<valueType> *d ) : DynamicNode<valueType>( n ), clamped( false ), ignoreRedraw(false), lnProb( RbConstants::Double::neginf ), needsProbabilityRecalculation( true ), distribution( d ) {
@@ -236,10 +249,13 @@ void RevBayesCore::StochasticNode<valueType>::keepMe( DagNode* affecter ) {
         storedLnProb = 1.0E6;       // An almost impossible value for the density
         if ( needsProbabilityRecalculation ) 
         {
+        	//std::cerr << "recomputing Prob for\t" << this->getName() << "\n";
             lnProb = distribution->computeLnProbability();
+            //std::cerr << "recomputed Prob\n";
         }
         
         distribution->keep( affecter );
+        //std::cerr << "distribution kept\n";
         
         // clear the list of touched element indices
         this->touchedElements.clear();
@@ -251,6 +267,7 @@ void RevBayesCore::StochasticNode<valueType>::keepMe( DagNode* affecter ) {
     
     // delegate call
     DynamicNode<valueType>::keepMe( affecter );
+    //std::cerr << "dynamic node kept\n";
     
 }
 

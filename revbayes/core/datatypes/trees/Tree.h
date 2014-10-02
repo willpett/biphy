@@ -82,6 +82,7 @@ namespace RevBayesCore {
 //        void                                                setRoot(TopologyNode* r);                                               //!< Set the root and bootstrap the Tree from it
         void                                                setTopology(const Topology *t, bool owns);
         
+
     protected:
         // preventing instantiation of the base class
         Tree(void);                                                                                                         //!< Default constructor

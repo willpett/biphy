@@ -71,6 +71,10 @@ namespace RevBayesCore {
     template <class valueType>
     std::ostream&                       operator<<(std::ostream& o, const RbVector<valueType>& x);                            //!< Overloaded output operator
 
+    //template <class valueType>
+    //std::istream&                       operator>>(std::istream& is, const RbVector<valueType>& x);                            //!< Overloaded input operator
+
+
 }
 
 
@@ -238,20 +242,36 @@ size_t RevBayesCore::RbVector<valueType>::size(void) const {
 template <class valueType>
 std::ostream& RevBayesCore::operator<<(std::ostream& o, const RevBayesCore::RbVector<valueType>& x) {
     
-    o << "(";
+    o << "( ";
     for (RbConstIterator<valueType> it = x.begin(); it != x.end(); ++it) 
     {
         if ( it != x.begin() ) 
         {
-            o << ", ";
+            o << " , ";
         }
         o << *it;
     }
-    o << ")";
+    o << " )";
     
     return o;
 }
+/*
+template <class valueType>
+std::istream& RevBayesCore::operator>>(std::istream& is, RevBayesCore::RbVector<valueType>& x) {
 
+	std::string         tmp;
+    is >> tmp;
+    for (RbConstIterator<valueType> it = x.begin(); it != x.end(); ++it)
+    {
+        if ( it != x.begin() )
+        {
+            is >> tmp;
+        }
+        is >> *it;
+    }
+    is >> tmp;
+}
+*/
 
 #endif
 

@@ -182,6 +182,7 @@ double RbMath::expm1(double x)
  */
 double RbMath::gamma(double x) 
 {
+	std::cerr << "gamma\t" << x << std::endl;
     const static double gamcs[42] = {
         +.8571195590989331421920062399942e-2,
         +.4415381324841006757191315771652e-2,

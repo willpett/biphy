@@ -44,20 +44,17 @@ namespace RevBayesCore {
         
         // helper functions
         void                                                buildRandomBinaryTree(std::vector<TopologyNode *> &tips, unsigned int size);
-        void                                                rearrangeRandomBinaryTree(std::vector<TopologyNode*> &tips, std::vector<TopologyNode *> &children);
+        //void                                                rearrangeRandomBinaryTree(std::vector<TopologyNode*> &tips, std::vector<TopologyNode *> &children);
         void                                                simulateTree(void);
-        void                                                rearrangeTree(void);
+        //void                                                rearrangeTree(void);
         bool                                                matchesConstraints(void);
         bool                                                hasOutgroup(void);
         
         // members
         unsigned int                                        numTaxa;
         std::vector<std::string>                            taxonNames;
-        std::vector<TopologyNode *>                         leaves;
-        std::vector<TopologyNode *>                         internalNodes;
-        TopologyNode*					    root;
         std::vector<Clade>                                  constraints;
-        Clade						    outgroup;
+        Clade						    					outgroup;
         double                                              logTreeTopologyProb;
 
         
