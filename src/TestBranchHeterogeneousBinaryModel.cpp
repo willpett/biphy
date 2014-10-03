@@ -75,7 +75,8 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 									int swapInterval,
 									double deltaTemp,
 									double sigmaTemp,
-									bool saveall) :
+									bool saveall,
+									bool nexus) :
 		dataFile( datafile ),
 		name( name ),
 		treeFile( treefile ),
@@ -94,7 +95,8 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 		swapInterval( swapInterval ),
 		deltaTemp( deltaTemp ),
 		sigmaTemp( sigmaTemp ),
-		saveall( saveall)
+		saveall( saveall),
+		nexus(nexus)
 {
     save();
     readstream = false;
@@ -107,6 +109,7 @@ TestBranchHeterogeneousBinaryModel::TestBranchHeterogeneousBinaryModel(const std
 {
     open();
     readstream = true;
+    every = 1;
 }
 
 TestBranchHeterogeneousBinaryModel::~TestBranchHeterogeneousBinaryModel() {
@@ -137,6 +140,7 @@ void TestBranchHeterogeneousBinaryModel::open( void ) {
 	is >> deltaTemp;
 	is >> sigmaTemp;
 	is >> saveall;
+	is >> nexus;
 
 	is.close();
 }
@@ -161,6 +165,7 @@ void TestBranchHeterogeneousBinaryModel::save( void ) {
 	os << deltaTemp << "\n";
 	os << sigmaTemp << "\n";
 	os << saveall << "\n";
+	os << nexus << "\n";
 
 	os.close();
 }
@@ -433,6 +438,9 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		if(cvdata.size() > 0)
 			monitors.push_back( new CrossValidationScoreMonitor( charactermodel, cvdata[0], every, name+".cv") );
 
+		monitoredNodes.push_back(pi_vector);
+		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".out", "\t", false, true, false, false, false, false ) );
+
 		Model myModel = Model(charactermodel);
 		std::cout << "model okay\n";
 
@@ -462,7 +470,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		if(mixture > 1){
 			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 2.0 ) );
 		}else if(!dpp){
-			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1.0, true, 5.0 ) );
+			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 50.0, true, 5.0 ) );
 		}
 		monitoredNodes.push_back( phi );
 
@@ -474,7 +482,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 
 		for (size_t i = 0 ; i < numBranches ; i ++ ) {
 			if(heterogeneous && !mixture && !dpp){
-				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 1.0, true, 2.0 ) );
+				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 50.0, true, 2.0 ) );
 			}else if(mixture > 1){
 				moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 2.0 ) );
 			}
@@ -499,7 +507,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 				std::vector<Move*> mixmoves;
 				for (size_t i = 0 ; i < mixture; i ++ ) {
 					//mixmoves.push_back( new ScaleMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
-					moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
+					moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 50.0, true, 2.0 ) );
 					monitoredNodes.push_back((StochasticNode<double>*)pi_cats[i]);
 				}
 				//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
@@ -509,13 +517,13 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		bool useParallelMcmcmc = (numChains > 1);
 		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc, useParallelMcmcmc, false ) );
 		if(!treeFixed){
-			if(heterogeneous){
+			monitors.push_back( new NewickTreeMonitor( psi, every, name+".treelist", useParallelMcmcmc) );
+			if(nexus){
 				std::set<TypedDagNode<std::vector<double> > *> piset;
-				piset.insert(pi_vector);
-				monitors.push_back( new NexusTreeMonitor( psi, piset, every, name+".treelist", useParallelMcmcmc) );
+				if(heterogeneous)
+					piset.insert(pi_vector);
+				monitors.push_back( new NexusTreeMonitor( psi, piset, every, name+".treelist.nex", useParallelMcmcmc) );
 				//monitors.push_back( new ExtendedNewickTreeMonitor( tau, piset, every, name+".treelist", "\t", false, false, false, useParallelMcmcmc) );
-			}else{
-				monitors.push_back( new NewickTreeMonitor( psi, every, name+".treelist", useParallelMcmcmc) );
 			}
 		}
 

@@ -30,7 +30,7 @@ using namespace RevBayesCore;
  * \throws Does not throw an error.
  */
 double RbStatistics::InverseGamma::pdf(double shape, double scale, double x) {
-    
+
 	return (pow(scale, shape) / RbMath::gamma(shape)) * pow(x, -(shape + 1.0)) * exp(-scale / x);
 }
 

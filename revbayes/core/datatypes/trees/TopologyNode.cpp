@@ -322,6 +322,7 @@ std::string TopologyNode::buildNewickString( void ) {
 void TopologyNode::clearBranchParameters( void ) {
     
     branchComments.clear();
+    newickNeedsRefreshing = true;
     if ( !isTip()  ) 
     {
         

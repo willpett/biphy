@@ -38,7 +38,7 @@ using namespace RevBayesCore;
  * \throws Does not throw an error.
  */
 double RbStatistics::Gamma::pdf(double shape, double rate, double x) {
-    
+
 	return (pow(rate, shape) / RbMath::gamma(shape)) * pow(x, shape - 1.0) * exp(-x * rate);
 }
 
@@ -98,7 +98,7 @@ double RbStatistics::Gamma::pdf(double shape, double rate, double x, bool isLog)
  * \throws Does not throw an error.
  */
 double RbStatistics::Gamma::lnPdf(double shape, double rate, double x) {
-    
+
 	return shape * log(rate) - RbMath::lnGamma(shape) + (shape - 1.0) * log(x) - x * rate;
 }
 
@@ -131,7 +131,7 @@ double RbStatistics::Gamma::cdf(double shape, double rate, double x) {
  */
 double RbStatistics::Gamma::quantile(double shape, double rate, double p) {
 
-//	return RbStatistics::ChiSquare::quantile(p, 2.0 * shape) / (2.0 * rate); 
+//	return RbStatistics::ChiSquare::quantile(p, 2.0 * shape) / (2.0 * rate);
 	return RbStatistics::Helper::pointChi2(p, 2.0 * shape) / (2.0 * rate); 
 }
 

@@ -278,7 +278,8 @@ void Topology::setRoot( TopologyNode* r) {
     // fillNodesByPreorderTraversal(r);
     fillNodesByPhylogeneticTraversal(r);
     for (unsigned int i = 0; i < nodes.size(); ++i) {
-        nodes[i]->setIndex(i);
+    	if(nodes[i]->getIndex() == -1)
+    		nodes[i]->setIndex(i);
     }
     
 //    if (nodesByIndex.size() == 0)
@@ -299,10 +300,9 @@ std::ostream& RevBayesCore::operator<<(std::ostream& o, const Topology& x) {
 std::istream& RevBayesCore::operator>>(std::istream& is, Topology& x) {
     std::string tmp;
     is >> tmp;
-    const std::string tmp2 = tmp;
-    NewickConverter c;
-    BranchLengthTree * tree = c.convertFromNewick(tmp2);
-    x = (RevBayesCore::TreeUtilities::convertTree( *tree))->getTopology();
 
+	NewickConverter c;
+    BranchLengthTree * tree = c.convertFromNewick(tmp);
+    x = tree->getTopology();
     return is;
 }

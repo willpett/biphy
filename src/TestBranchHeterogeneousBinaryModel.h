@@ -47,7 +47,8 @@ namespace RevBayesCore {
     										int swapInterval,
     										double deltaTemp,
     										double sigmaTemp,
-    										bool saveall);
+    										bool saveall,
+    										bool nexus);
     	TestBranchHeterogeneousBinaryModel(const std::string &name, const std::string &cvfile, bool ppred);
         virtual                                ~TestBranchHeterogeneousBinaryModel(void);                                                            //!< Virtual destructor
         
@@ -78,6 +79,7 @@ namespace RevBayesCore {
         double                                  deltaTemp;
         double                                  sigmaTemp;
         bool									saveall;
+        bool									nexus;
         bool									readstream;
         
     };

@@ -23,6 +23,8 @@
 #include "Model.h"
 #include "Monitor.h"
 #include "RbException.h"
+#include "RbSettings.h"
+#include "Topology.h"
 
 #include <algorithm>
 
@@ -66,15 +68,21 @@ void ModelStreamMonitor::monitor(long gen) {
     int samplingFrequency = printgen;
 
     class valuetype;
-
+    bool pni = RbSettings::userSettings().getPrintNodeIndex();
+    RbSettings::userSettings().setPrintNodeIndex(true);
     if (gen % samplingFrequency == 0) {
     	std::set<std::string>::iterator it;
     	for ( it=nodeNames.begin() ; it != nodeNames.end(); it++ ){
-    		if(!nodeMap[*it]->isClamped())
+    		if(!nodeMap[*it]->isClamped()){
+    			StochasticNode<Topology> * node = dynamic_cast<StochasticNode<Topology>* >(nodeMap[*it]);
+    			if(node)
+    				node->getValue().getRoot().clearBranchParameters();
     			outStream << nodeMap[*it] << "\n";
+    		}
     	}
     	outStream.flush();
     }
+    RbSettings::userSettings().setPrintNodeIndex(pni);
 }
 
 

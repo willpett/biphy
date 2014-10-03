@@ -80,7 +80,7 @@ namespace RevBayesCore {
     };
 
     template<>
-    inline void RevBayesCore::StochasticNode<RevBayesCore::AbstractCharacterData>::extractValue(std::istream &is) {
+    inline void StochasticNode<AbstractCharacterData>::extractValue(std::istream &is) {
     	throw RbException("StochasticNode<AbstractCharacterData>::extractValue not implemented");
     }
 }

@@ -61,13 +61,13 @@ void UniformRootedTopologyDistribution::buildRandomBinaryTree(std::vector<Topolo
         tips.erase(tips.begin()+index);
         
         // add a left child
-        TopologyNode* leftChild = new TopologyNode(0);
+        TopologyNode* leftChild = new TopologyNode();
         parent->addChild(leftChild);
         leftChild->setParent(parent);
         tips.push_back(leftChild);
         
         // add a right child
-        TopologyNode* rightChild = new TopologyNode(0);
+        TopologyNode* rightChild = new TopologyNode();
         parent->addChild(rightChild);
         rightChild->setParent(parent);
         tips.push_back(rightChild);
@@ -172,7 +172,7 @@ void UniformRootedTopologyDistribution::simulateTree( void ) {
 
 
     // add a left child
-    TopologyNode* leftChild = new TopologyNode(0);
+    TopologyNode* leftChild = new TopologyNode();
     root->addChild(leftChild);
     leftChild->setParent(root);
     nodes.push_back(leftChild);
@@ -198,7 +198,7 @@ void UniformRootedTopologyDistribution::simulateTree( void ) {
 		}
 	}
     // add a right child
-    TopologyNode* rightChild = new TopologyNode(0);
+    TopologyNode* rightChild = new TopologyNode();
     root->addChild(rightChild);
     rightChild->setParent(root);
     nodes.push_back(rightChild);

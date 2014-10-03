@@ -48,8 +48,8 @@ namespace RevBayesCore {
     class TopologyNode  {
         
     public:
-        TopologyNode(int indx=0);                                                                                                       //!< Default constructor with optional index
-        TopologyNode(const std::string& n, int indx=0);                                                                                 //!< Constructor with name and optional index
+        TopologyNode(int indx=-1);                                                                                                       //!< Default constructor with optional index
+        TopologyNode(const std::string& n, int indx=-1);                                                                                 //!< Constructor with name and optional index
         TopologyNode(const TopologyNode &n);                                                                                            //!< Copy constructor
         virtual                                    ~TopologyNode(void);                                                                 //!< Destructor
         TopologyNode&                               operator=(const TopologyNode& n);

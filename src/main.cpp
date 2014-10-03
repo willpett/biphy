@@ -45,6 +45,7 @@ int main (int argc, const char * argv[])
 		double rootmin = 0.0;
 		double rootmax = 1.0;
 		bool saveall = false;
+		bool nexus = false;
 
 		int every = 1;
 		int until = -1;
@@ -80,6 +81,9 @@ int main (int argc, const char * argv[])
 				}
 				else if (s == "-nh")	{
 					heterogeneous = true;
+				}
+				else if (s == "-e")	{
+					nexus = true;
 				}
 				else if (s == "-h")	{
 					heterogeneous = false;
@@ -163,6 +167,7 @@ int main (int argc, const char * argv[])
 			std::cerr << "\t-sigma <float>\t(default = 1)\n\n";
 			std::cerr << "Other options:\n";
 			std::cerr << "\t-s\t\tsave entire output (default: disabled)\n";
+			std::cerr << "\t-e\t\tsave nexus treefile output (default: disabled)\n";
 			std::cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
 			std::cerr << "\t-cv <file>\tcross-validation test alignment\n";
 			exit(1);
@@ -188,17 +193,20 @@ int main (int argc, const char * argv[])
 			std::cerr << "chain '" << name << "' exists. use overwrite option -f\n";
 			exit(1);
 		}else if(overwrite){
-			remove((name+".chain").c_str());
+			if(saveall)
+				remove((name+".chain").c_str());
 			remove((name+".param").c_str());
 			remove((name+".trace").c_str());
 			remove((name+".treelist").c_str());
+			if(nexus)
+				remove((name+".treelist.nex").c_str());
 			if(ppred)
 				remove((name+".ppred").c_str());
 			if(cvfile != "None")
 				remove((name+".cv").c_str());
 		}
 
-		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,heterogeneous,mixture,dpp,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall);
+		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,heterogeneous,mixture,dpp,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
 	}else{
 		if(!fexists(name+".chain")){
 			std::cerr << "chain '" << name << "' does not exist\n";

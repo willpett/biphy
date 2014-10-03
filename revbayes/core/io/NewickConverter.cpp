@@ -5,6 +5,7 @@
 #include "TopologyNode.h"
 #include "Tree.h"
 
+#include <stdlib.h>
 #include <sstream>
 
 using namespace RevBayesCore;
@@ -45,7 +46,7 @@ BranchLengthTree* NewickConverter::convertFromNewick(std::string const &n) {
     }
     
     // construct the tree starting from the root
-    TopologyNode *root = createNode( trimmed, nodes, brlens );
+    TopologyNode *root = createNode( trimmed, nodes, brlens);
     
     // set up the tree
     tau->setRoot( root );
@@ -150,6 +151,8 @@ TopologyNode* NewickConverter::createNode(const std::string &n, std::vector<Topo
                 
                 // \todo: Needs implementation
                 //                childNode->addNodeParameter(paramName, paramValue);
+                if(paramName == "index")
+                	childNode->setIndex(atoi(paramValue.c_str()));
                 
             } while ( (c = ss.peek()) == ',' );
             
@@ -173,6 +176,9 @@ TopologyNode* NewickConverter::createNode(const std::string &n, std::vector<Topo
             stm.str(time);
             double d;
             stm >> d;
+            if(d < 1E-10 )
+				d = 0.0;
+
             nodes.push_back( childNode );
             brlens.push_back( d );
         }
@@ -230,7 +236,9 @@ TopologyNode* NewickConverter::createNode(const std::string &n, std::vector<Topo
             }
             
             // \todo: Needs implementation
-            //                childNode->addNodeParameter(paramName, paramValue);
+            //                node->addNodeParameter(paramName, paramValue);
+            if(paramName == "index")
+            	node->setIndex(atoi(paramValue.c_str()));
             
         } while ( (c = ss.peek()) == ',' );
         
@@ -254,6 +262,8 @@ TopologyNode* NewickConverter::createNode(const std::string &n, std::vector<Topo
         stm.str(time);
         double d;
         stm >> d;
+        if(d < 1E-10 )
+        	d = 0.0;
         nodes.push_back( node );
         brlens.push_back( d );
     }
@@ -261,8 +271,6 @@ TopologyNode* NewickConverter::createNode(const std::string &n, std::vector<Topo
         nodes.push_back( node );
         brlens.push_back( 0.0 );
     }
-    
-    
     return node;
 }
 

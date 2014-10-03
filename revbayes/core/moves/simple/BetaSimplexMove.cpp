@@ -66,20 +66,18 @@ double BetaSimplexMove::performSimpleMove( void ) {
 	double lnProposalRatio = 0.0;
     
     // first, we get the parameters of the Beta for the forward move
-    double alphaForward = curVal * alpha;
+    double af = alpha * curVal + 1.0;
+    double bf = alpha * (1.0-curVal) + 1.0;
     
     // then, we propose new values
-    newVal = RbStatistics::Beta::rv( alphaForward, alphaForward, *rng );
+    newVal = RbStatistics::Beta::rv( af, bf, *rng );
     
     // and calculate the Dirichlet parameters for the (imagined) reverse move
-    double alphaReverse = newVal * alpha;
-    if (alphaForward < 1E-10) {
-        // very low proposal probability which will hopefully result into a rejected proposal
-        return -1E10;
-    }
+    double ar = alpha * newVal + 1.0;
+    double br = alpha * (1.0-newVal) + 1.0;
     
     // finally, we calculate the log of the Hastings ratio
-    lnProposalRatio = RbStatistics::Beta::lnPdf(alphaReverse, alphaReverse, curVal) - RbStatistics::Beta::lnPdf(alphaForward, alphaForward, newVal);
+    lnProposalRatio = RbStatistics::Beta::lnPdf(ar, br, curVal) - RbStatistics::Beta::lnPdf(af, bf, newVal);
     
     variable->setValue( new double(newVal) );
     

@@ -71,12 +71,11 @@ void NewickTreeMonitor::monitor(long gen) {
     
     if (gen % samplingFrequency == 0) {
         tree->getValue().clearBranchParameters();
-        for (std::set<TypedDagNode< std::vector<double> > *>::iterator it = nodeVariables.begin(); it != nodeVariables.end(); ++it) {
-            tree->getValue().addBranchParameter((*it)->getName(), (*it)->getValue(), false);
-        }
+        //for (std::set<TypedDagNode< std::vector<double> > *>::iterator it = nodeVariables.begin(); it != nodeVariables.end(); ++it) {
+        //    tree->getValue().addBranchParameter((*it)->getName(), (*it)->getValue(), false);
+        //}
             
         outStream << tree->getValue();
-        
         outStream << ";" << std::endl;
         
     }

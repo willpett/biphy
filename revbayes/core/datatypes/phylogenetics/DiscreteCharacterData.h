@@ -610,7 +610,6 @@ const RevBayesCore::DiscreteTaxonData<charType>& RevBayesCore::DiscreteCharacter
     }
     else 
     {
-    	std::cerr << "TaxonData9\n";
         throw RbException("Cannot find taxon '" + tn + "' in the CharacterData matrix.");
     }
     
