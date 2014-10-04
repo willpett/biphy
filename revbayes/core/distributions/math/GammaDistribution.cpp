@@ -10,7 +10,7 @@ GammaDistribution::GammaDistribution(const TypedDagNode<double> *sh, const Typed
     addParameter( shape );
     addParameter( rate );
     
-    *value = RbStatistics::Gamma::rv(shape->getValue(), rate->getValue(), *GLOBAL_RNG);
+    redrawValue();
 }
 
 
@@ -51,6 +51,8 @@ double GammaDistribution::quantile(double p) const {
 
 void GammaDistribution::redrawValue( void ) {
     *value = RbStatistics::Gamma::rv(shape->getValue(), rate->getValue(), *GLOBAL_RNG);
+    while(*value <= getMin() || *value >= getMax())
+    	*value = RbStatistics::Gamma::rv(shape->getValue(), rate->getValue(), *GLOBAL_RNG);
 }
 
 

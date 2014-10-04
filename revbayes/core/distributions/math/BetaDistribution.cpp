@@ -9,7 +9,7 @@ BetaDistribution::BetaDistribution(const TypedDagNode<double> *a, const TypedDag
     addParameter( alpha );
     addParameter( beta );
     
-    *value = RbStatistics::Beta::rv(alpha->getValue(), beta->getValue(), *GLOBAL_RNG);
+    redrawValue();
 }
 
 
@@ -50,7 +50,7 @@ double BetaDistribution::quantile(double p) const {
 
 void BetaDistribution::redrawValue( void ) {
     *value = RbStatistics::Beta::rv(alpha->getValue(), beta->getValue(), *GLOBAL_RNG);
-    while(*value == 1.0 || *value == 0.0)
+    while(*value <= getMin() || *value >= getMax())
     	*value = RbStatistics::Beta::rv(alpha->getValue(), beta->getValue(), *GLOBAL_RNG);
 }
 

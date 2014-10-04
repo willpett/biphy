@@ -13,7 +13,7 @@ offset( NULL )
     // add the lambda parameter as a parent
     addParameter( l );
     
-    *value = RbStatistics::Exponential::rv(lambda->getValue(), *GLOBAL_RNG);
+    redrawValue();
 }
 
 ExponentialDistribution::ExponentialDistribution(const TypedDagNode<double> *l, const TypedDagNode<double> *o) : ContinuousDistribution( new double( 0.0 ) ),
@@ -24,7 +24,7 @@ ExponentialDistribution::ExponentialDistribution(const TypedDagNode<double> *l, 
     addParameter( l );
     addParameter( o );
     
-    *value = RbStatistics::Exponential::rv(lambda->getValue(), *GLOBAL_RNG) + offset->getValue();
+    redrawValue();
 }
 
 
@@ -87,6 +87,8 @@ double ExponentialDistribution::quantile(double p) const
 void ExponentialDistribution::redrawValue( void ) 
 {
     *value = RbStatistics::Exponential::rv(lambda->getValue(), *GLOBAL_RNG) + (offset != NULL ? offset->getValue() : 0.0);
+    while(*value <= getMin() || *value >= getMax())
+    	*value = RbStatistics::Exponential::rv(lambda->getValue(), *GLOBAL_RNG) + (offset != NULL ? offset->getValue() : 0.0);
 }
 
 
