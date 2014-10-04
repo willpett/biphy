@@ -63,8 +63,8 @@ double RbStatistics::Beta::lnPdf(double a, double b, double x) {
 
 	# define xsml 2.2474362225598545e-308
 
-	if(a < xsml || b < xsml)
-		return RbConstants::Double::neginf;
+	//if(a < xsml || b < xsml)
+	//	return RbConstants::Double::neginf;
 
 	return ( (RbMath::lnGamma(a + b) - RbMath::lnGamma(a) - RbMath::lnGamma(b)) + (a - 1.0) * std::log(x) + (b - 1.0) * std::log(1.0 - x) );
 }

@@ -44,7 +44,7 @@ namespace RevBayesCore {
         
         // helper functions
         void                                                attachTimes(TimeTree *psi, std::vector<TopologyNode *> &tips, size_t index, const std::vector<double> &times, double T);
-	void                                                buildRandomBinaryTree(std::vector<TopologyNode *> &tips, unsigned int size);
+        void                                                buildRandomBinaryTree(std::vector<TopologyNode *> &tips, unsigned int size);
         void                                                rearrangeRandomBinaryTree(std::vector<TopologyNode*> &tips, std::vector<TopologyNode *> &children);
         void                                                simulateTree(void);
         void                                                rearrangeTree(void);

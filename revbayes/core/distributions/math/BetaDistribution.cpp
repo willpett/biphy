@@ -50,6 +50,8 @@ double BetaDistribution::quantile(double p) const {
 
 void BetaDistribution::redrawValue( void ) {
     *value = RbStatistics::Beta::rv(alpha->getValue(), beta->getValue(), *GLOBAL_RNG);
+    while(*value == 1.0 || *value == 0.0)
+    	*value = RbStatistics::Beta::rv(alpha->getValue(), beta->getValue(), *GLOBAL_RNG);
 }
 
 
