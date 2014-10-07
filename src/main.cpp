@@ -42,6 +42,7 @@ int main (int argc, const char * argv[])
 		bool overwrite = false;
 		bool ppred = false;
 		bool rootprior = false;
+		bool ras = false;
 		double rootmin = 0.0;
 		double rootmax = 1.0;
 		bool saveall = false;
@@ -78,6 +79,8 @@ int main (int argc, const char * argv[])
 					outgroupfile = argv[i];
 				}else if (s == "-s")	{
 					saveall = true;
+				}else if (s == "-ras")	{
+					ras = true;
 				}
 				else if (s == "-nh")	{
 					heterogeneous = true;
@@ -156,7 +159,7 @@ int main (int argc, const char * argv[])
 			std::cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
 			std::cerr << "\t-nh\t\tnon-homogeneous binary substitution model\n";
 			std::cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
-			std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n";
+			std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n\n";
 			std::cerr << "Optional constraints:\n";
 			std::cerr << "\t-t <file>\tfixed tree filename\n";
 			std::cerr << "\t-o <file>\toutgroup clade file\n";
@@ -206,7 +209,7 @@ int main (int argc, const char * argv[])
 				remove((name+".cv").c_str());
 		}
 
-		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,heterogeneous,mixture,dpp,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
+		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,ras,heterogeneous,mixture,dpp,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
 	}else{
 		if(!fexists(name+".chain")){
 			std::cerr << "chain '" << name << "' does not exist\n";

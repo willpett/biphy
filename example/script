@@ -1,2 +1,1 @@
-biphy -f -d metazoa.nex -o outgroup.txt -nh -rp 0.19 0.54 meta1
-#biphy -f -d metazoa.nex -o outgroup.txt -n 4 -sigma 3 -delta 0.0003 -nh -rp 0.19 0.54 meta1
+biphy -x 10 -1 -d metazoa.nex -o outgroup.txt -nh meta1
