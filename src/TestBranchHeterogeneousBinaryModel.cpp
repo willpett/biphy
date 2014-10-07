@@ -228,14 +228,22 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 	}else{
 		std::cout << "time-homogeneous model:\n";
 	}
-    if(rootprior){
-		std::cout << "root frequency  = phi ~ Beta(alpha,beta) truncated on (" << rootmin << "," << rootmax << ")\n";
-	}else if(dpp){
-		std::cout << "root frequency = phi ~ DPP(cp)\n";
-	}else if(mixture > 1){
-		std::cout << "root frequency = phi ~ mixture of " << mixture << " Beta(alpha,beta) distributions\n";
+    if(heterogeneous){
+    	if(rootprior){
+			std::cout << "root frequency  = phi ~ Beta(alpha,beta) truncated on (" << rootmin << "," << rootmax << ")\n";
+		}else if(dpp){
+			std::cout << "root frequency = phi ~ DPP(cp)\n";
+		}else if(mixture > 1){
+			std::cout << "root frequency = phi ~ mixture of " << mixture << " Beta(alpha,beta) distributions\n";
+		}else{
+			std::cout << "root frequency = phi ~ Beta(alpha,beta)\n";
+		}
 	}else{
-		std::cout << "root frequency = phi ~ Beta(alpha,beta)\n";
+		if(rootprior){
+			std::cout << "root frequency  = phi ~ Uniform(" << rootmin << "," << rootmax << ")\n";
+		}else{
+			std::cout << "root frequency  = phi ~ Uniform(0,1)\n";
+		}
 	}
     std::cout << "alpha, beta ~ iid exponential of mean 1\n";
 
