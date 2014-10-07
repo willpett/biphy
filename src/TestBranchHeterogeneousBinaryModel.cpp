@@ -293,9 +293,15 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     // base frequencies prior
     TypedDagNode<double> *phi;
     if(rootprior){
-    	phi = new StochasticNode<double>( "phi", new TruncatedDistributionUnnormalized( new BetaDistribution( alpha, beta ), new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
+    	if(heterogeneous)
+    		phi = new StochasticNode<double>( "phi", new TruncatedDistributionUnnormalized( new BetaDistribution( alpha, beta ), new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
+    	else
+    		phi = new StochasticNode<double>( "phi", new UniformDistribution( new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
     }else{
-    	phi = new StochasticNode<double>( "phi", new BetaDistribution( alpha,beta ) );
+    	if(heterogeneous)
+    		phi = new StochasticNode<double>( "phi", new BetaDistribution( alpha,beta ) );
+    	else
+    		phi = new StochasticNode<double>( "phi", new BetaDistribution( one,one ) );
     }
 
     // branch frequency prior
@@ -480,11 +486,13 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 			//monitoredNodes.push_back(site_rates_norm);
 		}
 
-		moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
-		monitoredNodes.push_back( alpha );
+		if(heterogeneous){
+			moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
+			monitoredNodes.push_back( alpha );
 
-		moves.push_back( new ScaleMove(beta, 1.0, true, 1.0) );
-		monitoredNodes.push_back( beta );
+			moves.push_back( new ScaleMove(beta, 1.0, true, 1.0) );
+			monitoredNodes.push_back( beta );
+		}
 
 		for (size_t i = 0 ; i < numBranches ; i ++ ) {
 			if(heterogeneous && !mixture && !dpp){
