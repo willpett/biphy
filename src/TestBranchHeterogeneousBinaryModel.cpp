@@ -238,6 +238,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		}else{
 			std::cout << "root frequency = phi ~ Beta(alpha,beta)\n";
 		}
+    	std::cout << "alpha, beta ~ iid exponential of mean 1\n";
 	}else{
 		if(rootprior){
 			std::cout << "root frequency  = phi ~ Uniform(" << rootmin << "," << rootmax << ")\n";
@@ -245,7 +246,6 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 			std::cout << "root frequency  = phi ~ Uniform(0,1)\n";
 		}
 	}
-    std::cout << "alpha, beta ~ iid exponential of mean 1\n";
 
     std::cout << "\n";
 
