@@ -458,6 +458,13 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		DeterministicNode<double>* treeLength = new DeterministicNode<double >( "length", new TreeLengthStatistic<BranchLengthTree>(psi) );
 		monitoredNodes.push_back( treeLength );
 
+		if(mixture > 1){
+			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 2.0 ) );
+		}else if(!dpp){
+			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1.0, true, 5.0 ) );
+		}
+		monitoredNodes.push_back( phi );
+
 		DeterministicNode<double>* meanpi;
 		if(heterogeneous){
 			meanpi = new DeterministicNode<double >( "mean_pi", new MeanFunction(pi_vector) );
@@ -465,19 +472,13 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		}
 
 		moves.push_back( new ScaleMove(mu, 1.0, true, 1.0) );
-		monitoredNodes.push_back( mu );
+			monitoredNodes.push_back( mu );
 
 		if(ras){
 			moves.push_back( new ScaleMove(lambda, 1.0, true, 1.0) );
 			monitoredNodes.push_back( lambda );
+			//monitoredNodes.push_back(site_rates_norm);
 		}
-
-		if(mixture > 1){
-			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 2.0 ) );
-		}else if(!dpp){
-			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1.0, true, 5.0 ) );
-		}
-		monitoredNodes.push_back( phi );
 
 		moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
 		monitoredNodes.push_back( alpha );
