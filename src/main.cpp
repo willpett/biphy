@@ -77,9 +77,9 @@ int main (int argc, const char * argv[])
 				else if (s == "-o")	{
 					i++;
 					outgroupfile = argv[i];
-				}else if (s == "-s")	{
+				}else if (s == "-s"){
 					saveall = true;
-				}else if (s == "-ras")	{
+				}else if (s == "-g"){
 					ras = true;
 				}
 				else if (s == "-nh")	{
@@ -159,7 +159,8 @@ int main (int argc, const char * argv[])
 			std::cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
 			std::cerr << "\t-nh\t\tnon-homogeneous binary substitution model\n";
 			std::cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
-			std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n\n";
+			std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n";
+			std::cerr << "\t-g\t\tdiscrete gamma rates across sites model\n\n";
 			std::cerr << "Optional constraints:\n";
 			std::cerr << "\t-t <file>\tfixed tree filename\n";
 			std::cerr << "\t-o <file>\toutgroup clade file\n";
