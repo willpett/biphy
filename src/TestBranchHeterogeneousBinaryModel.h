@@ -35,10 +35,10 @@ namespace RevBayesCore {
     										const std::string &treefile,
     										const std::string &name,
     										const std::string &outgroupfile,
+    										int branchprior,
     										bool ras,
-    										bool heterogeneous,
+    										int heterogeneous,
     										int mixture,
-    										bool dpp,
     										bool rootprior,
     										double rootmin,
     										double rootmax,
@@ -66,10 +66,10 @@ namespace RevBayesCore {
         std::string                             outgroupFile;
         std::string                             cvfile;
 
+        int										branchprior;
         bool									ras;
-        bool									heterogeneous;
+        int										heterogeneous;
         int 									mixture;
-        bool									dpp;
         bool									ppred;
         bool									rootprior;
         double                                  rootmin;

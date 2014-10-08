@@ -36,8 +36,8 @@ int main (int argc, const char * argv[])
 		int swapInterval = 1;
 		double deltaTemp = 0.1;
 		double sigmaTemp = 1;
-		bool heterogeneous = false;
-		bool dpp = false;
+		int branchprior = 0;
+		int heterogeneous = 0;
 		int mixture = 0;
 		bool overwrite = false;
 		bool ppred = false;
@@ -83,16 +83,17 @@ int main (int argc, const char * argv[])
 					ras = true;
 				}
 				else if (s == "-nh")	{
-					heterogeneous = true;
+					heterogeneous = 1;
 				}
 				else if (s == "-e")	{
 					nexus = true;
 				}
 				else if (s == "-h")	{
-					heterogeneous = false;
+					heterogeneous = 0;
 				}else if (s == "-dpp")	{
-					heterogeneous = true;
-					dpp = true;
+					heterogeneous = 2;
+				}else if (s == "-dir")	{
+					branchprior = 1;
 				}else if (s == "-n")	{
 					i++;
 					numChains = atoi(argv[i]);
@@ -100,7 +101,7 @@ int main (int argc, const char * argv[])
 					i++;
 					mixture = atoi(argv[i]);
 					if(mixture > 1){
-						heterogeneous = true;
+						heterogeneous = 3;
 					}else{
 						mixture = 0;
 					}
@@ -144,11 +145,9 @@ int main (int argc, const char * argv[])
 
 			if(name == "")
 				throw(0);
-			if(dpp && !heterogeneous)
-				throw(0);
 			if(mixture > 1 && !heterogeneous)
 				throw(0);
-			if(rootprior && (dpp || mixture))
+			if(rootprior && (heterogeneous > 1))
 				throw(0);
 		}
 		catch(...)	{
@@ -160,7 +159,8 @@ int main (int argc, const char * argv[])
 			std::cerr << "\t-nh\t\tnon-homogeneous binary substitution model\n";
 			std::cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
 			std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n";
-			std::cerr << "\t-ras\t\tdiscrete gamma rates across sites model\n\n";
+			std::cerr << "\t-ras\t\tdiscrete gamma rates across sites model\n";
+			std::cerr << "\t-dir\t\tcompound dirichlet branch length prior\n\n";
 			std::cerr << "Optional constraints:\n";
 			std::cerr << "\t-t <file>\tfixed tree filename\n";
 			std::cerr << "\t-o <file>\toutgroup clade file\n";
@@ -210,7 +210,7 @@ int main (int argc, const char * argv[])
 				remove((name+".cv").c_str());
 		}
 
-		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,ras,heterogeneous,mixture,dpp,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
+		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,mixture,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
 	}else{
 		if(!fexists(name+".chain")){
 			std::cerr << "chain '" << name << "' does not exist\n";

@@ -217,7 +217,7 @@ ${REVBAYES_DIR}/core/moves/simple/SimpleMove.h
 #${REVBAYES_DIR}/core/moves/simple/CompletePathRescaleMove.cpp
 #${REVBAYES_DIR}/core/moves/simple/SwitchRateJumpMove.h
 ${REVBAYES_DIR}/core/moves/simple/SimplexMove.h
-#${REVBAYES_DIR}/core/moves/simple/SimplexSingleElementScale.h
+${REVBAYES_DIR}/core/moves/simple/SimplexSingleElementScale.h
 #${REVBAYES_DIR}/core/moves/simple/SlidingMove.h
 #${REVBAYES_DIR}/core/moves/simple/PathValueScalingMove.h
 ${REVBAYES_DIR}/core/moves/simple/SubtreePruneRegraft.h
@@ -236,7 +236,7 @@ ${REVBAYES_DIR}/core/moves/simple/BetaSimplexMove.cpp
 #${REVBAYES_DIR}/core/moves/simple/SingleElementScaleMove.cpp
 #${REVBAYES_DIR}/core/moves/simple/RandomGeometricWalkMove.h
 #${REVBAYES_DIR}/core/moves/simple/RandomGeometricWalkMove.cpp
-#${REVBAYES_DIR}/core/moves/simple/SimplexSingleElementScale.cpp
+${REVBAYES_DIR}/core/moves/simple/SimplexSingleElementScale.cpp
 #${REVBAYES_DIR}/core/moves/simple/RandomIntegerWalkMove.h
 ${REVBAYES_DIR}/core/moves/SingleRandomMoveSchedule.h
 #${REVBAYES_DIR}/core/moves/trees
