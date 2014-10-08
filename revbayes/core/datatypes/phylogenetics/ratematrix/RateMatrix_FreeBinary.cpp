@@ -47,7 +47,7 @@ RateMatrix_FreeBinary& RateMatrix_FreeBinary::operator=(const RateMatrix_FreeBin
 
 double RateMatrix_FreeBinary::averageRate(void) const
 {
-    return 1.0;
+    return 2.0;
 }
 
 /** Calculate the transition probabilities */
