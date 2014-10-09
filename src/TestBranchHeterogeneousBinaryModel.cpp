@@ -513,7 +513,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 			tree_length = new DeterministicNode<double >("length", new TreeLengthStatistic<BranchLengthTree>(psi) );
 		}else if(branchprior == 1){
 			moves.push_back(new ScaleMove((StochasticNode<double>*)tree_length, 1.0, true, 1.0));
-			moves.push_back(new SimplexSingleElementScale(br_times, 2.0, true, numBranches));
+			moves.push_back(new SimplexSingleElementScale(br_times, 2.0, true, (int)numBranches/3));
 		}
 		monitoredNodes.push_back( tree_length );
 

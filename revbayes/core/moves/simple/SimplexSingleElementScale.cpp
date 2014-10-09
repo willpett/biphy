@@ -73,6 +73,9 @@ double SimplexSingleElementScale::performSimpleMove( void ) {
     double a = alpha * currentValue + 1.0;
     double b = alpha * (1.0-currentValue) + 1.0;
     double new_value = RbStatistics::Beta::rv(a, b, *rng);
+    while(new_value == 0.0 || new_value == 1.0){
+    	new_value = RbStatistics::Beta::rv(a, b, *rng);
+    }
     
     // set the value
     value[chosenIndex] = new_value;
