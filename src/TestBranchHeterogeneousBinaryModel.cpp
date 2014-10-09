@@ -398,7 +398,9 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 	ContinuousStochasticNode *mu;
 	DeterministicNode<double> *rec_mu;
 	TypedDagNode< std::vector< double > >* br_vector;
+
 	StochasticNode< std::vector< double > >* br_times;
+	DeterministicNode<double>* tree_length_alpha;
 	TypedDagNode<double>* tree_length;
 
 	// branch length prior
@@ -417,7 +419,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		br_vector = new DeterministicNode< std::vector< double > >( "br_vector", new VectorFunction< double >( branchRates ) );
 	}else if(branchprior == 1){
 		ConstantNode<std::vector<double> > *conc = new ConstantNode<std::vector<double> >("conc", new std::vector<double>(numBranches,1.0) );
-		tree_length = new StochasticNode<double>("length", new ExponentialDistribution(one));
+		tree_length = new StochasticNode<double>("length", new GammaDistribution(one,one));
 		br_times = new StochasticNode< std::vector< double > >( "br_times", new DirichletDistribution( conc));
 		br_vector = new DeterministicNode< std::vector< double > >( "br_vector", new VectorScaleFunction(br_times,tree_length) );
 	}
