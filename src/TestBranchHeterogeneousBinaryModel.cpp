@@ -576,7 +576,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 			//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
 		}
 
-		monitoredNodes.push_back(pi_vector);
+		//monitoredNodes.push_back(pi_vector);
 
 		bool useParallelMcmcmc = (numChains > 1);
 		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc, useParallelMcmcmc, false ) );
