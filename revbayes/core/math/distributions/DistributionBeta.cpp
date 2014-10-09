@@ -187,6 +187,16 @@ double RbStatistics::Beta::quantile(double alpha, double beta, double x) {
 #define expmax	(DBL_MAX_EXP * RbConstants::LN2)/* = log(DBL_MAX) */
 
 double RbStatistics::Beta::rv(double aa, double bb, RandomNumberGenerator& rng) {
+	double x = RbStatistics::Beta::rv_unsafe(aa, bb, rng);
+	while(	RbMath::compEssentiallyEqual(x,1.0,std::numeric_limits<double>::epsilon()) ||
+		RbMath::compEssentiallyEqual(x,0.0,std::numeric_limits<double>::epsilon()) ||
+		RbMath::isNan(x))
+		x = RbStatistics::Beta::rv_unsafe(aa, bb, rng);
+
+	return x;
+}
+
+double RbStatistics::Beta::rv_unsafe(double aa, double bb, RandomNumberGenerator& rng) {
     double a, b, alpha;
     double r, s, t, u1, u2, v, w, y, z;
 

@@ -1,6 +1,7 @@
 set(SRC_FILES
 ${PROJECT_SRC_DIR}/CladeReader.cpp
 ${PROJECT_SRC_DIR}/CrossValidationScoreMonitor.cpp
+${PROJECT_SRC_DIR}/DPPBetaSimplexMove.cpp
 ${PROJECT_SRC_DIR}/FreeBinaryRateMatrixVectorFunction.cpp
 ${PROJECT_SRC_DIR}/ModelStreamMonitor.cpp
 ${PROJECT_SRC_DIR}/ModelStreamReader.cpp

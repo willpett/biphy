@@ -1,6 +1,9 @@
 #include "BetaDistribution.h"
 #include "DistributionBeta.h"
 #include "RandomNumberFactory.h"
+#include "RbMathLogic.h"
+
+#include <limits>
 
 using namespace RevBayesCore;
 
@@ -50,8 +53,6 @@ double BetaDistribution::quantile(double p) const {
 
 void BetaDistribution::redrawValue( void ) {
     *value = RbStatistics::Beta::rv(alpha->getValue(), beta->getValue(), *GLOBAL_RNG);
-    while(*value <= getMin() || *value >= getMax())
-    	*value = RbStatistics::Beta::rv(alpha->getValue(), beta->getValue(), *GLOBAL_RNG);
 }
 
 

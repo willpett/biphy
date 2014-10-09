@@ -73,7 +73,7 @@ bool RbMath::compDefinitelyGreaterThan(double a, double b) {
 
 /** Tests whether one number is greater than another */
 bool RbMath::compDefinitelyGreaterThan(double a, double b, double epsilon) {
-    
+
     return (a - b) > ( (fabs(a) < fabs(b) ? fabs(b) : fabs(a)) * epsilon);
 }
 
@@ -88,7 +88,7 @@ bool RbMath::compDefinitelyLessThan(double a, double b) {
 
 /** Tests whether one number is less than another */
 bool RbMath::compDefinitelyLessThan(double a, double b, double epsilon) {
-    
+	//return fabs(b - a) >= epsilon;
     return (b - a) > ( (fabs(a) < fabs(b) ? fabs(b) : fabs(a)) * epsilon);
 }
 

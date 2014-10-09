@@ -13,7 +13,7 @@
 #include "DPPAllocateAuxGibbsMove.h"
 #include "DPPGibbsConcentrationMove.h"
 #include "DppNumTablesStatistic.h"
-#include "DPPScaleCatValsMove.h"
+#include "DPPBetaSimplexMove.h"
 #include "ExponentialDistribution.h"
 #include "ExtendedNewickTreeMonitor.h"
 #include "FileMonitor.h"
@@ -348,6 +348,8 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 				q_name << "q(" << i << ")";
 				qs.push_back(new DeterministicNode<RateMatrix>( q_name.str(), new FreeBinaryRateMatrixFunction(pi_stat[i]) ));
 			}
+			pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
+			qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new RbVectorFunction<RateMatrix>(qs) );
 		}else if(heterogeneous == 2){
 			// Setting up the hyper prior on the concentration parameter
 			// This hyperprior is fully conditional on the DPP using a gamma distribution
@@ -387,9 +389,11 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 
 			delete phi;
 			phi = new StochasticNode<double>( "phi", new MixtureDistribution<double>(pi_mix,probs) );
+
+			pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
+			qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new RbVectorFunction<RateMatrix>(qs) );
 		}
-		pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
-		qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new RbVectorFunction<RateMatrix>(qs) );
+
 	}else{
 		q = new DeterministicNode<RateMatrix>( "q", new FreeBinaryRateMatrixFunction(phi) );
 	}
@@ -559,7 +563,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 			moves.push_back( new ScaleMove(dpB, 1.0, true, 1.0) );
 			monitoredNodes.push_back(dpB);
 
-			moves.push_back( new DPPScaleCatValsMove( (StochasticNode<std::vector<double> >*)pi_vector, log(2.0), 2.0 ) );
+			moves.push_back( new DPPBetaSimplexMove( (StochasticNode<std::vector<double> >*)pi_vector, 1.0 , 1.0 ) );
 			moves.push_back( new DPPAllocateAuxGibbsMove<double>( (StochasticNode<std::vector<double> >*)pi_vector, 4, 2.0 ) );
 			moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, (int)numBranches + 1, 2.0 ) );
 		}else if(heterogeneous == 3){
@@ -571,6 +575,8 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 			}
 			//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
 		}
+
+		monitoredNodes.push_back(pi_vector);
 
 		bool useParallelMcmcmc = (numChains > 1);
 		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc, useParallelMcmcmc, false ) );
