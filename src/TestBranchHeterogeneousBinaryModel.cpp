@@ -287,7 +287,6 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     ConstantNode<int> *idx = new ConstantNode<int>("idx", new int(1) );
     ConstantNode<double> *one = new ConstantNode<double>("one", new double(1.0) );
     ConstantNode<double> *ten = new ConstantNode<double>("ten", new double(10.0) );
-    ConstantNode<double> *onehundred = new ConstantNode<double>("onehundred", new double(100.0) );
 
     //number of branches
 	size_t numBranches = 2*data[0]->getNumberOfTaxa() - 2;
@@ -314,21 +313,27 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 	std::vector< ContinuousStochasticNode *> branchRates_nonConst;
 
     // base frequencies hyperprior
-    StochasticNode<double> *alpha = new StochasticNode<double>( "alpha", new ExponentialDistribution(one) );
-    StochasticNode<double> *beta = new StochasticNode<double>( "beta", new ExponentialDistribution(one) );
+    StochasticNode<double> *alpha;
+    StochasticNode<double> *beta;
 
     // base frequencies prior
     TypedDagNode<double> *phi;
     if(rootprior){
-    	if(heterogeneous)
+    	if(heterogeneous){
+    		alpha = new StochasticNode<double>( "alpha", new ExponentialDistribution(one) );
+    		beta = new StochasticNode<double>( "beta", new ExponentialDistribution(one) );
     		phi = new StochasticNode<double>( "phi", new TruncatedDistributionUnnormalized( new BetaDistribution( alpha, beta ), new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
-    	else
+    	}else{
     		phi = new StochasticNode<double>( "phi", new UniformDistribution( new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
+    	}
     }else{
-    	if(heterogeneous)
+    	if(heterogeneous){
+    		alpha = new StochasticNode<double>( "alpha", new ExponentialDistribution(one) );
+    		beta = new StochasticNode<double>( "beta", new ExponentialDistribution(one) );
     		phi = new StochasticNode<double>( "phi", new BetaDistribution( alpha,beta ) );
-    	else
+    	}else{
     		phi = new StochasticNode<double>( "phi", new BetaDistribution( one,one ) );
+    	}
     }
 
     // branch frequency prior
@@ -398,11 +403,13 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 
 	// branch length prior
 	if(branchprior == 0){
-		mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(onehundred) );
+		mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(ten) );
 		rec_mu = new DeterministicNode<double>( "rec_mu", new BinaryDivision<double,double,double>(one,mu));
+		int w = numBranches > 0 ? (int) log10 ((double) numBranches) + 1 : 1;
 		for (unsigned int i = 0 ; i < numBranches ; i++ ) {
 			std::ostringstream br_name;
-			br_name << "br(" << i << ")";
+			br_name << "br(" << setfill('0') << setw(w) << i << ")";
+
 			ContinuousStochasticNode* tmp_branch_rate = new ContinuousStochasticNode( br_name.str(), new ExponentialDistribution(rec_mu));
 			branchRates.push_back( tmp_branch_rate );
 			branchRates_nonConst.push_back( tmp_branch_rate );
@@ -476,8 +483,8 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		if(cvdata.size() > 0)
 			monitors.push_back( new CrossValidationScoreMonitor( charactermodel, cvdata[0], every, name+".cv") );
 
-		monitoredNodes.push_back(pi_vector);
-		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".out", "\t", false, true, false, false, false, false ) );
+		//monitoredNodes.push_back(pi_vector);
+		//monitors.push_back( new FileMonitor( monitoredNodes, every, name+".out", "\t", false, true, false, false, false, false ) );
 
 		Model myModel = Model(charactermodel);
 		std::cout << "model okay\n";

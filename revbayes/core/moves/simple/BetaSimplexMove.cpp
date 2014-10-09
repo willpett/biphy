@@ -71,6 +71,9 @@ double BetaSimplexMove::performSimpleMove( void ) {
     
     // then, we propose new values
     newVal = RbStatistics::Beta::rv( af, bf, *rng );
+    while(newVal == 0.0 || newVal == 1.0){
+    	newVal = RbStatistics::Beta::rv( af, bf, *rng );
+    }
     
     // and calculate the Dirichlet parameters for the (imagined) reverse move
     double ar = alpha * newVal + 1.0;

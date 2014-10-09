@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 2.6)
 project(biphy)
 
 find_package(OpenMP REQUIRED)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -g -pg -msse -msse2 -msse3 -lpthread ${OpenMP_CXX_FLAGS}")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os -g -pg ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os -g -msse -msse2 -msse3 ${OpenMP_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os -g ${OpenMP_C_FLAGS}")
 
 
 set(REVBAYES_DIR ${CMAKE_SOURCE_DIR}/revbayes)
@@ -20,4 +20,8 @@ add_subdirectory(src)
 set(TARGET_NAME "biphy")
 add_executable(${TARGET_NAME} ${PROJECT_SRC_DIR}/main.cpp)
 set_target_properties(${TARGET_NAME} PROPERTIES PREFIX "../")
-target_link_libraries(${TARGET_NAME} rb-core wp-lib pthread gomp)
+target_link_libraries(${TARGET_NAME} rb-core wp-lib gomp)
+
+add_executable(convert ${PROJECT_SRC_DIR}/convert.cpp)
+set_target_properties(convert PROPERTIES PREFIX "../")
+target_link_libraries(convert rb-core wp-lib)

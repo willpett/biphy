@@ -168,7 +168,7 @@ TopologyNode* NewickConverter::createNode(const std::string &n, std::vector<Topo
         if ( ss.peek() == ':' ) {
             ss.ignore();
             std::string time = "";
-            while ( ss.good() && (c = ss.peek()) != ';' && c != ','  && c != ')') {
+            while ( ss.good() && (c = ss.peek()) != ';' && c != ','  && c != ')' && c != ')' && c != '[') {
                 time += ss.get();
             }
             
@@ -181,12 +181,57 @@ TopologyNode* NewickConverter::createNode(const std::string &n, std::vector<Topo
 
             nodes.push_back( childNode );
             brlens.push_back( d );
-        }
-        else {
+        }else{
             nodes.push_back( childNode );
             brlens.push_back( 0.0 );
         }
-        
+
+        if ( ss.peek() == '[' ) {
+			ss.ignore();
+
+			do {
+
+				// ignore the '&' before parameter name
+				if ( ss.peek() == '&')
+				{
+					ss.ignore();
+				}
+
+				// read the parameter name
+				std::string paramName = "";
+				while ( ss.good() && (c = ss.peek()) != '=' && c != ',')
+				{
+					paramName += ss.get();
+				}
+
+				// ignore the equal sign between parameter name and value
+				if ( ss.peek() == '=')
+				{
+					ss.ignore();
+				}
+
+				// read the parameter name
+				std::string paramValue = "";
+				while ( ss.good() && (c = ss.peek()) != ']' && c != ',')
+				{
+					paramValue += ss.get();
+				}
+
+				// \todo: Needs implementation
+				//                childNode->addNodeParameter(paramName, paramValue);
+				//std::cout << paramName << "\t" << atof(paramValue.c_str()) << std::endl;
+				childNode->addBranchParameter(paramName,atof(paramValue.c_str()));
+
+			} while ( (c = ss.peek()) == ',' );
+
+			// ignore the final ']'
+			if ( (c = ss.peek()) == ']' )
+			{
+				ss.ignore();
+			}
+
+		}
+
         // skip comma
         if ( ss.peek() == ',' ) {
             ss.ignore();
@@ -251,10 +296,11 @@ TopologyNode* NewickConverter::createNode(const std::string &n, std::vector<Topo
     }
     
     // read the optinal  branch length
+
     if ( ss.peek() == ':' ) {
         ss.ignore();
         std::string time = "";
-        while ( (c = ss.peek()) == ';' || c == ',') {
+        while ( (c = ss.peek()) == ';' || c == ',' || c == '[') {
             time += ss.get();
         }
         
@@ -266,11 +312,57 @@ TopologyNode* NewickConverter::createNode(const std::string &n, std::vector<Topo
         	d = 0.0;
         nodes.push_back( node );
         brlens.push_back( d );
-    }
-    else {
+    }else {
         nodes.push_back( node );
         brlens.push_back( 0.0 );
     }
+
+    if ( ss.peek() == '[' ) {
+		ss.ignore();
+
+		do {
+
+			// ignore the '&' before parameter name
+			if ( ss.peek() == '&')
+			{
+				ss.ignore();
+			}
+
+			// read the parameter name
+			std::string paramName = "";
+			while ( ss.good() && (c = ss.peek()) != '=' && c != ',')
+			{
+				paramName += ss.get();
+			}
+
+			// ignore the equal sign between parameter name and value
+			if ( ss.peek() == '=')
+			{
+				ss.ignore();
+			}
+
+			// read the parameter name
+			std::string paramValue = "";
+			while ( ss.good() && (c = ss.peek()) != ']' && c != ',')
+			{
+				paramValue += ss.get();
+			}
+
+			// \todo: Needs implementation
+			//                childNode->addNodeParameter(paramName, paramValue);
+			//std::cout << paramName << "\t" << paramValue << std::endl;
+			node->addBranchParameter(paramName,atof(paramValue.c_str()));
+
+		} while ( (c = ss.peek()) == ',' );
+
+		// ignore the final ']'
+		if ( (c = ss.peek()) == ']' )
+		{
+			ss.ignore();
+		}
+
+	}
+
     return node;
 }
 

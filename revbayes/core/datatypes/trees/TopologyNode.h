@@ -61,6 +61,7 @@ namespace RevBayesCore {
 
         // public methods
         void                                        addBranchParameter(const std::string &n, const std::vector<double> &p, bool io);
+        void                                        addBranchParameter(const std::string &n, const double &p);
         void                                        addChild(TopologyNode* c, bool enforceNewickRecomp = true);                         //!< Adds a child node
         void                                        addNodeParameter(const std::string &n, double p);
         void                                        addParameter(const std::string &n, const std::vector<double> &p, bool io);
@@ -72,6 +73,7 @@ namespace RevBayesCore {
         void                                        flagNewickRecomputation(void);                                                      //!< Flag the newick string for recomputation
         double                                      getAge(void) const;                                                                 //!< Get the age (time ago from present) for this node
         double                                      getBranchLength(void) const;                                                        //!< Get the branch length leading towards this node
+        double                                      getBranchParameter(const std::string &n);
         const TopologyNode&                         getChild(size_t i) const;                                                           //!< Returns the i-th child
         TopologyNode&                               getChild(size_t i);                                                                 //!< Returns the i-th child (non-const to return non-const node)
         const std::vector<TopologyNode*>&           getChildren(void) const;

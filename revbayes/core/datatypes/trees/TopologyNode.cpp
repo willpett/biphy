@@ -162,6 +162,35 @@ void TopologyNode::addBranchParameter(std::string const &n, const std::vector<do
     }
 }
 
+void TopologyNode::addBranchParameter(std::string const &n, const double &p) {
+
+	std::stringstream o;
+	o << n << "=" << p;
+	std::string comment = o.str();
+	branchComments.push_back( comment );
+
+	newickNeedsRefreshing = true;
+}
+
+double TopologyNode::getBranchParameter(std::string const &n) {
+
+	std::stringstream o;
+	std::string value;
+	for(size_t i = 0; i < branchComments.size(); i++){
+		o << branchComments[i];
+		std::string name = "";
+		while(o.good() && o.peek() != '=')
+			 name += o.get();
+
+		if(o.peek() == '=' && name == n){
+			o.get();
+			getline(o,value);
+		}
+	}
+
+	return atof(value.c_str());
+}
+
 
 /** Add a child node. We own it from here on. */
 void TopologyNode::addChild(TopologyNode* c, bool forceNewickRecomp) {

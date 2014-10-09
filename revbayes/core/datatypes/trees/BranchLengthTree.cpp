@@ -142,9 +142,8 @@ std::ostream& RevBayesCore::operator<<(std::ostream& o, const BranchLengthTree& 
 std::istream& RevBayesCore::operator>>(std::istream& is, BranchLengthTree& x) {
     std::string tmp;
     is >> tmp;
-    const std::string tmp2 = tmp;
     NewickConverter c;
-    x = *(c.convertFromNewick(tmp2));
+    x = *(c.convertFromNewick(tmp));
 
     return is;
 }
