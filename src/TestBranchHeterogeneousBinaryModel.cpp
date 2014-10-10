@@ -642,7 +642,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 		if(saveall)
 			monitors.push_back( new ModelStreamMonitor( myModel, every, name+".chain", (numChains > 1)) );
 
-		std::cerr << charactermodel->getLnProbability() << std::endl;
+		//std::cerr << charactermodel->getLnProbability() << std::endl;
 
 		int numProcesses = numChains;
 		double startingHeat = 1.0;

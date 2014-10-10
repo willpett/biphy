@@ -147,7 +147,6 @@ RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>* RevBayes
 template<class charType, class treeType>
 void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::computeRootLikelihood( size_t root, size_t left, size_t right)
 {
-	computeAncestral();
     // reset the likelihood
     this->lnProb = 0.0;
 
@@ -733,8 +732,9 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::tou
     else
     {
     	if ( affecter == this->tau )
-    	    	computeAncestral();
-        AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>::touchSpecialization( affecter );
+    	    computeAncestral();
+
+    	AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>::touchSpecialization( affecter );
     }
     
 }
