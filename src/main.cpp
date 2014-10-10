@@ -38,6 +38,7 @@ int main (int argc, const char * argv[])
 		double sigmaTemp = 1;
 		int branchprior = 0;
 		int heterogeneous = 0;
+		bool dollo = false;
 		int mixture = 0;
 		bool overwrite = false;
 		bool ppred = false;
@@ -87,8 +88,9 @@ int main (int argc, const char * argv[])
 				}
 				else if (s == "-e")	{
 					nexus = true;
-				}
-				else if (s == "-h")	{
+				}else if (s == "-dollo"){
+					dollo = true;
+				}else if (s == "-h")	{
 					heterogeneous = 0;
 				}else if (s == "-dpp")	{
 					heterogeneous = 2;
@@ -147,7 +149,9 @@ int main (int argc, const char * argv[])
 				throw(0);
 			if(mixture > 1 && !heterogeneous)
 				throw(0);
-			if(rootprior && (heterogeneous > 1))
+			if(rootprior && (heterogeneous > 1 || dollo))
+				throw(0);
+			if(heterogeneous && dollo)
 				throw(0);
 		}
 		catch(...)	{
@@ -155,8 +159,9 @@ int main (int argc, const char * argv[])
 			std::cerr << '\n';
 			std::cerr << "usage: biphy -d <alignment> [-x <every> <until>] <chainname>\n\n";
 			std::cerr << "Model options:\n";
+			std::cerr << "\t-dollo\t\tdollo model\n";
 			std::cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
-			std::cerr << "\t-nh\t\tnon-homogeneous binary substitution model\n";
+			std::cerr << "\t-nh\t\ttime-heterogeneous hierarchical beta model\n";
 			std::cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
 			std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n";
 			std::cerr << "\t-ras\t\tdiscrete gamma rates across sites model\n";
@@ -210,7 +215,7 @@ int main (int argc, const char * argv[])
 				remove((name+".cv").c_str());
 		}
 
-		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,mixture,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
+		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
 	}else{
 		if(!fexists(name+".chain")){
 			std::cerr << "chain '" << name << "' does not exist\n";

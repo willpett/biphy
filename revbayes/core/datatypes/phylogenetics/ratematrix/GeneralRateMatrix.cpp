@@ -107,7 +107,7 @@ const std::vector<double>& GeneralRateMatrix::getStationaryFrequencies( void ) c
  finite irreducible Markov chains. In "Advances in Computational
  Probability", W. Grassmann, ed. Kluwer Academic Publishers. */
 void GeneralRateMatrix::calculateStationaryFrequencies(void) {
-    
+
 	// transpose the rate matrix and put into QT
     MatrixReal QT(numStates, numStates);
     for (size_t i=0; i<numStates; i++)

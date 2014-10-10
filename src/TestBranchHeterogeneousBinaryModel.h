@@ -38,6 +38,7 @@ namespace RevBayesCore {
     										int branchprior,
     										bool ras,
     										int heterogeneous,
+    										bool dollo,
     										int mixture,
     										bool rootprior,
     										double rootmin,
@@ -69,6 +70,7 @@ namespace RevBayesCore {
         int										branchprior;
         bool									ras;
         int										heterogeneous;
+        bool									dollo;
         int 									mixture;
         bool									ppred;
         bool									rootprior;

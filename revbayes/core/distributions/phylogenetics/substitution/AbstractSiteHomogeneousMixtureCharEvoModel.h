@@ -56,10 +56,10 @@ namespace RevBayesCore {
         virtual void                                                        swapParameter(const DagNode *oldP, const DagNode *newP);                                //!< Implementation of swaping paramoms
         
         // non-virtual
-        double                                                              computeLnProbability(void);
+        virtual double                                                      computeLnProbability(void);
         void                                                                fireTreeChangeEvent(const TopologyNode &n);                                             //!< The tree has changed and we want to know which part.
         void                                                                setValue(AbstractCharacterData *v);                                                   //!< Set the current value, e.g. attach an observation (clamp)
-        void                                                                redrawValue(void);
+        virtual void                                                        redrawValue(void);
         void                                                                reInitialized(void);
         
     protected:
@@ -426,7 +426,6 @@ double RevBayesCore::AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeTy
         const TopologyNode &right = root.getChild(1);
         size_t rightIndex = right.getIndex();
         fillLikelihoodVector( right, rightIndex );
-        
         // compute the likelihood of the root
         computeRootLikelihood( rootIndex, leftIndex, rightIndex );
     }
