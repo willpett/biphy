@@ -365,7 +365,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 
     const TopologyNode &root = tau->getValue().getRoot();
     size_t left = root.getChild(0).getIndex();
-    size_t right = root.getChild(0).getIndex();
+    size_t right = root.getChild(1).getIndex();
     // branch frequency prior
 	if(heterogeneous){
 		if(heterogeneous == 1){
