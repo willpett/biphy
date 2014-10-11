@@ -35,6 +35,7 @@ namespace RevBayesCore {
         double                      incompleteGamma(double x, double alpha, double scale);                          //!< Xxx 
         double                      incompleteGamma_old(double x, double alpha, double scale);                      //!< Xxx 
         double                      lnGamma_sign(double a, int *sgn);                                               //!< Calculate the log of the Gamma function
+        double                      lnGamma_sign_unsafe(double a, int *sgn);                                               //!< Calculate the log of the Gamma function
         double                      lnGamma(double a);                                                              //!< Calculate the log of the Gamma function
         double                      lnGamma_old(double a);                                                          //!< Calculate the log of the Gamma function
         double                      lnGammacor(double x);

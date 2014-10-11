@@ -42,6 +42,7 @@ int main (int argc, const char * argv[])
 		int mixture = 0;
 		bool overwrite = false;
 		bool ppred = false;
+		bool rigidroot = false;
 		bool rootprior = false;
 		bool ras = false;
 		double rootmin = 0.0;
@@ -82,6 +83,8 @@ int main (int argc, const char * argv[])
 					saveall = true;
 				}else if (s == "-ras"){
 					ras = true;
+				}else if (s == "-rr"){
+					rigidroot = true;
 				}
 				else if (s == "-nh")	{
 					heterogeneous = 1;
@@ -153,6 +156,8 @@ int main (int argc, const char * argv[])
 				throw(0);
 			if(heterogeneous && dollo)
 				throw(0);
+			if(rigidroot && !heterogeneous)
+				throw(0);
 		}
 		catch(...)	{
 			std::cerr << "biphy version 1.0\n";
@@ -169,7 +174,8 @@ int main (int argc, const char * argv[])
 			std::cerr << "Optional constraints:\n";
 			std::cerr << "\t-t <file>\tfixed tree filename\n";
 			std::cerr << "\t-o <file>\toutgroup clade file\n";
-			std::cerr << "\t-rp <min> <max>\ttruncate root frequency prior (-nh or -h only)\n\n";
+			std::cerr << "\t-rp <min> <max>\ttruncate root frequency prior (-nh or -h only)\n";
+			std::cerr << "\t-rr\t\trigid root frequency (heterogeneous models only)\n\n";
 			std::cerr << "MCMCMC options:\n";
 			std::cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
 			std::cerr << "\t-delta <float>\t(default = 0.1)\n";
@@ -215,7 +221,7 @@ int main (int argc, const char * argv[])
 				remove((name+".cv").c_str());
 		}
 
-		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
+		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rigidroot,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
 	}else{
 		if(!fexists(name+".chain")){
 			std::cerr << "chain '" << name << "' does not exist\n";

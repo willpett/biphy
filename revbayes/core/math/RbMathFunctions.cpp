@@ -858,8 +858,7 @@ double RbMath::lnBeta(double a, double b)
  *    with those of the Sun Microsystems portable mathematical
  *    library.
  */
-double RbMath::lnGamma_sign(double x, int *sgn)
-{
+double RbMath::lnGamma_sign(double x, int *sgn){
     double ans, y, sinpiy;
     
 #ifdef NOMORE_FOR_THREADS
