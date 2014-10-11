@@ -6,6 +6,7 @@
 #include "Clade.h"
 #include "CladeReader.h"
 #include "ConstantNode.h"
+#include "ConstantFunction.h"
 #include "CrossValidationScoreMonitor.h"
 #include "DeterministicNode.h"
 #include "DirichletDistribution.h"
@@ -297,44 +298,33 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     //////////////////////
     
     // constant nodes
-    ConstantNode<int> *idx = new ConstantNode<int>("idx", new int(1) );
     ConstantNode<double> *one = new ConstantNode<double>("one", new double(1.0) );
     ConstantNode<double> *ten = new ConstantNode<double>("ten", new double(10.0) );
     ConstantNode<double> *zero = new ConstantNode<double>("zero", new double(0.0) );
 
     //number of branches
 	size_t numBranches = 2*data[0]->getNumberOfTaxa() - 2;
+	size_t w = numBranches > 0 ? (int) log10 ((double) numBranches) + 1 : 1;
 
-	//mixture vectors
-	std::vector<const TypedDagNode<double > *> pi_cats;
-	TypedDagNode< std::vector< double > >* pi_mix;
-	std::vector<const TypedDagNode<double> *> pi_stat;
 
-	//dpp priors
-	ContinuousStochasticNode *dpA;
-	ContinuousStochasticNode *dpB;
-	StochasticNode<double> *cp;
-	DeterministicNode<int> *numCats;
-
-	TypedDagNode< std::vector< double > >* pi_vector;
-
-	std::vector<const TypedDagNode< RateMatrix >* > qs;
-	DeterministicNode< RateMatrix >* q = NULL;
-	DeterministicNode< RbVector< RateMatrix > >* qs_node = NULL;
-
-	// declaring a vector of clock rates
-	std::vector<const TypedDagNode<double> *> branchRates;
-	std::vector< ContinuousStochasticNode *> branchRates_nonConst;
+    // tree prior
+    std::vector<std::string> names = data[0]->getTaxonNames();
+    //StochasticNode<TimeTree> *tau = new StochasticNode<TimeTree>( "tau", new UniformConstrainedTimeTreeDistribution(one,names,constraints,outgroup) );
+    StochasticNode<Topology> *tau = new StochasticNode<Topology>( "tau", new UniformRootedTopologyDistribution(names, std::vector<Clade>(), outgroup) );
+    if(treeFixed){
+    	tau->setValue(fixedTree, true);
+    	tau->setIgnoreRedraw(true);
+    }
 
     // base frequencies hyperprior
-    StochasticNode<double> *alpha;
-    StochasticNode<double> *beta;
+	StochasticNode<double> *alpha;
+	StochasticNode<double> *beta;
 
-    // base frequencies prior
-    TypedDagNode<double> *phi;
-    if(dollo){
-    	phi = zero;
-    }else{
+	// base frequencies prior
+	TypedDagNode<double> *phi;
+	if(dollo){
+		phi = zero;
+	}else{
 		if(rootprior){
 			if(heterogeneous){
 				alpha = new StochasticNode<double>( "alpha", new ExponentialDistribution(one) );
@@ -352,112 +342,118 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 				phi = new StochasticNode<double>( "phi", new BetaDistribution( one,one ) );
 			}
 		}
-    }
+	}
 
-    // tree prior
-    std::vector<std::string> names = data[0]->getTaxonNames();
-    //StochasticNode<TimeTree> *tau = new StochasticNode<TimeTree>( "tau", new UniformConstrainedTimeTreeDistribution(one,names,constraints,outgroup) );
-    StochasticNode<Topology> *tau = new StochasticNode<Topology>( "tau", new UniformRootedTopologyDistribution(names, std::vector<Clade>(), outgroup) );
-    if(treeFixed){
-    	tau->setValue(fixedTree, true);
-    	tau->setIgnoreRedraw(true);
-    }
+	//mixture vectors
+	std::vector<const TypedDagNode<double > *> pi_cats;
+	TypedDagNode< std::vector< double > >* pi_mix;
+	std::vector<const TypedDagNode<double> *> pi_stat;
+
+	//dpp priors
+	ContinuousStochasticNode *dpA;
+	ContinuousStochasticNode *dpB;
+	StochasticNode<double> *cp;
+	DeterministicNode<int> *numCats;
+
+	TypedDagNode< std::vector< double > >* pi_vector;
+	TypedDagNode< std::vector< double > >* dpp_vector;
+
+	std::vector<const TypedDagNode< RateMatrix >* > qs;
+	DeterministicNode< RateMatrix >* q = NULL;
+	DeterministicNode< RbVector< RateMatrix > >* qs_node = NULL;
 
     const TopologyNode &root = tau->getValue().getRoot();
     size_t left = root.getChild(0).getIndex();
     size_t right = root.getChild(1).getIndex();
     // branch frequency prior
-	if(heterogeneous){
-		if(heterogeneous == 1){
-			size_t brnum = 0;
-			for (size_t i = 0 ; i < numBranches ; i++ ) {
-				std::ostringstream pi_name;
-				if((i == left || i == right) && rigidroot){
-					pi_stat.push_back(phi);
+	if(heterogeneous == 1){
+		for (size_t i = 0 ; i < numBranches ; i++ ) {
+			std::ostringstream pi_name;
+			pi_name << "pi(" << setfill('0') << setw(w) << i << ")";
+			std::ostringstream q_name;
+			q_name << "q(" << setfill('0') << setw(w) << i << ")";
+			if((i == left || i == right) && rigidroot)
+				pi_stat.push_back(new DeterministicNode<double>(pi_name.str(), new ConstantFunction<double>(phi)));
+			else
+				pi_stat.push_back(new StochasticNode<double>( pi_name.str(), new BetaDistribution(alpha,beta) ) );
+			qs.push_back(new DeterministicNode<RateMatrix>( q_name.str(), new FreeBinaryRateMatrixFunction(pi_stat[i]) ));
+		}
+		pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
+		qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new RbVectorFunction<RateMatrix>(qs) );
+	}else if(heterogeneous == 2){
+		// Setting up the hyper prior on the concentration parameter
+		// This hyperprior is fully conditional on the DPP using a gamma distribution
+		//    the parameters of the gamma distribution are set so that the expectation of the hyperprior = meanCP
+		//    where meanCP = dpA / dpB
+		dpA  = new ContinuousStochasticNode("dp_a", new ExponentialDistribution(one));
+		dpB  = new ContinuousStochasticNode("dp_b", new ExponentialDistribution(one));
+		cp = new StochasticNode<double>("dpp.cp", new GammaDistribution(dpA, dpB) );
+
+		// G_0 is an Beta distribution
+		TypedDistribution<double> *g = new BetaDistribution(alpha,beta);
+
+		// branchRates ~ DPP(g, cp, numBranches)
+		dpp_vector = new StochasticNode<std::vector<double> >("dpp_vector", new DirichletProcessPriorDistribution<double>(g, cp, numBranches + 1 - 2*rigidroot) );
+		// a deterministic node for calculating the number of rate categories (required for the Gibbs move on cp)
+		numCats = new DeterministicNode<int>("dpp.k", new DppNumTablesStatistic<double>((StochasticNode<std::vector<double> >*)dpp_vector) );
+
+		delete phi;
+		ConstantNode<int> *idx = new ConstantNode<int>("idx", new int(numBranches + 1 - 2*rigidroot) );
+		phi = new DeterministicNode<double>("phi", new VectorIndexOperator<double>((StochasticNode<std::vector<double> >*)dpp_vector,idx));
+
+		if(rigidroot){
+			size_t comp = 1;
+			std::vector<const TypedDagNode<double>* > tmp;
+			for(size_t i = 0; i < numBranches; i++){
+				std::ostringstream tmp_name;
+				tmp_name << comp;
+
+				if(i == left || i == right){
+					tmp.push_back(new DeterministicNode<double>("tmp"+tmp_name.str(),new ConstantFunction<double>(phi)));
 				}else{
-					pi_name << "pi(" << brnum << ")";
-					pi_stat.push_back(new StochasticNode<double>( pi_name.str(), new BetaDistribution(alpha,beta) ) );
-					brnum++;
-				}
-
-				std::ostringstream q_name;
-				q_name << "q(" << i << ")";
-				qs.push_back(new DeterministicNode<RateMatrix>( q_name.str(), new FreeBinaryRateMatrixFunction(pi_stat[i]) ));
-			}
-			pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
-			qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new RbVectorFunction<RateMatrix>(qs) );
-		}else if(heterogeneous == 2){
-			// Setting up the hyper prior on the concentration parameter
-			// This hyperprior is fully conditional on the DPP using a gamma distribution
-			//    the parameters of the gamma distribution are set so that the expectation of the hyperprior = meanCP
-			//    where meanCP = dpA / dpB
-			dpA  = new ContinuousStochasticNode("dp_a", new ExponentialDistribution(one));
-			dpB  = new ContinuousStochasticNode("dp_b", new ExponentialDistribution(one));
-			cp = new StochasticNode<double>("dpp.cp", new GammaDistribution(dpA, dpB) );
-
-			// G_0 is an Beta distribution
-			TypedDistribution<double> *g = new BetaDistribution(alpha,beta);
-
-			// branchRates ~ DPP(g, cp, numBranches)
-			pi_vector = new StochasticNode<std::vector<double> >("pi", new DirichletProcessPriorDistribution<double>(g, cp, (int)numBranches + 1 - 2*rigidroot) );
-			// a deterministic node for calculating the number of rate categories (required for the Gibbs move on cp)
-			numCats = new DeterministicNode<int>("dpp.k", new DppNumTablesStatistic<double>((StochasticNode<std::vector<double> >*)pi_vector) );
-
-			delete phi;
-			phi = new DeterministicNode<double>("phi", new VectorIndexOperator<double>((StochasticNode<std::vector<double> >*)pi_vector,idx));
-
-			if(rigidroot){
-				size_t comp = 2;
-				std::vector<TypedDagNode<double>* > tmp;
-				tmp.push_back(phi);
-				for(size_t i = 0; i < numBranches; i++){
-					std::ostringstream tmp_name;
-					tmp_name << comp;
-
-					ConstantNode<int> *tmp_idx;
-					if(i == left || i == right){
-						tmp.push_back(phi);
-					}else{
-						tmp_idx = new ConstantNode<int>("idx"+tmp_name.str(), new int(comp) );
-						tmp.push_back(new DeterministicNode<double>("tmp"+tmp_name.str(), new VectorIndexOperator<double>((StochasticNode<std::vector<double> >*)pi_vector,tmp_idx)));
-						comp++;
-					}
+					ConstantNode<int> *tmp_idx = new ConstantNode<int>("idx"+tmp_name.str(), new int(comp) );
+					tmp.push_back(new DeterministicNode<double>("tmp"+tmp_name.str(), new VectorIndexOperator<double>((StochasticNode<std::vector<double> >*)dpp_vector,tmp_idx)));
+					comp++;
 				}
 			}
-
-			qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new FreeBinaryRateMatrixVectorFunction(pi_vector,true) );
-		}else if(heterogeneous == 3){
-			ConstantNode<std::vector<double> > *probs = new ConstantNode<std::vector<double> >("probs", new std::vector<double>(mixture,1.0) );
-			size_t brnum = 0;
-			for(size_t i = 0; i < mixture; i++){
-				std::ostringstream pi_name;
-				pi_name << "pi(" << brnum << ")";
-				pi_cats.push_back(new StochasticNode<double >( pi_name.str(), new BetaDistribution(alpha,beta) ) );
-			}
-			pi_mix = new DeterministicNode< std::vector< double > >( "pi_mix", new VectorFunction< double >( pi_cats ) );
-			delete phi;
-			phi = new StochasticNode<double>( "phi", new MixtureDistribution<double>(pi_mix,probs) );
-
-			for (unsigned int i = 0 ; i < numBranches ; i++ ) {
-				std::ostringstream q_name;
-				q_name << "q(" << i << ")";
-				if((i == left || i == right) && rigidroot){
-					pi_stat.push_back(new StochasticNode<double>( q_name.str()+"_pi", new MixtureDistribution<double>(pi_mix,probs) ));
-				}else{
-					pi_stat.push_back(phi);
-				}
-				qs.push_back(new DeterministicNode<RateMatrix>( q_name.str(), new FreeBinaryRateMatrixFunction(pi_stat[i]) ));
-			}
-
-			pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
-			qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new RbVectorFunction<RateMatrix>(qs) );
+			tmp.push_back(new DeterministicNode<double>("tmp1",new ConstantFunction<double>(phi)));
+			pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( tmp ) );
+		}else{
+			pi_vector = new DeterministicNode<std::vector< double > >( "pi", new ConstantFunction<std::vector< double > >( dpp_vector ) );
 		}
 
+		qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new FreeBinaryRateMatrixVectorFunction(pi_vector,true) );
+	}else if(heterogeneous == 3){
+		ConstantNode<std::vector<double> > *probs = new ConstantNode<std::vector<double> >("probs", new std::vector<double>(mixture,1.0) );
+		for(size_t i = 0; i < mixture; i++){
+			std::ostringstream pi_name;
+			pi_name << "pi(" << setfill('0') << setw(w) << i << ")";
+			pi_cats.push_back(new StochasticNode<double >( pi_name.str(), new BetaDistribution(alpha,beta) ) );
+		}
+		pi_mix = new DeterministicNode< std::vector< double > >( "pi_mix", new VectorFunction< double >( pi_cats ) );
+
+		delete phi;
+		phi = new StochasticNode<double>( "phi", new MixtureDistribution<double>(pi_mix,probs) );
+
+		for (unsigned int i = 0 ; i < numBranches ; i++ ) {
+			std::ostringstream q_name;
+			q_name << "q(" << setfill('0') << setw(w) << i << ")";
+			if((i == left || i == right) && rigidroot){
+				pi_stat.push_back(new StochasticNode<double>( q_name.str()+"_pi", new MixtureDistribution<double>(pi_mix,probs) ));
+			}else{
+				pi_stat.push_back(new DeterministicNode<double>( q_name.str()+"_pi", new ConstantFunction< double >( phi ) ));
+			}
+			qs.push_back(new DeterministicNode<RateMatrix>( q_name.str(), new FreeBinaryRateMatrixFunction(pi_stat[i]) ));
+		}
+
+		pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
+		qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new RbVectorFunction<RateMatrix>(qs) );
 	}else{
 		q = new DeterministicNode<RateMatrix>( "q", new FreeBinaryRateMatrixFunction(phi) );
 	}
 
 	// branch length hyperprior
+
 	ContinuousStochasticNode *mu;
 	DeterministicNode<double> *rec_mu;
 	TypedDagNode< std::vector< double > >* br_vector;
@@ -466,11 +462,14 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 	DeterministicNode<double>* tree_length_alpha;
 	TypedDagNode<double>* tree_length;
 
+	// declaring a vector of clock rates
+	std::vector<const TypedDagNode<double> *> branchRates;
+	std::vector< ContinuousStochasticNode *> branchRates_nonConst;
+
 	// branch length prior
 	if(branchprior == 0){
 		mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(ten) );
 		rec_mu = new DeterministicNode<double>( "rec_mu", new BinaryDivision<double,double,double>(one,mu));
-		int w = numBranches > 0 ? (int) log10 ((double) numBranches) + 1 : 1;
 		for (size_t i = 0 ; i < numBranches ; i++ ) {
 			std::ostringstream br_name;
 			br_name << "br(" << setfill('0') << setw(w) << i << ")";
@@ -512,7 +511,6 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
     	StandardState absorbingstate("01");
 		absorbingstate.setState("0");
 		DcharModel = new DolloBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, 2, true, data[0]->getNumberOfCharacters(), absorbingstate);
-
     }else{
     	GcharModel = new GeneralBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, 2, true, data[0]->getNumberOfCharacters());
     }
@@ -587,7 +585,8 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 
 		for (size_t i = 0 ; i < numBranches ; i ++ ) {
 			if(heterogeneous == 1){
-				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 1.0, true, 2.0 ) );
+				if(!(i == left || i == right) || !rigidroot)
+					moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 1.0, true, 2.0 ) );
 			}else if(heterogeneous == 3){
 				moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 2.0 ) );
 			}
@@ -646,9 +645,9 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 			moves.push_back( new ScaleMove(dpB, 1.0, true, 1.0) );
 			monitoredNodes.push_back(dpB);
 
-			moves.push_back( new DPPBetaSimplexMove( (StochasticNode<std::vector<double> >*)pi_vector, 1.0 , 1.0 ) );
-			moves.push_back( new DPPAllocateAuxGibbsMove<double>( (StochasticNode<std::vector<double> >*)pi_vector, 4, 2.0 ) );
-			moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, (int)numBranches + 1, 2.0 ) );
+			moves.push_back( new DPPBetaSimplexMove( (StochasticNode<std::vector<double> >*)dpp_vector, 1.0 , 1.0 ) );
+			moves.push_back( new DPPAllocateAuxGibbsMove<double>( (StochasticNode<std::vector<double> >*)dpp_vector, 4, 2.0 ) );
+			moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, numBranches + 1, 2.0 ) );
 		}else if(heterogeneous == 3){
 			std::vector<Move*> mixmoves;
 			for (size_t i = 0 ; i < mixture; i ++ ) {

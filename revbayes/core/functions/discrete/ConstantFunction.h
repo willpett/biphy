@@ -45,6 +45,7 @@ namespace RevBayesCore {
 
 template<class valueType>
 RevBayesCore::ConstantFunction<valueType>::ConstantFunction(const TypedDagNode<valueType> *a) : TypedFunction<valueType>(new valueType(a->getValue()) ), x( a ) {
+	this->addParameter( a );
     
 }
 
@@ -58,7 +59,7 @@ RevBayesCore::ConstantFunction<valueType>* RevBayesCore::ConstantFunction<valueT
 template <class valueType>
 void RevBayesCore::ConstantFunction<valueType>::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
     if (oldP == x) {
-        x = static_cast<const TypedDagNode<double>* >( newP );
+        x = static_cast<const TypedDagNode<valueType>* >( newP );
     }
 }
 
