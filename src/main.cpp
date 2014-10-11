@@ -168,9 +168,9 @@ int main (int argc, const char * argv[])
 			std::cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
 			std::cerr << "\t-nh\t\ttime-heterogeneous hierarchical beta model\n";
 			std::cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
-			std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n";
-			std::cerr << "\t-ras\t\tdiscrete gamma rates across sites model\n";
-			std::cerr << "\t-dir\t\tcompound dirichlet branch length prior\n\n";
+			std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n\n";
+			std::cerr << "\t-dir\t\tcompound dirichlet branch length prior\n";
+			std::cerr << "\t-ras\t\tdiscrete gamma rates across sites model\n\n";
 			std::cerr << "Optional constraints:\n";
 			std::cerr << "\t-t <file>\tfixed tree filename\n";
 			std::cerr << "\t-o <file>\toutgroup clade file\n";
