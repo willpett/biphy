@@ -275,41 +275,44 @@ void UniformRootedTopologyDistribution::rearrangeTree( void ) {
 	TopologyNode* root = &(value->getRoot());
     std::vector<TopologyNode* > nodes = value->getNodes();
 
+    TopologyNode *left = &(root->getChild(0));
+    TopologyNode *right = &(root->getChild(1));
+
     std::vector<TopologyNode* > leaves;
     std::vector<TopologyNode* > internal;
 
     leaves.insert(leaves.begin(),nodes.begin(),nodes.begin()+numTaxa);
     internal.insert(internal.begin(),nodes.begin()+numTaxa,nodes.end()-1);
 
+    internal.erase(std::remove(internal.begin(),internal.end(),left),internal.end());
+    internal.erase(std::remove(internal.begin(),internal.end(),right),internal.end());
+
+    std::vector<TopologyNode* > tips;
+
     if(hasOutgroup()){
+
     	std::vector<TopologyNode* > outgrp;
     	for (size_t i=0; i<outgroup.size(); i++) {
     		for (std::vector<TopologyNode*>::iterator it = leaves.begin(); it != leaves.end(); ++it){
 				if((*it)->getName() == outgroup.getTaxonName(i)){
 					outgrp.push_back((*it));
-					leaves.erase(std::find(leaves.begin(),leaves.end(),(*it)));
+					leaves.erase(std::remove(leaves.begin(),leaves.end(),*it),leaves.end());
 					break;
 				}
 			}
 		}
     	if(outgrp.size() == 1){
-    		std::vector<TopologyNode*> ch = root->getChildren();
-			for (std::vector<TopologyNode*>::iterator it = ch.begin(); it != ch.end(); ++it){
-				root->removeChild(*it,true);
-			}
-			root->addChild(outgrp[0]);
-			outgrp[0]->setParent(root);
+    		leaves.erase(std::remove(leaves.begin(),leaves.end(),outgrp[0]),leaves.end());
+    		if(left == outgrp[0])
+    			tips.push_back(right);
+    		else
+    			tips.push_back(left);
     	}else{
-    		size_t index = static_cast<size_t>( floor(rng->uniform01()*internal.size()) );
-    		TopologyNode * node = internal.at(index);
-    		internal.erase(internal.begin()+index);
-
-    		root->addChild(node);
-    		node->setParent(root);
+    		tips.push_back(right);
 
     		std::vector<TopologyNode* > t;
     		std::vector<TopologyNode* > ch;
-    		for (size_t i=0; i<outgrp.size()-1; i++) {
+    		for (size_t i=0; i<outgrp.size()-2; i++) {
     			size_t index = static_cast<size_t>( floor(rng->uniform01()*internal.size()) );
     			TopologyNode * node = internal.at(index);
     			internal.erase(internal.begin()+index);
@@ -317,21 +320,16 @@ void UniformRootedTopologyDistribution::rearrangeTree( void ) {
     		}
     		ch.insert(ch.begin(),outgrp.begin(),outgrp.end());
 
-			t.push_back(node);
+			t.push_back(left);
+
 			rearrangeRandomBinaryTree(t,ch);
     	}
-    	size_t index = static_cast<size_t>( floor(rng->uniform01()*internal.size()) );
-		TopologyNode * node = internal.at(index);
-		internal.erase(internal.begin()+index);
-
-		root->addChild(node);
-		node->setParent(root);
-		root = node;
+    }else{
+    	tips.push_back(left);
+    	tips.push_back(right);
     }
-    internal.insert(internal.begin(),leaves.begin(),leaves.end());
 
-    std::vector<TopologyNode* > tips;
-    tips.push_back(root);
+    internal.insert(internal.begin(),leaves.begin(),leaves.end());
 	rearrangeRandomBinaryTree(tips,internal);
 }
 
