@@ -278,6 +278,7 @@ void UniformRootedTopologyDistribution::rearrangeTree( void ) {
     TopologyNode *left = &(root->getChild(0));
     TopologyNode *right = &(root->getChild(1));
 
+    //std::cerr << left->getIndex() << "\t" << right->getIndex() << std::endl;
     std::vector<TopologyNode* > leaves;
     std::vector<TopologyNode* > internal;
 
@@ -302,7 +303,6 @@ void UniformRootedTopologyDistribution::rearrangeTree( void ) {
 			}
 		}
     	if(outgrp.size() == 1){
-    		leaves.erase(std::remove(leaves.begin(),leaves.end(),outgrp[0]),leaves.end());
     		if(left == outgrp[0])
     			tips.push_back(right);
     		else

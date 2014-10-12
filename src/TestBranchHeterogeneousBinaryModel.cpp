@@ -581,7 +581,7 @@ bool TestBranchHeterogeneousBinaryModel::run( void ) {
 	}else{
 		//moves.push_back( new NearestNeighborInterchange( tau, 2.0 ) );
 		if(!treeFixed)
-			moves.push_back( new SubtreePruneRegraft( tau, 5.0 ) );
+			moves.push_back( new SubtreePruneRegraft( tau, 5.0, outgroup.size()) );
 
 		for (size_t i = 0 ; i < numBranches ; i ++ ) {
 			if(heterogeneous == 1){

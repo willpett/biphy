@@ -16,7 +16,7 @@
 
 using namespace RevBayesCore;
 
-SubtreePruneRegraft::SubtreePruneRegraft(StochasticNode<Topology> *v, double w) : SimpleMove( v, w), variable( v ) {
+SubtreePruneRegraft::SubtreePruneRegraft(StochasticNode<Topology> *v, double w, bool outgrp) : SimpleMove( v, w), variable( v ), outgroup(outgrp) {
     
 }
 
@@ -65,7 +65,7 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
         double u = rng->uniform01();
         size_t index = std::floor(tau.getNumberOfNodes() * u);
         node = &tau.getNode(index);
-    } while ( node->isRoot() || node->getParent().isRoot() );
+    } while ( node->isRoot() || node->getParent().isRoot() || (node->getParent().getParent().isRoot() && outgroup));
     
     // now we store all necessary values
     storedChoosenNode   = node;
@@ -84,7 +84,7 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
         double u = rng->uniform01();
         size_t index = std::floor(tau.getNumberOfNodes() * u);
         newBrother = &tau.getNode(index);
-    } while ( newBrother->isRoot() || isDescendant(*newBrother,parent));
+    } while ( newBrother->isRoot() || isDescendant(*newBrother,parent) || (newBrother->getParent().isRoot() & outgroup));
     
     TopologyNode &newGrandparent = newBrother->getParent();
     

@@ -31,7 +31,7 @@ namespace RevBayesCore {
     class SubtreePruneRegraft : public SimpleMove {
         
     public:
-        SubtreePruneRegraft( StochasticNode<Topology> *n, double weight);                                            //!<  constructor
+        SubtreePruneRegraft( StochasticNode<Topology> *n, double weight, bool outgroup = false);                                            //!<  constructor
         
         // Basic utility functions
         SubtreePruneRegraft*                        clone(void) const;                                                                  //!< Clone object
@@ -52,6 +52,7 @@ namespace RevBayesCore {
         // stored objects to undo proposal
         TopologyNode*                               storedChoosenNode;
         TopologyNode*                               storedBrother;
+        bool										outgroup;
         
     };
     
