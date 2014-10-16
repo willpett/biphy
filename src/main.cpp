@@ -1,4 +1,4 @@
-#include "TestBranchHeterogeneousBinaryModel.h"
+#include "BranchHeterogeneousBinaryModel.h"
 #include "RbException.h"
 #include <iostream>
 #include <stdlib.h>
@@ -188,7 +188,7 @@ int main (int argc, const char * argv[])
 			exit(1);
 		}
 
-	RevBayesCore::TestBranchHeterogeneousBinaryModel *chain;
+	RevBayesCore::BranchHeterogeneousBinaryModel *chain;
 
 	if(datafile != "None"){
 		if(datafile.at(0) != '.' && datafile.at(0) != '/'){
@@ -221,13 +221,17 @@ int main (int argc, const char * argv[])
 				remove((name+".cv").c_str());
 		}
 
+<<<<<<< HEAD
+		chain = new RevBayesCore::BranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
+=======
 		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rigidroot,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
+>>>>>>> 48893d35518c88233d32c18914fd76e29d012b04
 	}else{
 		if(!fexists(name+".chain")){
 			std::cerr << "chain '" << name << "' does not exist\n";
 			exit(1);
 		}
-		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(name,cvfile,ppred);
+		chain = new RevBayesCore::BranchHeterogeneousBinaryModel(name,cvfile,ppred);
 	}
 
 	try

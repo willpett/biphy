@@ -1,4 +1,5 @@
 set(SRC_FILES
+${PROJECT_SRC_DIR}/BranchHeterogeneousBinaryModel.cpp
 ${PROJECT_SRC_DIR}/CladeReader.cpp
 ${PROJECT_SRC_DIR}/CrossValidationScoreMonitor.cpp
 ${PROJECT_SRC_DIR}/DPPBetaSimplexMove.cpp
@@ -9,7 +10,6 @@ ${PROJECT_SRC_DIR}/MultiMove.cpp
 ${PROJECT_SRC_DIR}/NewickTreeMonitor.cpp
 ${PROJECT_SRC_DIR}/NexusTreeMonitor.cpp
 ${PROJECT_SRC_DIR}/PosteriorPredictiveStateFrequencyMonitor.cpp
-${PROJECT_SRC_DIR}/TestBranchHeterogeneousBinaryModel.cpp
 ${PROJECT_SRC_DIR}/TruncatedDistributionUnnormalized.cpp
 ${PROJECT_SRC_DIR}/UniformRootedTopologyDistribution.cpp
 ${PROJECT_SRC_DIR}/UniformConstrainedTimeTreeDistribution.cpp
