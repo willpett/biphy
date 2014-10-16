@@ -512,15 +512,10 @@ bool BranchHeterogeneousBinaryModel::run( void ) {
     if(dollo){
     	StandardState absorbingstate("01");
 		absorbingstate.setState("0");
-<<<<<<< HEAD:src/BranchHeterogeneousBinaryModel.cpp
 		ConstantNode<double> * numsites = new ConstantNode<double>("numsites", new double(data[0]->getNumberOfCharacters()));
 		birthrate = new StochasticNode<double>("birth", new ExponentialDistribution( new DeterministicNode<double>( "birthmean", new BinaryDivision<double,double,double>(one,numsites))));
 		DcharModel = new DolloBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, birthrate, 2, true, data[0]->getNumberOfCharacters(), absorbingstate);
-
-=======
-		DcharModel = new DolloBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, 2, true, data[0]->getNumberOfCharacters(), absorbingstate);
->>>>>>> 48893d35518c88233d32c18914fd76e29d012b04:src/TestBranchHeterogeneousBinaryModel.cpp
-    }else{
+	}else{
     	GcharModel = new GeneralBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, 2, true, data[0]->getNumberOfCharacters());
     }
 

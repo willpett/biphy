@@ -221,11 +221,7 @@ int main (int argc, const char * argv[])
 				remove((name+".cv").c_str());
 		}
 
-<<<<<<< HEAD
-		chain = new RevBayesCore::BranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
-=======
-		chain = new RevBayesCore::TestBranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rigidroot,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
->>>>>>> 48893d35518c88233d32c18914fd76e29d012b04
+		chain = new RevBayesCore::BranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rigidroot,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
 	}else{
 		if(!fexists(name+".chain")){
 			std::cerr << "chain '" << name << "' does not exist\n";
