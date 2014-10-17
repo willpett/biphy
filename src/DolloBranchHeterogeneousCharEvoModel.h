@@ -16,7 +16,7 @@ namespace RevBayesCore {
     class DolloBranchHeterogeneousCharEvoModel : public AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType> {
         
     public:
-        DolloBranchHeterogeneousCharEvoModel(const TypedDagNode< treeType > *t, const TypedDagNode< double >* lamb, size_t nChars, bool c, size_t nSites, charType& astate);
+        DolloBranchHeterogeneousCharEvoModel(const TypedDagNode< treeType > *p, const TypedDagNode<Topology> *t, size_t nChars, bool c, size_t nSites, charType& astate);
         DolloBranchHeterogeneousCharEvoModel(const DolloBranchHeterogeneousCharEvoModel &n);                                                                                                //!< Copy constructor
         virtual                                            ~DolloBranchHeterogeneousCharEvoModel(void);                                                                   //!< Virtual destructor
         
@@ -29,8 +29,6 @@ namespace RevBayesCore {
 		void                                                setRootFrequencies(const TypedDagNode< std::vector< double > > *f);
 		void                                                setSiteRates(const TypedDagNode< std::vector< double > > *r);
 		void                                                swapParameter(const DagNode *oldP, const DagNode *newP);
-		double                          					getTotalMass(void);
-		size_t                          					getNumSites(void);
 
 		//virtual void                                        redrawValue(void);
         
@@ -59,7 +57,6 @@ namespace RevBayesCore {
 		const TypedDagNode< std::vector< double > >*        rootFrequencies;
 		const TypedDagNode< std::vector< double > >*        siteRates;
 
-		const TypedDagNode< double >*						lambda;
 		double												omega;
 
 		std::vector<std::vector<double> >					ui;
@@ -74,6 +71,8 @@ namespace RevBayesCore {
         std::vector<std::vector<size_t> >                   ancestralNodes;
         std::map<size_t,bool>								ancestralMap;
         charType											absentstate;
+
+        const TypedDagNode<Topology>*						topology;
     };
     
 }
@@ -89,8 +88,8 @@ namespace RevBayesCore {
 #include <cstring>
 
 template<class charType, class treeType>
-RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::DolloBranchHeterogeneousCharEvoModel(const TypedDagNode<treeType> *t, const TypedDagNode<double> *lamb, size_t nChars, bool c, size_t nSites, charType& astate) : AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>(  t, nChars, 1, c, nSites ) ,
-	absentstate(astate), lambda(lamb)
+RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::DolloBranchHeterogeneousCharEvoModel(const TypedDagNode< treeType > *p, const TypedDagNode<Topology> *t, size_t nChars, bool c, size_t nSites, charType& astate) : AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>(  p, nChars, 1, c, nSites ) ,
+	absentstate(astate), topology(t)
 {
 
 	// initialize with default parameters
@@ -110,7 +109,7 @@ RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::DolloBra
 	// add the parameters to the parents list
 	this->addParameter( homogeneousClockRate );
 	this->addParameter( homogeneousRateMatrix );
-	this->addParameter( lambda );
+	this->addParameter( topology );
 
 	totalmass.resize(this->tau->getValue().getNumberOfNodes());
 	ui.resize(this->tau->getValue().getNumberOfNodes());
@@ -125,7 +124,7 @@ RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::DolloBra
 
 template<class charType, class treeType>
 RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::DolloBranchHeterogeneousCharEvoModel(const DolloBranchHeterogeneousCharEvoModel &d) : AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>( d ),
-	absentstate(d.absentstate), ancestralNodes(d.ancestralNodes), lambda(d.lambda)
+	absentstate(d.absentstate), ancestralNodes(d.ancestralNodes), topology(d.topology)
 {
 	// parameters are automatically copied
 	// initialize with default parameters
@@ -183,28 +182,35 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
     // create a vector for the per mixture likelihoods
     // we need this vector to sum over the different mixture likelihoods
     std::vector<double> per_mixture_Likelihoods = std::vector<double>(this->numPatterns,0.0);
-    const std::vector<double> &r = this->siteRates->getValue();
 
 	for (size_t site = 0; site < this->numPatterns; site++){
 		// iterate over all nodes in the ancestral set for this site pattern
 		for (size_t anc = 0; anc < ancestralNodes[site].size(); anc++){
 			size_t idx = ancestralNodes[site][anc];
 			const TopologyNode &node = this->tau->getValue().getNode(idx);
-			left = node.getChild(0).getIndex();
-			right = node.getChild(1).getIndex();
+
+			//get birth probs for this branch
+			std::vector<double> prob_birth(1,1.0);
+			if(!node.isRoot())
+				if(this->rateVariationAcrossSites == true){
+					const std::vector<double> &r = this->siteRates->getValue();
+					prob_birth.resize(this->numSiteRates);
+					for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
+						prob_birth[mixture] = 1 - exp(-r[mixture]*node.getBranchLength());
+				}else{
+					prob_birth[0] = 1 - exp(-node.getBranchLength());
+				}
+
+			size_t nleft = node.getChild(0).getIndex();
+			size_t nright = node.getChild(1).getIndex();
 
 			// get the pointers to the partial likelihoods of the left and right subtree of this ancestral node
-			const double* p_site_left   = this->partialLikelihoods + this->activeLikelihood[left]*this->activeLikelihoodOffset + left*this->nodeOffset + site*this->siteOffset;
-			const double* p_site_right  = this->partialLikelihoods + this->activeLikelihood[right]*this->activeLikelihoodOffset + right*this->nodeOffset + site*this->siteOffset;
+			const double* p_site_left   = this->partialLikelihoods + this->activeLikelihood[nleft]*this->activeLikelihoodOffset + nleft*this->nodeOffset + site*this->siteOffset;
+			const double* p_site_right  = this->partialLikelihoods + this->activeLikelihood[nright]*this->activeLikelihoodOffset + nright*this->nodeOffset + site*this->siteOffset;
 
 			// iterate over all mixture categories
 			for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 			{
-					double prob_birth = 1;
-
-					if(!node.isRoot())
-						prob_birth = 1 - exp(- r[mixture]*node.getBranchLength());
-
 					const double*   p_site_mixture_left = p_site_left;
 				    const double*   p_site_mixture_right = p_site_right;
 
@@ -225,35 +231,44 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 					}
 
 					// add the likelihood for this mixture category
-					per_mixture_Likelihoods[site] += tmp*prob_birth;
+					per_mixture_Likelihoods[site] += tmp*prob_birth[mixture];
 
 					// increment the pointers to the next mixture category
 					p_site_mixture_left+=this->mixtureOffset; p_site_mixture_right+=this->mixtureOffset;
-			}
-		} // end-for over all mixtures (=rate categories)
+			} //end-for over all mixtures (=rate categories)
+		} // end-for over ancestral node set
     } // end-for over all sites (=patterns)
 
     // sum the log-likelihoods for all sites together
     std::vector< size_t >::const_iterator patterns = this->patternCounts.begin();
     for (size_t site = 0; site < this->numPatterns; ++site, ++patterns)
     {
-    	//std::cerr << log(per_mixture_Likelihoods[site]) << std::endl;
         this->lnProb += log( per_mixture_Likelihoods[site] ) * *patterns;
     }
 
-    //Alekseyenko et al. 2008
+    //Nicholls and Gray 2003
     omega = 0;
     for (size_t node = 0; node < totalmass.size(); node++){
     	omega += totalmass[node];
     }
-    this->lnProb -= lambda->getValue()*omega;
+    double tl = this->tau->getValue().getNode(left).getBranchLength();
+    double tr = this->tau->getValue().getNode(right).getBranchLength();
 
-    size_t N = getNumSites();
-    this->lnProb -= RbMath::lnFactorial(N);
-    this->lnProb += N*log(lambda->getValue());
+	ui[root][0] = (1 - exp(-tl)*(1 - ui[left][0] ) )*(1 - exp(-tr)*(1 - ui[right][0]) );
+	ui[root][1] = (1 - exp(-tl)*(1 - ui[left][0] ) )*exp(-tr)*ui[right][1]
+				 +(1 - exp(-tr)*(1 - ui[right][0]) )*exp(-tl)*ui[left][1];
+
+	totalmass[root] = (1 - ui[root][0] - ui[root][1])*(2-exp(-tl)-exp(-tr));
+	omega += totalmass[root];
+
+	//Alekseyenko et al. 2008
+	//Integrated over lambda
+	size_t N = this->numSites;
+	//std::cerr << log(N+1)-(N+1)*log(omega) << std::endl;
+    this->lnProb += log(N+1)-(N+1)*log(omega);
 
     // normalize the log-probability
-    this->lnProb -= log( this->numSiteRates ) * this->numSites;
+    this->lnProb -= log( this->numSiteRates ) * N;
 }
 
 
@@ -316,18 +331,15 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
     } // end-for over all mixtures (=rate-categories)
 
     // total mass computation for internal node
-    // Nicholls and Gray 2008
-    const TopologyNode &node_left = this->tau->getValue().getNode(left);
-    const TopologyNode &node_right = this->tau->getValue().getNode(right);
-
-    double tl = node_left.getBranchLength();
-    double tr = node_right.getBranchLength();
+    // Nicholls and Gray 2003
+    double tl = this->tau->getValue().getNode(left).getBranchLength();
+    double tr = this->tau->getValue().getNode(right).getBranchLength();
 
     ui[nodeIndex][0] = (1 - exp(-tl)*(1 - ui[left][0] ) )*(1 - exp(-tr)*(1 - ui[right][0]) );
     ui[nodeIndex][1] = (1 - exp(-tl)*(1 - ui[left][0] ) )*exp(-tr)*ui[right][1]
                       +(1 - exp(-tr)*(1 - ui[right][0]) )*exp(-tl)*ui[left][1];
 
-    totalmass[nodeIndex] = 1 - ui[nodeIndex][0] - ui[nodeIndex][1];
+    totalmass[nodeIndex] = (1 - ui[nodeIndex][0] - ui[nodeIndex][1])*(2-exp(-tl)-exp(-tr));
 
 }
 
@@ -725,6 +737,10 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::swa
     {
         siteRates = static_cast<const TypedDagNode< std::vector< double > >* >( newP );
     }
+    else if (oldP == topology)
+    {
+    	topology = static_cast<const TypedDagNode<Topology>* >( newP );
+    }
     else
     {
         AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>::swapParameter(oldP,newP);
@@ -783,10 +799,13 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::tou
         const TopologyNode &root = this->tau->getValue().getRoot();
         this->recursivelyFlagNodeDirty( root );
     }
-    else
+    else if ( affecter == topology )
     {
-    	if ( affecter == this->tau )
     	    computeAncestral();
+
+	}
+    else
+	{
 
     	AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>::touchSpecialization( affecter );
     }
@@ -845,16 +864,6 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 			ancestralNodes[site].push_back(node.getIndex());
 		}
 	}
-}
-
-template<class charType, class treeType>
-double RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::getTotalMass(void){
-	return omega;
-}
-
-template<class charType, class treeType>
-size_t RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::getNumSites(void){
-	return this->numSites;
 }
 /*
 template<class charType, class treeType>

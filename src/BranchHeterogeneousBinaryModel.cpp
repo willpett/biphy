@@ -12,7 +12,6 @@
 #include "DeterministicNode.h"
 #include "DirichletDistribution.h"
 #include "DirichletProcessPriorDistribution.h"
-#include "DolloBirthRateGibbsMove.h"
 #include "DolloBranchHeterogeneousCharEvoModel.h"
 #include "DPPAllocateAuxGibbsMove.h"
 #include "DPPGibbsConcentrationMove.h"
@@ -324,7 +323,7 @@ bool BranchHeterogeneousBinaryModel::run( void ) {
 	// base frequencies prior
 	TypedDagNode<double> *phi;
 	if(dollo){
-		phi = zero;
+		phi = new DeterministicNode<double>("phi", new ConstantFunction<double>(zero));
 	}else{
 		if(rootprior){
 			if(heterogeneous){
@@ -512,9 +511,7 @@ bool BranchHeterogeneousBinaryModel::run( void ) {
     if(dollo){
     	StandardState absorbingstate("01");
 		absorbingstate.setState("0");
-		ConstantNode<double> * numsites = new ConstantNode<double>("numsites", new double(data[0]->getNumberOfCharacters()));
-		birthrate = new StochasticNode<double>("birth", new ExponentialDistribution( new DeterministicNode<double>( "birthmean", new BinaryDivision<double,double,double>(one,numsites))));
-		DcharModel = new DolloBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, birthrate, 2, true, data[0]->getNumberOfCharacters(), absorbingstate);
+		DcharModel = new DolloBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, tau, 2, true, data[0]->getNumberOfCharacters(), absorbingstate);
 	}else{
     	GcharModel = new GeneralBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, 2, true, data[0]->getNumberOfCharacters());
     }
@@ -585,7 +582,7 @@ bool BranchHeterogeneousBinaryModel::run( void ) {
 	}else{
 		//moves.push_back( new NearestNeighborInterchange( tau, 2.0 ) );
 		if(!treeFixed)
-			moves.push_back( new SubtreePruneRegraft( tau, 5.0, outgroup.size()) );
+			moves.push_back( new SubtreePruneRegraft( tau, 5.0, rigidroot) );
 
 		for (size_t i = 0 ; i < numBranches ; i ++ ) {
 			if(heterogeneous == 1){
@@ -602,7 +599,7 @@ bool BranchHeterogeneousBinaryModel::run( void ) {
 			tree_length = new DeterministicNode<double >("length", new TreeLengthStatistic<BranchLengthTree>(psi) );
 		}else if(branchprior == 1){
 			moves.push_back(new ScaleMove((StochasticNode<double>*)tree_length, 1.0, true, 1.0));
-			moves.push_back(new SimplexSingleElementScale(br_times, 2.0, true, (int)numBranches/3));
+			moves.push_back(new SimplexSingleElementScale(br_times, 2.0 - dollo, true, (int)numBranches/3));
 		}
 		monitoredNodes.push_back( tree_length );
 
@@ -662,10 +659,6 @@ bool BranchHeterogeneousBinaryModel::run( void ) {
 			//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
 		}
 
-		if(dollo){
-			moves.push_back(new DolloBirthRateGibbsMove<StandardState,BranchLengthTree>(birthrate, charactermodel, 1.0));
-			monitoredNodes.push_back(birthrate);
-		}
 		//monitoredNodes.push_back(pi_vector);
 
 		bool useParallelMcmcmc = (numChains > 1);

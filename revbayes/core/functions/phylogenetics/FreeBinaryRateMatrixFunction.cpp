@@ -40,7 +40,7 @@ void FreeBinaryRateMatrixFunction::update( void ) {
     const double& p = pi->getValue();
     // get the information from the arguments for reading the file
 	std::vector<double> r(2);
-	r[0] = 1- p;
+	r[0] = 1.0 - p;
 	r[1] = p;
 
 	// set the base frequencies
