@@ -189,18 +189,6 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 			size_t idx = ancestralNodes[site][anc];
 			const TopologyNode &node = this->tau->getValue().getNode(idx);
 
-			//get birth probs for this branch
-			std::vector<double> prob_birth(1,1.0);
-			if(!node.isRoot())
-				if(this->rateVariationAcrossSites == true){
-					const std::vector<double> &r = this->siteRates->getValue();
-					prob_birth.resize(this->numSiteRates);
-					for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
-						prob_birth[mixture] = 1 - exp(-r[mixture]*node.getBranchLength());
-				}else{
-					prob_birth[0] = 1 - exp(-node.getBranchLength());
-				}
-
 			size_t nleft = node.getChild(0).getIndex();
 			size_t nright = node.getChild(1).getIndex();
 
@@ -213,6 +201,15 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 			{
 					const double*   p_site_mixture_left = p_site_left;
 				    const double*   p_site_mixture_right = p_site_right;
+
+				    double prob_birth = 1.0;
+				    if(!node.isRoot())
+						if(this->rateVariationAcrossSites == true){
+							double r = this->siteRates->getValue()[mixture];
+							prob_birth = 1.0 - exp(-r*node.getBranchLength());
+						}else{
+							prob_birth = 1.0 - exp(-node.getBranchLength());
+						}
 
 				    // temporary variable storing the likelihood
 					double tmp = 0.0;
@@ -231,7 +228,7 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 					}
 
 					// add the likelihood for this mixture category
-					per_mixture_Likelihoods[site] += tmp*prob_birth[mixture];
+					per_mixture_Likelihoods[site] += tmp*prob_birth;
 
 					// increment the pointers to the next mixture category
 					p_site_mixture_left+=this->mixtureOffset; p_site_mixture_right+=this->mixtureOffset;
