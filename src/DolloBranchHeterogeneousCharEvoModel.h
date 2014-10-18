@@ -59,7 +59,7 @@ namespace RevBayesCore {
 
 		double												omega;
 
-		std::vector<std::vector<double> >					ui;
+		std::vector<std::vector<std::vector<double> > >		ui;
 		std::vector<double>									totalmass;
 
 
@@ -115,6 +115,9 @@ RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::DolloBra
 	ui.resize(this->tau->getValue().getNumberOfNodes());
 	for(size_t i = 0; i < ui.size(); i ++){
 		ui[i].resize(2);
+		for(size_t m = 0; m < 2; m++){
+			ui[i][m].resize(this->numSiteRates);
+		}
 	}
 
     //this->redrawValue();
@@ -149,6 +152,10 @@ RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::DolloBra
 	for(size_t i = 0; i < ui.size(); i ++){
 		ui[i].clear();
 		ui[i].resize(2);
+		for(size_t m = 0; m < 2; m++){
+			ui[i][m].clear();
+			ui[i][m].resize(this->numSiteRates);
+		}
 	}
 }
 
@@ -203,13 +210,18 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 				    const double*   p_site_mixture_right = p_site_right;
 
 				    double prob_birth = 1.0;
-				    if(!node.isRoot())
-						if(this->rateVariationAcrossSites == true){
-							double r = this->siteRates->getValue()[mixture];
-							prob_birth = 1.0 - exp(-r*node.getBranchLength());
-						}else{
+					if(this->rateVariationAcrossSites == true){
+						double r = this->siteRates->getValue()[mixture];
+						prob_birth /= r;
+						if(!node.isRoot())
+							prob_birth *= (1.0 - exp(-r*node.getBranchLength()));
+					}else{
+						if(!node.isRoot())
 							prob_birth = 1.0 - exp(-node.getBranchLength());
-						}
+					}
+
+					//if(prob_birth > 1.0)
+					//	std::cerr << prob_birth << std::endl;
 
 				    // temporary variable storing the likelihood
 					double tmp = 0.0;
@@ -248,24 +260,28 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
     for (size_t node = 0; node < totalmass.size(); node++){
     	omega += totalmass[node];
     }
+
     double tl = this->tau->getValue().getNode(left).getBranchLength();
     double tr = this->tau->getValue().getNode(right).getBranchLength();
 
-	ui[root][0] = (1 - exp(-tl)*(1 - ui[left][0] ) )*(1 - exp(-tr)*(1 - ui[right][0]) );
-	ui[root][1] = (1 - exp(-tl)*(1 - ui[left][0] ) )*exp(-tr)*ui[right][1]
-				 +(1 - exp(-tr)*(1 - ui[right][0]) )*exp(-tl)*ui[left][1];
+    totalmass[root] = 0;
+    for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture){
+		double r = 1.0;
+		if(this->rateVariationAcrossSites == true)
+			r = this->siteRates->getValue()[mixture];
 
-	totalmass[root] = (1 - ui[root][0] - ui[root][1])*(2-exp(-tl)-exp(-tr));
+		ui[root][0][mixture] = (1 - exp(-r*tl)*(1 - ui[left][0][mixture] ) )*(1 - exp(-r*tr)*(1 - ui[right][0][mixture]) );
+		ui[root][1][mixture] = (1 - exp(-r*tl)*(1 - ui[left][0][mixture] ) )*exp(-r*tr)*ui[right][1][mixture]
+							  +(1 - exp(-r*tr)*(1 - ui[right][0][mixture]) )*exp(-r*tl)*ui[left][1][mixture];
+
+		totalmass[root] += (1 - ui[root][0][mixture] - ui[root][1][mixture])/r;
+	}
+
 	omega += totalmass[root];
 
 	//Alekseyenko et al. 2008
 	//Integrated over lambda
-	size_t N = this->numSites;
-	//std::cerr << log(N+1)-(N+1)*log(omega) << std::endl;
-    this->lnProb += log(N+1)-(N+1)*log(omega);
-
-    // normalize the log-probability
-    this->lnProb -= log( this->numSiteRates ) * N;
+    this->lnProb -= (this->numSites+1)*log(omega);
 }
 
 
@@ -331,12 +347,20 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
     // Nicholls and Gray 2003
     double tl = this->tau->getValue().getNode(left).getBranchLength();
     double tr = this->tau->getValue().getNode(right).getBranchLength();
+    double t0 = this->tau->getValue().getNode(nodeIndex).getBranchLength();
 
-    ui[nodeIndex][0] = (1 - exp(-tl)*(1 - ui[left][0] ) )*(1 - exp(-tr)*(1 - ui[right][0]) );
-    ui[nodeIndex][1] = (1 - exp(-tl)*(1 - ui[left][0] ) )*exp(-tr)*ui[right][1]
-                      +(1 - exp(-tr)*(1 - ui[right][0]) )*exp(-tl)*ui[left][1];
+    totalmass[nodeIndex] = 0;
+    for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture){
+		double r = 1.0;
+		if(this->rateVariationAcrossSites == true)
+			r = this->siteRates->getValue()[mixture];
 
-    totalmass[nodeIndex] = (1 - ui[nodeIndex][0] - ui[nodeIndex][1])*(2-exp(-tl)-exp(-tr));
+		ui[nodeIndex][0][mixture] = (1 - exp(-r*tl)*(1 - ui[left][0][mixture] ) )*(1 - exp(-r*tr)*(1 - ui[right][0][mixture]) );
+		ui[nodeIndex][1][mixture] = (1 - exp(-r*tl)*(1 - ui[left][0][mixture] ) )*exp(-r*tr)*ui[right][1][mixture]
+								   +(1 - exp(-r*tr)*(1 - ui[right][0][mixture]) )*exp(-r*tl)*ui[left][1][mixture];
+
+		totalmass[nodeIndex] += (1 - ui[nodeIndex][0][mixture] - ui[nodeIndex][1][mixture])*(1-exp(-r*t0))/r;
+    }
 
 }
 
@@ -445,8 +469,10 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 
     } // end-for over all mixture categories
     
-    ui[nodeIndex][0] = 0;
-    ui[nodeIndex][1] = 1;
+    for(size_t mixture = 0; mixture < this->numSiteRates; mixture++){
+		ui[nodeIndex][0][mixture] = 0;
+		ui[nodeIndex][1][mixture] = 1;
+    }
     totalmass[nodeIndex] = 0;
 }
 
