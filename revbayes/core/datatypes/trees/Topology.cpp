@@ -45,7 +45,7 @@ Topology::Topology(const Topology& t) :
     if (t.root != NULL) 
     {
         TopologyNode * newRoot = t.getRoot().clone();
-        
+
         // set the root. This will also set the nodes vector.
         setRoot(newRoot);
     }
@@ -68,7 +68,7 @@ Topology& Topology::operator=(const Topology &t)
     
     if (this != &t) 
     {
-        
+
         nodes.clear();
         delete root;
         root = NULL;
@@ -79,7 +79,7 @@ Topology& Topology::operator=(const Topology &t)
         rooted      = t.rooted;
         
         TopologyNode* newRoot = t.root->clone();
-        
+
         // set the root. This will also set the nodes vector.
         setRoot(newRoot);
     }
@@ -145,7 +145,9 @@ TopologyNode& Topology::getNode(size_t idx) {
     
     if ( idx >= nodes.size() ) 
     {
-        throw RbException("Index out of bounds in getNode of Topology.");
+    	std::stringstream ss;
+    	ss << "Index "<< idx << " out of bounds in getNode of Topology";
+        throw RbException(ss.str());
     }
     
     return *nodes[idx];
@@ -156,7 +158,9 @@ const TopologyNode& Topology::getNode(size_t idx) const {
     
     if ( idx >= nodes.size() ) 
     {
-        throw RbException("Index out of bounds in getNode of Topology.");
+    	std::stringstream ss;
+    	ss << "Index "<< idx << " out of bounds in getNode of Topology";
+        throw RbException(ss.str());
     }
     
     return *nodes[idx];

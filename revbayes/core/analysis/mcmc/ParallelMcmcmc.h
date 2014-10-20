@@ -28,7 +28,8 @@ namespace RevBayesCore {
     class ParallelMcmcmc : Cloneable {
         
     public:
-        ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string sT="random", int nc=4, int np=4, int si=1000, double dt=0.1, double st=1.0, double sh=1.0);
+        ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string sT="random",
+        			int nc=4, int np=4, int si=1000, double dt=0.1, double st=1.0, double sh=1.0, std::string fn = "", int ev = 1);
         ParallelMcmcmc(const ParallelMcmcmc &m);
         virtual                                            ~ParallelMcmcmc(void);                                                          //!< Virtual destructor
         
@@ -36,13 +37,20 @@ namespace RevBayesCore {
         void                                                burnin(int g, int ti);
         ParallelMcmcmc*                                     clone(void) const;
         void                                                printOperatorSummary(void) const;
-        void                                                run(size_t g);        
+        void                                                run(size_t g);
+        void                                                readStream(size_t g);
+        bool                                                lastCycle(void);
+        unsigned int                                        getCurrentGeneration(void);
         
+
     private:
         void                                                initialize(void);
         void                                                swapChains(void);
         double                                              computeBeta(double d, double s, size_t i);   // incremental temperature schedule
         
+        void												fromStream(std::istream& is, bool keep = true);
+        void												toStream(std::ostream& os);
+
         size_t                                              numChains;
         size_t                                              numProcesses;
         std::vector<size_t>                                 chainIdxByHeat;
@@ -52,6 +60,11 @@ namespace RevBayesCore {
         unsigned int                                        currentGeneration;
         unsigned int                                        swapInterval;
         
+        std::string											filename;
+		std::fstream										stream;
+		int 												every;
+		size_t												numNodes;
+
         size_t                                              activeIndex;  // index of coldest chain, i.e. which one samples the posterior
         double                                              delta;        // delta-T, temperature increment for computeBeta
         double                                              sigma;        // scales power in heating schedule

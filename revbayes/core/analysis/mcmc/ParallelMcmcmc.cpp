@@ -1,9 +1,12 @@
 #include "ParallelMcmcmc.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
+#include "RbException.h"
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <sstream>
+#include <limits>
 
 #if defined (USE_LIB_OPENMP)
     #include <omp.h>
@@ -13,7 +16,17 @@
 
 using namespace RevBayesCore;
 
-ParallelMcmcmc::ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string sT, int nc, int np, int si, double dt, double st, double sh) : Cloneable( ), numChains(nc), numProcesses(np),  scheduleType(sT), currentGeneration(0), swapInterval(si), delta(dt),  sigma(st), startingHeat(sh)
+ParallelMcmcmc::ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string sT, int nc, int np, int si, double dt, double st, double sh, std::string fn, int ev) : Cloneable( ),
+			numChains(nc),
+			numProcesses(np),
+			scheduleType(sT),
+			currentGeneration(0),
+			swapInterval(si),
+			delta(dt),
+			sigma(st),
+			startingHeat(sh),
+			filename(fn),
+			every(ev)
 {
     activeIndex = 0;
     
@@ -24,7 +37,7 @@ ParallelMcmcmc::ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, 
         
         // create chains
         bool a = (i == 0 ? true : false);
-        Mcmc* oneChain = new Mcmc(m, moves, mons, scheduleType, a, b);
+        Mcmc* oneChain = new Mcmc(m, moves, mons, scheduleType, a, b, i);
         oneChain->setChainIndex(i);
         oneChain->startMonitors();
         
@@ -32,6 +45,8 @@ ParallelMcmcmc::ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, 
         chains.push_back(oneChain);
         chainIdxByHeat.push_back(i);
     }
+
+    numNodes = chains[0]->getNumNodes();
     //std::cout << "\n";
     
     
@@ -58,6 +73,10 @@ ParallelMcmcmc::ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, 
         ;//std::cout << chains[i]->getLnPosterior() << "\n";
     }
     
+    if(filename != ""){
+		stream.open( filename.c_str(), std::fstream::out | std::fstream::app);
+		stream.rdbuf();
+    }
 }
 
 ParallelMcmcmc::ParallelMcmcmc(const ParallelMcmcmc &m)
@@ -67,6 +86,9 @@ ParallelMcmcmc::ParallelMcmcmc(const ParallelMcmcmc &m)
     startingHeat = m.startingHeat;
     numChains = m.numChains;
     numProcesses = m.numProcesses;
+    numNodes = m.numNodes;
+    filename = m.filename;
+    every = m.every;
 
     chainIdxByHeat = m.chainIdxByHeat;
     swapInterval = m.swapInterval;
@@ -86,6 +108,8 @@ ParallelMcmcmc::ParallelMcmcmc(const ParallelMcmcmc &m)
     
     currentGeneration = m.currentGeneration;
     
+    if(filename != "")
+		stream.open( filename.c_str(), std::fstream::out | std::fstream::app);
 }
 
 ParallelMcmcmc::~ParallelMcmcmc(void)
@@ -114,6 +138,35 @@ void ParallelMcmcmc::burnin(int g, int ti)
     
 }
 
+bool ParallelMcmcmc::lastCycle(void){
+	if(filename == "")
+		throw(RbException("in ParallelMcmcmc::lastCycle -> Mcmc chain file not specified"));
+
+	if(stream.is_open())
+		stream.close();
+
+	stream.open(filename.c_str(), std::fstream::in);
+
+	size_t pos = stream.tellg();
+	size_t lastsample = pos;
+
+	fromStream(stream,false);
+
+	while(!stream.eof()){
+		lastsample = pos;
+		pos = stream.tellg();
+		fromStream(stream,false);
+		currentGeneration += swapInterval*every;
+	}
+
+	stream.clear();
+	stream.seekg(lastsample);
+
+	fromStream(stream);
+
+	return true;
+}
+
 ParallelMcmcmc* ParallelMcmcmc::clone(void) const
 {
     return new ParallelMcmcmc(*this);
@@ -128,14 +181,27 @@ void ParallelMcmcmc::printOperatorSummary(void) const
     }
 }
 
+unsigned int ParallelMcmcmc::getCurrentGeneration(void)
+{
+    return currentGeneration;
+}
+
 void ParallelMcmcmc::run(size_t generations)
 {
     // print file header
-    if (currentGeneration == 0)
+    if (currentGeneration == 0){
         chains[0]->monitor(0);
+        if(filename != "")
+        	toStream(stream);
+    }
     
+    if(stream.is_open()){
+    	stream.close();
+    	stream.open( filename.c_str(), std::fstream::out | std::fstream::app);
+    }
+
     // run chain
-    for (size_t i = 1; i <= generations; i += swapInterval)
+    for (size_t i = currentGeneration+1; i <= generations; i += swapInterval)
     {
         // start parallel job per block of swapInterval cycles
         size_t np = numProcesses; // in fact, used by the macro below
@@ -158,29 +224,36 @@ void ParallelMcmcmc::run(size_t generations)
                 {
                     // advance chain j by a single cycle
                     chains[chainIdx]->nextCycle(true);
-
+/*
                     // monitor chain activeIndex only
                     //if (chainIdx == activeIndex)
                     if (chains[chainIdx]->isChainActive() )
                     {
+
+            			//std::cerr << "monitoring " << chainIdx << std::endl;
                         //chains[activeIndex]->
                     	//std::cout << "monitoring " << chainIdx << std::endl;
                         chains[chainIdx]->monitor(i+k);
                     }
                     //std::cout << chainIdx << "    lnPosterior  " << chains[chainIdx]->getLnPosterior() << " chainHeat  " << chains[chainIdx]->getChainHeat() << "\n";
                     //chains[chainIdx]->monitor(i+k);
+                     *
+                     */
                 }
             }
             
             // synchronize chains
             #pragma omp barrier
-            
+
         } // processor job end
-        
-        // advance gen counter
+
         currentGeneration += swapInterval;
-        
-        // perform chain swap
+
+		chains[chainIdxByHeat[0]]->monitor(currentGeneration);
+
+		if(currentGeneration % every*swapInterval == 0 && filename != "")
+			toStream(stream);
+
         swapChains();
     }
 }
@@ -254,12 +327,6 @@ void ParallelMcmcmc::swapChains(void)
                 chains[j]->setChainActive(false);
                 chains[k]->setChainActive(true);
             }
-            else if (activeIndex == k)
-            {
-                activeIndex = (int)j;
-                chains[j]->setChainActive(true);
-                chains[k]->setChainActive(false);
-            }
         }
         //std::cout << "activeIndex " << activeIndex << "\n";
     }
@@ -278,4 +345,61 @@ void ParallelMcmcmc::swapChains(void)
     std::cout << "\n";
 # endif
     
+}
+
+void ParallelMcmcmc::fromStream(std::istream& is, bool keep){
+	int index = 0;
+	for ( size_t i = 0; i < numChains; i++){
+		if(numChains > 1){
+			is >> index;
+			if(!is)
+				throw(RbException("premature end of stream"));
+		}
+
+		chains[index]->fromStream(is,keep);
+		chains[i]->setChainActive(i == 0);
+
+		chainIdxByHeat[i] = index;
+		if(i == 0)
+			activeIndex = index;
+	}
+
+	is.ignore();
+	is.peek();
+}
+
+void ParallelMcmcmc::toStream(std::ostream& os){
+	std::stringstream sample;
+	sample.precision(std::numeric_limits<double>::digits10+2);
+	for ( size_t i = 0; i < numChains; i++){
+		if(numChains > 1)
+			sample << chainIdxByHeat[i] << "\n";
+		chains[chainIdxByHeat[i]]->toStream(sample);
+	}
+	os << sample.str();
+	os.flush();
+}
+
+void ParallelMcmcmc::readStream(size_t generations)
+{
+	if(filename == "")
+		throw(RbException("in ParallelMcmcmc::lastCycle -> Mcmc chain file not specified"));
+
+	if(stream.is_open())
+		stream.close();
+
+	stream.open(filename.c_str(), std::fstream::in);
+
+    for (int k=1; k<=generations; k++)
+    {
+    	try{
+    		fromStream(stream);
+    		chains[chainIdxByHeat[0]]->monitor(currentGeneration);
+
+    		currentGeneration += swapInterval*every;
+
+    	}catch(RbException &e){
+    		break;
+    	}
+    }
 }

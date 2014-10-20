@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <iomanip>
+#include <limits>
 
 using namespace RevBayesCore;
 

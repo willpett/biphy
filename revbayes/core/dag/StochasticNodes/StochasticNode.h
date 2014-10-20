@@ -95,6 +95,7 @@ template<class valueType>
 void RevBayesCore::StochasticNode<valueType>::extractValue(std::istream &is) {
 	valueType value;
 	is >> value;
+
 	setValue(value);
 }
 
@@ -246,16 +247,13 @@ void RevBayesCore::StochasticNode<valueType>::keepMe( DagNode* affecter ) {
     if ( this->touched ) 
     {
         
-        storedLnProb = 1.0E6;       // An almost impossible value for the density
+        storedLnProb = 1.0E9;       // An almost impossible value for the density
         if ( needsProbabilityRecalculation ) 
         {
-        	//std::cerr << "recomputing Prob for\t" << this->getName() << "\n";
             lnProb = distribution->computeLnProbability();
-            //std::cerr << "recomputed Prob\n";
         }
         
         distribution->keep( affecter );
-        //std::cerr << "distribution kept\n";
         
         // clear the list of touched element indices
         this->touchedElements.clear();
@@ -267,7 +265,6 @@ void RevBayesCore::StochasticNode<valueType>::keepMe( DagNode* affecter ) {
     
     // delegate call
     DynamicNode<valueType>::keepMe( affecter );
-    //std::cerr << "dynamic node kept\n";
     
 }
 

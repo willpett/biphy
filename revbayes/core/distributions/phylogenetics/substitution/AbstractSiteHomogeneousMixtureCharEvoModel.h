@@ -92,8 +92,8 @@ namespace RevBayesCore {
         std::vector<size_t>                                                 activeLikelihood;
         
         // the data
-        std::vector<std::vector<unsigned long> >                            charMatrix;
-        std::vector<std::vector<bool> >                                     gapMatrix;
+        std::map<std::string,std::vector<unsigned long> >                   charMatrix;
+        std::map<std::string,std::vector<bool> >                            gapMatrix;
         std::vector<size_t>                                                 patternCounts;
         size_t                                                              numPatterns;
         bool                                                                compressed;
@@ -238,11 +238,6 @@ void RevBayesCore::AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType
     patternCounts.clear();
     numPatterns = 0;
     
-    // resize the matrices
-    size_t tips = tau->getValue().getNumberOfTips();
-    charMatrix.resize(tips);
-    gapMatrix.resize(tips);
-    
     // check whether there are ambiguous characters (besides gaps)
     bool ambiguousCharacters = false;
     // find the unique site patterns and compute their respective frequencies
@@ -345,12 +340,12 @@ void RevBayesCore::AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType
     {
         if ( (*it)->isTip() ) 
         {
-            size_t nodeIndex = (*it)->getIndex();
-            AbstractTaxonData& taxon = value->getTaxonData( (*it)->getName() );
+            std::string name = (*it)->getName();
+            AbstractTaxonData& taxon = value->getTaxonData( name );
             
             // resize the column
-            charMatrix[nodeIndex].resize(numPatterns);
-            gapMatrix[nodeIndex].resize(numPatterns);
+            charMatrix[name].resize(numPatterns);
+            gapMatrix[name].resize(numPatterns);
             size_t patternIndex = 0;
             for (size_t site = 0; site < numSites; ++site) 
             {
@@ -358,12 +353,12 @@ void RevBayesCore::AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType
                 if ( unique[site] ) 
                 {
                     charType &c = static_cast<charType &>( taxon.getCharacter(site) );
-                    gapMatrix[nodeIndex][patternIndex] = c.isGapState();
+                    gapMatrix[name][patternIndex] = c.isGapState();
 
                     if ( ambiguousCharacters ) 
                     {
                         // we use the actual state
-                        charMatrix[nodeIndex][patternIndex] = c.getState();
+                        charMatrix[name][patternIndex] = c.getState();
                     }
                     else
                     {
@@ -382,7 +377,7 @@ void RevBayesCore::AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType
                             ++index;
                         } // end-while over all observed states for this character
                         
-                        charMatrix[nodeIndex][patternIndex] = index;
+                        charMatrix[name][patternIndex] = index;
                     }
 
                     // increase the pattern index
@@ -404,7 +399,7 @@ double RevBayesCore::AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeTy
 	
 	// TAH Run under prior
 //	return 1.0;
-	
+
     // compute the ln probability by recursively calling the probability calculation for each node
     const TopologyNode &root = tau->getValue().getRoot();
     
@@ -412,7 +407,7 @@ double RevBayesCore::AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeTy
     size_t rootIndex = root.getIndex();
     
     // only necessary if the root is actually dirty
-    if ( dirtyNodes[rootIndex] ) 
+    if ( dirtyNodes[rootIndex] )
     {
                 
         // mark as computed
@@ -429,7 +424,6 @@ double RevBayesCore::AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeTy
         // compute the likelihood of the root
         computeRootLikelihood( rootIndex, leftIndex, rightIndex );
     }
-    
     return this->lnProb;
 }
 
@@ -751,7 +745,7 @@ template<class charType, class treeType>
 void RevBayesCore::AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>::touchSpecialization( DagNode* affecter ) {
     
     // if the topology wasn't the culprit for the touch, then we just flag everything as dirty
-    if ( affecter != tau ) 
+    if ( affecter != tau )
     {
         for (std::vector<bool>::iterator it = dirtyNodes.begin(); it != dirtyNodes.end(); ++it) 
         {

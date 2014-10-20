@@ -9,6 +9,7 @@
 #include "SequenctialMoveSchedule.h"
 
 #include <vector>
+#include <fstream>
 
 namespace RevBayesCore {
     
@@ -30,7 +31,7 @@ namespace RevBayesCore {
     class Mcmc {
     
     public:
-        Mcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string sT="random", bool ca=true, double ch=1.0, int ci=0);
+        Mcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string sT="random", bool ca=true, double ch=1.0, int ci=0, std::string fn = "", int every = 1);
         Mcmc(const Mcmc &m);
         virtual                                            ~Mcmc(void);                                                                             //!< Virtual destructor
        
@@ -43,19 +44,24 @@ namespace RevBayesCore {
         Mcmc*                                               clone(void) const;
         double                                              getChainHeat(void);
         size_t                                              getChainIndex(void);
+        size_t                                              getNumNodes(void);
         double                                              getLnPosterior(void);
         double                                              getModelLnProbability(void);
         std::vector<Monitor*>&                              getMonitors(void);
         bool                                                isChainActive(void);
         void                                                monitor(unsigned long g);
         virtual unsigned long                               nextCycle(bool advanceCycle);
+        bool                                                lastCycle(void);
         void                                                printOperatorSummary(void) const;
         void                                                redrawChainState(void);
         virtual void                                        run(int g);
         void                                                setChainActive(bool tf);
         void                                                setChainHeat(double v);                                                                 //!< Set the heating temparature of the chain
         void                                                setChainIndex(size_t idx);                                                              //!< Set the index of the chain
-        void                                                startMonitors(void);                                                                    //!< Start the monitors
+        void                                                startMonitors(void);
+
+        void												fromStream(std::istream& is, bool keep = true);
+        void												toStream(std::ostream& os);
 
     protected:
 
@@ -77,10 +83,25 @@ namespace RevBayesCore {
         std::vector<Move*>                                  moves;
         std::map<Monitor*, std::set<DagNode*> >             orgNodesMonitors;
         std::map<Move*, std::set<DagNode*> >                orgNodesMoves;
+        std::map<std::string,DagNode*>						nodeNames;
         MoveSchedule*                                       schedule;
-        std::string                                         scheduleType;                                                                           //!< Type of move schedule to be used
+        std::string                                         scheduleType;
+
+        std::string											filename;
+        std::fstream										stream;
+		int 												every;
 
     };
+
+    inline std::ostream&                       						operator<<(std::ostream& o, Mcmc* x){
+    	x->toStream(o);
+    	return o;
+    }
+
+    inline std::istream&                       						operator>>(std::istream& i, Mcmc* x){
+    	x->fromStream(i);
+    	return i;
+    }
 
 }
 

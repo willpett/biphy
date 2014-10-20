@@ -60,14 +60,14 @@ void TreeAssemblyFunction::update( void ) {
         }
         touchedNodeIndices.clear();
     } else {
+    	if(&(tau->getValue()) != &(value->getTopology())){
+			value->setTopology( &(tau->getValue()), false );
+		}
         const std::vector<double> &v = brlen->getValue();
         for (size_t i = 0; i < v.size(); ++i) {
             value->setBranchLength(i, v[i]);
         }
     }
-    if(&(tau->getValue()) != &(value->getTopology())){
-		value->setTopology( &(tau->getValue()), false );
-	}
 }
 
 

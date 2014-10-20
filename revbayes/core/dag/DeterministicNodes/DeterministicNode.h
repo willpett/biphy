@@ -276,10 +276,8 @@ void RevBayesCore::DeterministicNode<valueType>::touchMe( DagNode *toucher ) {
         this->touched = true;
         
     }
-    
     // call for potential specialized handling (e.g. internal flags), we might have been touched already by someone else, so we need to delegate regardless
     function->touch( toucher );
-    
     // @todo: until now we update directly without lazy evaluation
     update();
     

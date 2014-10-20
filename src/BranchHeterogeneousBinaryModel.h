@@ -53,6 +53,7 @@ namespace RevBayesCore {
     										bool saveall,
     										bool nexus);
     	BranchHeterogeneousBinaryModel(const std::string &name, const std::string &cvfile, bool ppred);
+    	BranchHeterogeneousBinaryModel(const std::string &name);
         virtual                                ~BranchHeterogeneousBinaryModel(void);                                                            //!< Virtual destructor
         
         bool                                    run();
@@ -87,6 +88,7 @@ namespace RevBayesCore {
         bool									saveall;
         bool									nexus;
         bool									readstream;
+        bool									restart;
         
     };
     

@@ -134,7 +134,6 @@ RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>* RevBay
 template<class charType, class treeType>
 void RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::computeRootLikelihood( size_t root, size_t left, size_t right) 
 {
-    
     // reset the likelihood
     this->lnProb = 0.0;
     
@@ -208,15 +207,14 @@ void RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::c
 template<class charType, class treeType>
 void RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::computeInternalNodeLikelihood(const TopologyNode &node, size_t nodeIndex, size_t left, size_t right) 
 {   
-    
     // compute the transition probability matrix
     updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
-    
+
     // get the pointers to the partial likelihoods for this node and the two descendant subtrees
     const double*   p_left  = this->partialLikelihoods + this->activeLikelihood[left]*this->activeLikelihoodOffset + left*this->nodeOffset;
     const double*   p_right = this->partialLikelihoods + this->activeLikelihood[right]*this->activeLikelihoodOffset + right*this->nodeOffset;
     double*         p_node  = this->partialLikelihoods + this->activeLikelihood[nodeIndex]*this->activeLikelihoodOffset + nodeIndex*this->nodeOffset;
-    
+
     // iterate over all mixture categories
     for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
     {
@@ -229,6 +227,7 @@ void RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::c
         const double*    p_site_mixture_left     = p_left + offset;
         const double*    p_site_mixture_right    = p_right + offset;
         // compute the per site probabilities
+
         for (size_t site = 0; site < this->numPatterns ; ++site)
         {
             
@@ -261,18 +260,17 @@ void RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::c
         } // end-for over all sites (=patterns)
         
     } // end-for over all mixtures (=rate-categories)
-    
 }
 
 
 template<class charType, class treeType>
 void RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::computeTipLikelihood(const TopologyNode &node, size_t nodeIndex) 
-{    
-    
+{
     double* p_node = this->partialLikelihoods + this->activeLikelihood[nodeIndex]*this->activeLikelihoodOffset + nodeIndex*this->nodeOffset;
     
-    const std::vector<bool> &gap_node = this->gapMatrix[nodeIndex];
-    const std::vector<unsigned long> &char_node = this->charMatrix[nodeIndex];
+    std::string name = node.getName();
+    const std::vector<bool> &gap_node = this->gapMatrix[name];
+    const std::vector<unsigned long> &char_node = this->charMatrix[name];
     
     // compute the transition probabilities
     updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
@@ -352,6 +350,7 @@ void RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::c
                         
                         // store the likelihood
                         p_site_mixture[c1] = tp_begin[c1*this->numChars+org_val];
+                        //l+= org_val;
                         
                     }
                     
@@ -368,7 +367,6 @@ void RevBayesCore::GeneralBranchHeterogeneousCharEvoModel<charType, treeType>::c
         p_mixture+=this->mixtureOffset;
         
     } // end-for over all mixture categories
-    
 }
 
 

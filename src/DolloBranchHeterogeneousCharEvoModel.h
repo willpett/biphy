@@ -89,7 +89,7 @@ namespace RevBayesCore {
 
 template<class charType, class treeType>
 RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::DolloBranchHeterogeneousCharEvoModel(const TypedDagNode< treeType > *p, const TypedDagNode<Topology> *t, size_t nChars, bool c, size_t nSites, charType& astate) : AbstractSiteHomogeneousMixtureCharEvoModel<charType, treeType>(  p, nChars, 1, c, nSites ) ,
-	absentstate(astate), topology(t)
+	absentstate(astate), topology(t), omega(0.0)
 {
 
 	// initialize with default parameters
@@ -281,7 +281,7 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 
 	//Alekseyenko et al. 2008
 	//Integrated over lambda
-    this->lnProb -= (this->numSites+1)*log(omega);
+    this->lnProb -= log(this->numSites) + this->numSites*log(omega);
 }
 
 
@@ -371,8 +371,9 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 
     double* p_node = this->partialLikelihoods + this->activeLikelihood[nodeIndex]*this->activeLikelihoodOffset + nodeIndex*this->nodeOffset;
 
-    const std::vector<bool> &gap_node = this->gapMatrix[nodeIndex];
-    const std::vector<unsigned long> &char_node = this->charMatrix[nodeIndex];
+    std::string name = node.getName();
+    const std::vector<bool> &gap_node = this->gapMatrix[name];
+    const std::vector<unsigned long> &char_node = this->charMatrix[name];
 
     // compute the transition probabilities
     updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
@@ -888,6 +889,7 @@ void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::com
 		}
 	}
 }
+
 /*
 template<class charType, class treeType>
 void RevBayesCore::DolloBranchHeterogeneousCharEvoModel<charType, treeType>::redrawValue( void ) {

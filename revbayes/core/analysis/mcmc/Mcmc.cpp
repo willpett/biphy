@@ -10,8 +10,11 @@
 #include "RbException.h"
 #include "RbMathLogic.h"
 #include "RbOptions.h"
+#include "RbSettings.h"
 #include "SequenctialMoveSchedule.h"
 #include "SingleRandomMoveSchedule.h"
+#include "StochasticNode.h"
+#include "Topology.h"
 #include "RandomMoveSchedule.h"
 #include "ExtendedNewickTreeMonitor.h"
 
@@ -19,6 +22,7 @@
 #include <iomanip>
 #include <sstream>
 #include <typeinfo>
+#include <limits>
 
 using namespace RevBayesCore;
 
@@ -36,7 +40,7 @@ using namespace RevBayesCore;
  * \param[in]    ci   The chain index (for multiple chain, e.g. in MCMCMC).
  * \param[in]    sT   Move schedule type (one of "random", "single", or "sequential").
  */
-Mcmc::Mcmc(const Model& m, const std::vector<Move*> &mvs, const std::vector<Monitor*> &mons, std::string sT, bool ca, double ch, int ci) :
+Mcmc::Mcmc(const Model& m, const std::vector<Move*> &mvs, const std::vector<Monitor*> &mons, std::string sT, bool ca, double ch, int ci, std::string fn, int ev) :
     chainActive(ca),
     chainHeat(ch),
     chainIdx(ci),
@@ -45,7 +49,9 @@ Mcmc::Mcmc(const Model& m, const std::vector<Move*> &mvs, const std::vector<Moni
     monitors(),
     moves(),
     schedule(NULL),
-    scheduleType(sT)
+    scheduleType(sT),
+	filename(fn),
+	every(ev)
 {
     
     // create an independent copy of the model, monitors and moves
@@ -70,7 +76,9 @@ Mcmc::Mcmc(const Mcmc &m) :
         monitors(),
         moves(),
         schedule(NULL),
-        scheduleType( m.scheduleType )
+        scheduleType( m.scheduleType ),
+		filename(m.filename),
+		every(m.every)
 {
    
     // temporary references
@@ -196,7 +204,8 @@ double Mcmc::getModelLnProbability(void)
     const std::vector<DagNode*> &n = model.getDagNodes();
     double pp = 0.0;
     for (std::vector<DagNode*>::const_iterator it = n.begin(); it != n.end(); ++it) {
-        //std::cout << (*it)->getName() << "  " << (*it)->getLnProbability() << "\n";
+        //std::cerr << (*it)->getName() << "\t" << (*it)->getLnProbability();
+        //std::cerr << std::endl;
         //(*it)->touch();
         pp += (*it)->getLnProbability();
     }
@@ -209,6 +218,14 @@ std::vector<Monitor*>& Mcmc::getMonitors(void)
     return monitors; 
 }
 
+size_t Mcmc::getNumNodes(void)
+{
+	size_t i =0;
+	for (std::map<std::string,DagNode*>::iterator it=nodeNames.begin() ; it != nodeNames.end(); it++ )
+		if(!it->second->isClamped())
+			i++;
+    return i;
+}
 
 
 /** Creates a vector of stochastic nodes, starting from the source nodes to the sink nodes */
@@ -239,8 +256,10 @@ void Mcmc::getOrderedStochasticNodes(const DagNode* dagNode,  std::vector<DagNod
         
         // Then I can add myself to the nodes visited, and to the ordered vector of stochastic nodes
 //        visitedNodes.insert(dagNode);
-        if ( dagNode->isStochastic() ) //if the node is stochastic
+        if ( dagNode->isStochastic() ){
+        	nodeNames[dagNode->getName()] = const_cast<DagNode*>(dagNode);
             orderedStochasticNodes.push_back( const_cast<DagNode*>( dagNode ) );
+        }
         
         // Finally I will visit my children
         std::set<DagNode*> children = dagNode->getChildren() ;
@@ -376,6 +395,13 @@ void Mcmc::initializeMonitors(void)
         monitors[i]->setMcmc(this);
         monitors[i]->setModel( &model );
     }
+
+    if(filename != ""){
+    	if(stream.is_open())
+    		stream.close();
+
+    	stream.open( filename.c_str(), std::fstream::out | std::fstream::app);
+    }
 }
 
 
@@ -387,14 +413,23 @@ bool Mcmc::isChainActive(void)
 
 void Mcmc::monitor(unsigned long g)
 {
-    
+
     // Monitor
     for (size_t i = 0; i < monitors.size(); i++) 
     {
+    	if(chainActive && g == 0)
+			monitors[i]->printHeader();
     	//std::cout << monitors[i] << std::endl;
         monitors[i]->monitor( g );
     }
     
+    if(g % every == 0 && filename != ""){
+    	std::stringstream sample;
+    	toStream(sample);
+    	stream << sample.str();
+    	stream.flush();
+    }
+
 }
 
 
@@ -514,6 +549,35 @@ unsigned long Mcmc::nextCycle(bool advanceCycle) {
     
     // gen number used for p(MC)^3
     return generation;
+}
+
+bool Mcmc::lastCycle(void) {
+	if(filename == "")
+		throw(RbException("Error in Mcmc::lastCycle -> Mcmc chain file not specified"));
+
+	if(stream.is_open())
+	    stream.close();
+
+	stream.open( filename.c_str(), std::fstream::in);
+
+	size_t pos = stream.tellg();
+	size_t lastsample = pos;
+
+	fromStream(stream,false);
+
+	while(!stream.eof()){
+		lastsample = pos;
+		pos = stream.tellg();
+		fromStream(stream,false);
+		generation += every;
+	}
+
+	stream.clear();
+	stream.seekg(lastsample);
+
+	fromStream(stream);
+
+	return true;
 }
 
 
@@ -683,11 +747,47 @@ void Mcmc::startMonitors( void ) {
         monitors[i]->openStream();
         
         // if this chain is active, print the header
-        if (chainActive) // surprised this works properly...
-        {
-            //monitors[i]->openStream();
-            monitors[i]->printHeader();
-            
-        }
     }
+}
+
+void Mcmc::fromStream(std::istream& is, bool keep){
+	// get the printing frequency
+	std::map<std::string,DagNode*>::iterator it;
+	for ( it=nodeNames.begin() ; it != nodeNames.end(); it++ ){
+		if(!it->second->isClamped()){
+			if(keep){
+				if(is >> it->second){
+					it->second->keep();
+				}else{
+					throw(RbException("premature end of stream"));
+				}
+			}else{
+				std::string line;
+				is >> line;
+				if(!is)
+					throw(RbException("premature end of stream"));
+			}
+		}
+	}
+
+	is.ignore();
+	is.peek();
+}
+
+void Mcmc::toStream(std::ostream& os){
+	class valuetype;
+	bool pni = RbSettings::userSettings().getPrintNodeIndex();
+
+	os.precision(std::numeric_limits<double>::digits10+2);
+	RbSettings::userSettings().setPrintNodeIndex(true);
+	std::map<std::string,DagNode*>::iterator it;
+	for ( it=nodeNames.begin() ; it != nodeNames.end(); it++ ){
+		if(!it->second->isClamped()){
+			StochasticNode<Topology> * node = dynamic_cast<StochasticNode<Topology>* >(it->second);
+			if(node)
+				node->getValue().getRoot().clearBranchParameters();
+			os << it->second << "\n";
+		}
+	}
+	RbSettings::userSettings().setPrintNodeIndex(pni);
 }
