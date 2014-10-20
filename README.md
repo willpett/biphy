@@ -7,7 +7,7 @@ Several time- homogeneous and heterogeneous models are available, as well as fun
 
 ### Requirements
 
-g++-4.4 and OpenMP
+OpenMP-enabled g++
 
 ### Install
 
