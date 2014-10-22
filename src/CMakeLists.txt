@@ -1,5 +1,5 @@
 set(SRC_FILES
-${PROJECT_SRC_DIR}/BranchHeterogeneousBinaryModel.cpp
+${PROJECT_SRC_DIR}/Biphy.cpp
 ${PROJECT_SRC_DIR}/CladeReader.cpp
 ${PROJECT_SRC_DIR}/CrossValidationScoreMonitor.cpp
 ${PROJECT_SRC_DIR}/DPPBetaSimplexMove.cpp

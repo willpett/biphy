@@ -17,21 +17,16 @@
  */
 
 
-#ifndef BranchHeterogeneousBinaryModel_H
-#define BranchHeterogeneousBinaryModel_H
+#ifndef Biphy_H
+#define Biphy_H
 
 #include <string>
 #include <vector>
-
-namespace RevBayesCore {
     
-    class Tree;
-    class AbstractCharacterData;
-    
-    class BranchHeterogeneousBinaryModel {
+    class Biphy {
         
     public:
-    	BranchHeterogeneousBinaryModel(const std::string &datafile,
+    	Biphy(const std::string &datafile,
     										const std::string &treefile,
     										const std::string &name,
     										const std::string &outgroupfile,
@@ -51,10 +46,11 @@ namespace RevBayesCore {
     										double deltaTemp,
     										double sigmaTemp,
     										bool saveall,
-    										bool nexus);
-    	BranchHeterogeneousBinaryModel(const std::string &name, const std::string &cvfile, bool ppred);
-    	BranchHeterogeneousBinaryModel(const std::string &name);
-        virtual                                ~BranchHeterogeneousBinaryModel(void);                                                            //!< Virtual destructor
+    										bool nexus,
+											int correctionType);
+    	Biphy(const std::string &name, const std::string &cvfile, bool ppred);
+    	Biphy(const std::string &name);
+        virtual                                ~Biphy(void);                                                            //!< Virtual destructor
         
         bool                                    run();
         void                                    open();
@@ -87,11 +83,10 @@ namespace RevBayesCore {
         double                                  sigmaTemp;
         bool									saveall;
         bool									nexus;
+        int										correctionType;
         bool									readstream;
         bool									restart;
         
     };
-    
-}
 
 #endif

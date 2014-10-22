@@ -1,9 +1,11 @@
+#include "AbstractCharacterData.h"
+#include "Biphy.h"
+#include "BinaryCharEvoModel.h"
 #include "BinaryDivision.h"
 #include "BinaryMultiplication.h"
 #include "BinarySubtraction.h"
 #include "BetaDistribution.h"
 #include "BetaSimplexMove.h"
-#include "BranchHeterogeneousBinaryModel.h"
 #include "Clade.h"
 #include "CladeReader.h"
 #include "ConstantNode.h"
@@ -12,7 +14,6 @@
 #include "DeterministicNode.h"
 #include "DirichletDistribution.h"
 #include "DirichletProcessPriorDistribution.h"
-#include "DolloBranchHeterogeneousCharEvoModel.h"
 #include "DPPAllocateAuxGibbsMove.h"
 #include "DPPGibbsConcentrationMove.h"
 #include "DppNumTablesStatistic.h"
@@ -23,7 +24,6 @@
 #include "FreeBinaryRateMatrixFunction.h"
 #include "FreeBinaryRateMatrixVectorFunction.h"
 #include "GammaDistribution.h"
-#include "GeneralBranchHeterogeneousCharEvoModel.h"
 #include "ParallelMcmcmc.h"
 #include "MixtureDistribution.h"
 #include "MixtureAllocationMove.h"
@@ -31,6 +31,8 @@
 #include "MeanFunction.h"
 #include "Model.h"
 #include "Monitor.h"
+
+#include "DolloBinaryCharEvoModel.h"
 #include "Move.h"
 #include "MultiMove.h"
 #include "NclReader.h"
@@ -61,7 +63,7 @@
 
 using namespace RevBayesCore;
 
-BranchHeterogeneousBinaryModel::BranchHeterogeneousBinaryModel(const std::string &datafile,
+Biphy::Biphy(const std::string &datafile,
 									const std::string &name,
 									const std::string &treefile,
 									const std::string &outgroupfile,
@@ -81,7 +83,8 @@ BranchHeterogeneousBinaryModel::BranchHeterogeneousBinaryModel(const std::string
 									double deltaTemp,
 									double sigmaTemp,
 									bool saveall,
-									bool nexus) :
+									bool nexus,
+									int correctionType) :
 		dataFile( datafile ),
 		name( name ),
 		treeFile( treefile ),
@@ -105,13 +108,14 @@ BranchHeterogeneousBinaryModel::BranchHeterogeneousBinaryModel(const std::string
 		sigmaTemp( sigmaTemp ),
 		saveall( saveall),
 		nexus(nexus),
+		correctionType(correctionType),
 		readstream(false),
 		restart(false)
 {
     save();
 }
 
-BranchHeterogeneousBinaryModel::BranchHeterogeneousBinaryModel(const std::string &name, const std::string &cvfile, bool ppred) :
+Biphy::Biphy(const std::string &name, const std::string &cvfile, bool ppred) :
 		name( name ),
 		cvfile(cvfile),
 		ppred(ppred),
@@ -122,17 +126,17 @@ BranchHeterogeneousBinaryModel::BranchHeterogeneousBinaryModel(const std::string
     every = 1;
 }
 
-BranchHeterogeneousBinaryModel::BranchHeterogeneousBinaryModel(const std::string &name) :
+Biphy::Biphy(const std::string &name) :
 		name( name ), cvfile("None"), ppred(false), readstream(false), restart(true)
 {
     open();
 }
 
-BranchHeterogeneousBinaryModel::~BranchHeterogeneousBinaryModel() {
+Biphy::~Biphy() {
     // nothing to do
 }
 
-void BranchHeterogeneousBinaryModel::open( void ) {
+void Biphy::open( void ) {
 	std::ifstream is((name + ".param").c_str());
 	if (!is)        {
 		std::cerr << "error : cannot find file : " << name << ".param\n";
@@ -159,11 +163,12 @@ void BranchHeterogeneousBinaryModel::open( void ) {
 	is >> sigmaTemp;
 	is >> saveall;
 	is >> nexus;
+	is >> correctionType;
 
 	is.close();
 }
 
-void BranchHeterogeneousBinaryModel::save( void ) {
+void Biphy::save( void ) {
 	std::ofstream os((name + ".param").c_str());
 
 	os << dataFile << "\n";
@@ -186,13 +191,14 @@ void BranchHeterogeneousBinaryModel::save( void ) {
 	os << sigmaTemp << "\n";
 	os << saveall << "\n";
 	os << nexus << "\n";
+	os << correctionType << "\n";
 
 	os.close();
 }
 
 
 
-bool BranchHeterogeneousBinaryModel::run( void ) {
+bool Biphy::run( void ) {
     
     /* First, we read in the data */
     // the matrix
@@ -296,6 +302,28 @@ bool BranchHeterogeneousBinaryModel::run( void ) {
 		std::cout << "ras ~ gamma of mean 1 and variance 1/lambda^2\n";
 		std::cout << "lambda ~ exponential of mean 1\n";
 	}
+
+    if(correctionType > 0){
+    	std::cout << "\n";
+    	std::cout << "correction for unobserved site-patterns:\n";
+    	if(correctionType == NO_UNINFORMATIVE){
+    		std::cout << "\tuninformative sites\n";
+    	}else{
+    		if((correctionType & NO_CONSTANT_SITES) == NO_CONSTANT_SITES)
+				std::cout << "\tconstant sites\n";
+			else if(correctionType & NO_ABSENT_SITES)
+					std::cout << "\tconstant absence\n";
+			else if(correctionType & NO_PRESENT_SITES)
+					std::cout << "\tconstant presence\n";
+
+			if(correctionType & NO_SINGLETON_GAINS && correctionType & NO_SINGLETON_LOSSES)
+				std::cout << "\tsingletons\n";
+			else if(correctionType & NO_SINGLETON_GAINS)
+				std::cout << "\tsingleton gains\n";
+			else if(correctionType & NO_SINGLETON_LOSSES)
+				std::cout << "\tsingleton losses\n";
+    	}
+    }
 
     std::cout << "\n";
 
@@ -510,18 +538,13 @@ bool BranchHeterogeneousBinaryModel::run( void ) {
     DeterministicNode<BranchLengthTree> *psi = new DeterministicNode<BranchLengthTree>( "psi", new TreeAssemblyFunction(tau, br_vector) );
     std::cout << "tree okay\n";
 
-    AbstractSiteHomogeneousMixtureCharEvoModel<StandardState, BranchLengthTree> *charModel;
-    DolloBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree> *DcharModel;
-    GeneralBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree> *GcharModel;
+    BinaryCharEvoModel<BranchLengthTree> *charModel;
     StochasticNode<double> *birthrate;
     if(dollo){
-    	StandardState absorbingstate("01");
-		absorbingstate.setState("0");
-		DcharModel = new DolloBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, tau, 2, true, data[0]->getNumberOfCharacters(), absorbingstate);
+		charModel = new DolloBinaryCharEvoModel<BranchLengthTree>(psi, tau, true, data[0]->getNumberOfCharacters(), correctionType);
 	}else{
-    	GcharModel = new GeneralBranchHeterogeneousCharEvoModel<StandardState, BranchLengthTree>(psi, 2, true, data[0]->getNumberOfCharacters());
+		charModel = new BinaryCharEvoModel<BranchLengthTree>(psi, true, data[0]->getNumberOfCharacters(), correctionType);
     }
-
 
     std::vector<const TypedDagNode<double> *> rf_vec(2);
 	TypedDagNode<std::vector<double> > *rf;
@@ -530,40 +553,25 @@ bool BranchHeterogeneousBinaryModel::run( void ) {
     	rf_vec[1] = one;
     	rf_vec[0] = zero;
     	rf = new DeterministicNode< std::vector< double > >( "rf", new VectorFunction< double >( rf_vec ) );
-		if(heterogeneous){
-			DcharModel->setRateMatrix( qs_node );
-			DcharModel->setRootFrequencies( rf );
-		}else{
-			DcharModel->setRateMatrix( q );
-			DcharModel->setRootFrequencies( rf );
-		}
-		DcharModel->setClockRate( one );
-		if(ras)
-			DcharModel->setSiteRates( site_rates_norm );
-
-		charModel = DcharModel;
     }else{
     	rf_vec[1] = phi;
     	rf_vec[0] = new DeterministicNode<double>( "pi0", new BinarySubtraction<double,double,double>(one,phi));
     	rf = new DeterministicNode< std::vector< double > >( "rf", new VectorFunction< double >( rf_vec ) );
-    	if(heterogeneous){
-			GcharModel->setRateMatrix( qs_node );
-			GcharModel->setRootFrequencies( rf );
-		}else{
-			GcharModel->setRateMatrix( q );
-			GcharModel->setRootFrequencies( rf );
-		}
-		GcharModel->setClockRate( one );
-		if(ras)
-			GcharModel->setSiteRates( site_rates_norm );
-
-		charModel = GcharModel;
     }
+    if(heterogeneous){
+    	charModel->setRateMatrix( qs_node );
+    	charModel->setRootFrequencies( rf );
+	}else{
+		charModel->setRateMatrix( q );
+		charModel->setRootFrequencies( rf );
+	}
+    charModel->setClockRate( one );
+	if(ras)
+		charModel->setSiteRates( site_rates_norm );
 
     StochasticNode< AbstractCharacterData > *charactermodel = new StochasticNode< AbstractCharacterData >("S", charModel );
     charactermodel->clamp( data[0] );
     std::cout << "data ok\n";
-
     
     /* add the moves */
     std::vector<Move*> moves;

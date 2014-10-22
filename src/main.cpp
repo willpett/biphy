@@ -1,8 +1,8 @@
-#include "BranchHeterogeneousBinaryModel.h"
 #include "RbException.h"
 #include <iostream>
 #include <stdlib.h>
 #include <fstream>
+#include "Biphy.h"
 
 bool fexists(const std::string& filename) {
   std::ifstream ifile(filename.c_str());
@@ -20,7 +20,6 @@ void our_terminate (void) { // try 1
     catch (RbException& e) {
     	std::cout << "RbException:\t" << e.getMessage() << '\n';
     }
-    exit(1);
 }
 
 
@@ -50,10 +49,12 @@ int main (int argc, const char * argv[])
 		bool saveall = false;
 		bool nexus = false;
 
+		int correctionType = 0;
+
 		int every = 1;
 		int until = -1;
 
-		RevBayesCore::BranchHeterogeneousBinaryModel *chain;
+		Biphy *chain;
 
 		if (argc == 2)	{
 
@@ -64,7 +65,7 @@ int main (int argc, const char * argv[])
 				exit(1);
 			}
 
-			chain = new RevBayesCore::BranchHeterogeneousBinaryModel(name);
+			chain = new Biphy(name);
 
 		}else{
 
@@ -118,6 +119,9 @@ int main (int argc, const char * argv[])
 					}else if (s == "-n")	{
 						i++;
 						numChains = atoi(argv[i]);
+					}else if (s == "-absent")	{
+						i++;
+						correctionType = atoi(argv[i]);
 					}else if (s == "-m")	{
 						i++;
 						mixture = atoi(argv[i]);
@@ -174,28 +178,48 @@ int main (int argc, const char * argv[])
 					throw(0);
 				if(rigidroot && !heterogeneous)
 					throw(0);
+				if(correctionType < 0 || correctionType > 15)
+					throw(0);
 			}
 			catch(...)	{
 				std::cerr << "biphy version 1.0\n";
 				std::cerr << '\n';
 				std::cerr << "usage: biphy -d <alignment> [-x <every> <until>] <chainname>\n\n";
-				std::cerr << "Model options:\n";
+
+				std::cerr << "Stationary frequency priors:\n";
 				std::cerr << "\t-dollo\t\tdollo model\n";
 				std::cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
 				std::cerr << "\t-nh\t\ttime-heterogeneous hierarchical beta model\n";
 				std::cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
 				std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n\n";
+
+				std::cerr << "Other priors:\n";
 				std::cerr << "\t-dir\t\tcompound dirichlet branch length prior\n";
 				std::cerr << "\t-ras\t\tdiscrete gamma rates across sites model\n\n";
+
+				std::cerr << "Corrections for unobserved site patterns:\n";
+				std::cerr << "\t-absent <int>\twhere <int> is one of:\n";
+				std::cerr << "\t\t0:\tno site patterns have been omitted (default)\n";
+				std::cerr << "\t\t1:\tconstant absence sites have been removed\n";
+				std::cerr << "\t\t2:\tconstant presence sites have been removed\n";
+				std::cerr << "\t\t4:\tsingleton gains have been removed\n";
+				std::cerr << "\t\t8:\tsingleton losses have been removed\n\n";
+
+				std::cerr << "\tcombinations are achieved by adding the above values\n";
+				std::cerr << "\te.g.  3 = constant sites have been removed\n";
+				std::cerr << "\t     15 = uninformative sites have been removed\n\n";
+
 				std::cerr << "Optional constraints:\n";
 				std::cerr << "\t-t <file>\tfixed tree filename\n";
 				std::cerr << "\t-o <file>\toutgroup clade file\n";
 				std::cerr << "\t-rp <min> <max>\ttruncate root frequency prior (-nh or -h only)\n";
 				std::cerr << "\t-rr\t\trigid root frequency (heterogeneous models only)\n\n";
+
 				std::cerr << "MCMCMC options:\n";
 				std::cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
 				std::cerr << "\t-delta <float>\t(default = 0.1)\n";
 				std::cerr << "\t-sigma <float>\t(default = 1)\n\n";
+
 				std::cerr << "Other options:\n";
 				std::cerr << "\t-s\t\tsave entire output (default: disabled)\n";
 				std::cerr << "\t-e\t\tsave nexus treefile output (default: disabled)\n";
@@ -242,13 +266,13 @@ int main (int argc, const char * argv[])
 					remove((name+".cv").c_str());
 			}
 
-			chain = new RevBayesCore::BranchHeterogeneousBinaryModel(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rigidroot,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus);
+			chain = new Biphy(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rigidroot,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus,correctionType);
 		}else{
 			if(!fexists(name+".chain")){
 				std::cerr << "chain '" << name << "' does not exist\n";
 				exit(1);
 			}
-			chain = new RevBayesCore::BranchHeterogeneousBinaryModel(name,cvfile,ppred);
+			chain = new Biphy(name,cvfile,ppred);
 		}
 	}
 
