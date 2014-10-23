@@ -399,6 +399,7 @@ double RevBayesCore::AbstractCharEvoModel<charType, treeType>::computeLnProbabil
         // compute the likelihood of the root
         computeRootLikelihood( rootIndex, leftIndex, rightIndex );
     }
+
     return this->lnProb;
 }
 

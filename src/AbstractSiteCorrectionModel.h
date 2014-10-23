@@ -61,7 +61,7 @@ namespace RevBayesCore {
         virtual void                                                        computeInternalNodeCorrection(const TopologyNode &n, size_t nIdx, size_t l, size_t r);
         virtual void                                                        computeTipCorrection(const TopologyNode &node, size_t nIdx);
         
-        virtual void                                                        setCorrectionPatterns(AbstractCharacterData* data) = 0;
+        virtual void                                                        setCorrectionPatterns() = 0;
 
 
         double																lnCorrection;
@@ -390,7 +390,6 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeTipCo
 
 template<class charType, class treeType>
 void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::resizeLikelihoodVectors( void ) {
-
     // we resize the partial likelihood vectors to the new dimensions
     size_t numSiteRates = this->numSiteRates;
     size_t numPatterns = this->numPatterns;
@@ -407,6 +406,7 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::resizeLikeli
     this->nodeOffset                  =  numSiteRates*(numPatterns+numCorrectionSites)*numChars;
     this->mixtureOffset               =  (numPatterns+numCorrectionSites)*numChars;
 
+    this->setCorrectionPatterns();
 }
 
 

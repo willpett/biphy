@@ -90,7 +90,7 @@ void RevBayesCore::GeneralCharEvoModel<charType, treeType>::computeRootLikelihoo
 {
     // reset the likelihood
     this->lnProb = 0.0;
-    
+
     // get the root frequencies
     const std::vector<double> &f                    = this->getRootFrequencies();
     std::vector<double>::const_iterator f_end       = f.end();

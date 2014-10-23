@@ -49,7 +49,7 @@ int main (int argc, const char * argv[])
 		bool saveall = false;
 		bool nexus = false;
 
-		int correctionType = 0;
+		int correctionType = 1;
 
 		int every = 1;
 		int until = -1;
@@ -199,8 +199,8 @@ int main (int argc, const char * argv[])
 
 				std::cerr << "Corrections for unobserved site patterns:\n";
 				std::cerr << "\t-absent <int>\twhere <int> is one of:\n";
-				std::cerr << "\t\t0:\tno site patterns have been omitted (default)\n";
-				std::cerr << "\t\t1:\tconstant absence sites have been removed\n";
+				std::cerr << "\t\t0:\tno site patterns have been omitted\n";
+				std::cerr << "\t\t1:\tconstant absence sites have been removed (default)\n";
 				std::cerr << "\t\t2:\tconstant presence sites have been removed\n";
 				std::cerr << "\t\t4:\tsingleton gains have been removed\n";
 				std::cerr << "\t\t8:\tsingleton losses have been removed\n\n";

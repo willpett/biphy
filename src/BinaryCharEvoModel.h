@@ -31,15 +31,12 @@ namespace RevBayesCore {
         
         // public member functions
         BinaryCharEvoModel*         						clone(void) const;
-        
-        void                                         		setCorrectionPatterns(AbstractCharacterData* data);
 
     protected:
         
+        virtual void                                        setCorrectionPatterns();
         
-    private:
-
-	   int													type;
+        int													type;
 
     };
     
@@ -60,7 +57,14 @@ RevBayesCore::BinaryCharEvoModel<treeType>::BinaryCharEvoModel(const TypedDagNod
 	AbstractCharEvoModel<StandardState, treeType>(t, 2, c, nSites),
 	AbstractSiteCorrectionModel<StandardState, treeType>(t, 2, c , nSites), type(type)
 {
-	setCorrectionPatterns(NULL);
+	size_t numTips = this->tau->getValue().getNumberOfTips();
+
+	this->numCorrectionSites = (bool)(type & NO_ABSENT_SITES)
+							 + (bool)(type & NO_PRESENT_SITES)
+							 + numTips*(bool)(type & NO_SINGLETON_GAINS)
+							 + numTips*(bool)(type & NO_SINGLETON_LOSSES);
+
+	this->resizeLikelihoodVectors();
 }
 
 
@@ -86,17 +90,9 @@ RevBayesCore::BinaryCharEvoModel<treeType>* RevBayesCore::BinaryCharEvoModel<tre
 }
 
 template<class treeType>
-void RevBayesCore::BinaryCharEvoModel<treeType>::setCorrectionPatterns(AbstractCharacterData* data){
+void RevBayesCore::BinaryCharEvoModel<treeType>::setCorrectionPatterns(){
 
 	size_t numTips = this->tau->getValue().getNumberOfTips();
-
-	this->numCorrectionSites = (bool)(type & NO_ABSENT_SITES)
-							 + (bool)(type & NO_PRESENT_SITES)
-							 + numTips*(bool)(type & NO_SINGLETON_GAINS)
-							 + numTips*(bool)(type & NO_SINGLETON_LOSSES);
-
-	this->resizeLikelihoodVectors();
-
 	std::vector<TopologyNode*> nodes = this->tau->getValue().getNodes();
 	// allocate and fill the cells of the matrices
 
