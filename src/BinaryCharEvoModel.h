@@ -155,8 +155,7 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 	}
 
     RandomNumberGenerator* rng = GLOBAL_RNG;
-    //std::cerr << omega << std::endl;
-    size_t cap = 0;
+
     for ( size_t i = 0; i < this->numSites; i++ )
     {
     	double u = rng->uniform01();
@@ -189,13 +188,10 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 		// add the taxon data to the character data
 		for (size_t t = 0; t < numTips; ++t)
 		{
-			if(t == 22 && taxa[t].getState() == 2)
-				cap++;
 			this->value->getTaxonData(t).addCharacter(taxa[t]);
 		}
     }
 
-    std::cerr << (double)cap/this->numSites << std::endl;
     // compress the data and initialize internal variables
     this->compress();
 
