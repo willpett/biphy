@@ -19,7 +19,8 @@
 #define ConstantNode_H
 
 #include "TypedDagNode.h"
-#include "UnivariateFunction.h"
+#include "Cloner.h"
+#include "IsDerivedFrom.h"
 
 namespace RevBayesCore {
     

@@ -151,14 +151,14 @@ const valueType& RevBayesCore::RbVector<valueType>::operator[](size_t i) const {
 
 template <class valueType>
 RevBayesCore::RbIterator<valueType> RevBayesCore::RbVector<valueType>::begin(void) {
-    
+
     return RbIterator<valueType>( values.begin() );
 }
 
 
 template <class valueType>
 RevBayesCore::RbConstIterator<valueType> RevBayesCore::RbVector<valueType>::begin(void) const {
-    
+
     return RbConstIterator<valueType>( values.begin() );
 }
 
@@ -188,14 +188,14 @@ RevBayesCore::RbVector<valueType>* RevBayesCore::RbVector<valueType>::clone(void
 
 template <class valueType>
 RevBayesCore::RbIterator<valueType> RevBayesCore::RbVector<valueType>::end(void) {
-    
+
     return RbIterator<valueType>( values.end() );
 }
 
 
 template <class valueType>
 RevBayesCore::RbConstIterator<valueType> RevBayesCore::RbVector<valueType>::end(void) const {
-   
+
     return RbConstIterator<valueType>( values.end() );
 }
 

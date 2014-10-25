@@ -19,9 +19,6 @@
 
 #include "Taxon.h"
 #include "TimeTree.h"
-#include "Trace.h"
-#include "RateMatrix_GTR.h"
-#include "RateMatrix_JC.h"
 
 #include <ostream>
 #include <string>

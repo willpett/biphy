@@ -68,7 +68,7 @@ RevBayesCore::AbstractBranchHeterogeneousModel<charType, treeType>::AbstractBran
     // initialize with default parameters
     homogeneousClockRate        = new ConstantNode<double>("clockRate", new double(1.0) );
     heterogeneousClockRates     = NULL;
-    homogeneousRateMatrix       = new ConstantNode<RateMatrix>("rateMatrix", new RateMatrix_JC( nChars ) );
+    homogeneousRateMatrix       = NULL;
     heterogeneousRateMatrices   = NULL;
     rootFrequencies             = NULL;
 

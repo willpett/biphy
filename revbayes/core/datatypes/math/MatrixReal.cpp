@@ -110,7 +110,7 @@ void MatrixReal::resize(size_t r, size_t c) {
 
 
 
-#include "RbMathMatrix.h"
+
 #include "RbException.h"
 
 MatrixReal operator+(const MatrixReal& A);
@@ -121,9 +121,7 @@ MatrixReal operator+(double a, const MatrixReal& B);
 MatrixReal operator-(double a, const MatrixReal& B);
 MatrixReal operator*(double a, const MatrixReal& B);
 MatrixReal operator/(double a, const MatrixReal& B);
-MatrixReal operator/(const MatrixReal& A, const MatrixReal& B);
 MatrixReal &operator/=(MatrixReal& A, double b);
-std::vector<double> operator*(const MatrixReal& A, const std::vector<double> &b);
 
 
 /**
@@ -325,41 +323,6 @@ MatrixReal operator/(double a, const MatrixReal& B) {
 		for (size_t j=0; j<A.getNumberOfColumns(); j++)
 			A[i][j] = a / B[i][j];
 	return A;
-}
-
-/**
- * This function performs division of a scalar by
- * each element of a matrix and returns the
- * resulting matrix.
- *
- * @brief operator/ (scalar first)
- * @param A Matrix
- * @param B Matrix
- * @return A / B (actually, A * B^(-1))
- */
-MatrixReal operator/(const MatrixReal& A, const MatrixReal& B) {
-    
-    if ( A.getNumberOfRows() != A.getNumberOfColumns() )
-        throw RbException("Cannot divide non-square matrices");
-	if ( A.getNumberOfColumns() != B.getNumberOfColumns() )
-        throw RbException("Cannot divide matrices of differing dimension");
-    
-	size_t N = A.getNumberOfColumns();
-	MatrixReal invB(N, N, double( 0.0 ) );
-    RbMath::matrixInverse(B, invB);
-    
-	MatrixReal C(N, N, double( 0.0 ) );
-	for (size_t i=0; i<N; i++) 
-    {
-		for (size_t j=0; j<N; j++) 
-        {
-			double sum = 0.0;
-			for (size_t k=0; k<N; k++)
-				sum += A[i][k] * B[k][j];
-			C[i][j] = sum;
-        }
-    }
-	return C;    
 }
 
 /**

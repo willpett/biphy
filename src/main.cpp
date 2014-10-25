@@ -238,9 +238,6 @@ int main (int argc, const char * argv[])
 			if(outgroupfile != "None" && outgroupfile.at(0) != '.' && outgroupfile.at(0) != '/'){
 				outgroupfile = "./"+outgroupfile;
 			}
-			if(cvfile != "None" && cvfile.at(0) != '.' && cvfile.at(0) != '/'){
-				cvfile = "./"+cvfile;
-			}
 
 			if(fexists(name+".param") && !overwrite){
 				std::cerr << "chain '" << name << "' exists. use overwrite option -f\n";
@@ -260,10 +257,6 @@ int main (int argc, const char * argv[])
 				remove((name+".treelist").c_str());
 				if(nexus)
 					remove((name+".treelist.nex").c_str());
-				if(ppred)
-					remove((name+".ppred").c_str());
-				if(cvfile != "None")
-					remove((name+".cv").c_str());
 			}
 
 			chain = new Biphy(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rigidroot,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus,correctionType);
@@ -272,6 +265,13 @@ int main (int argc, const char * argv[])
 				std::cerr << "chain '" << name << "' does not exist\n";
 				exit(1);
 			}
+			if(cvfile != "None" && cvfile.at(0) != '.' && cvfile.at(0) != '/'){
+				cvfile = "./"+cvfile;
+			}
+			if(ppred)
+				remove((name+".ppred").c_str());
+			if(cvfile != "None")
+				remove((name+".cv").c_str());
 			chain = new Biphy(name,cvfile,ppred);
 		}
 	}

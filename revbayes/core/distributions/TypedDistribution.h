@@ -33,7 +33,8 @@
 
 #include "Distribution.h"
 #include "Function.h"
-#include "UnivariateFunction.h"
+#include "ContinuousFunction.h"
+#include "TypedDagNode.h"
 
 #include <iostream>
 

@@ -20,7 +20,6 @@
 #include "MatrixReal.h"
 #include "RateMatrix.h"
 #include "RbException.h"
-#include "RbMathMatrix.h"
 #include "TransitionProbabilityMatrix.h"
 
 #include <cmath>

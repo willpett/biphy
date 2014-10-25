@@ -2,7 +2,6 @@
 #include "FileMonitor.h"
 #include "Mcmc.h"
 #include "MoveSchedule.h"
-#include "PathSampleMonitor.h"
 #include "RandomMoveSchedule.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
@@ -16,7 +15,6 @@
 #include "StochasticNode.h"
 #include "Topology.h"
 #include "RandomMoveSchedule.h"
-#include "ExtendedNewickTreeMonitor.h"
 
 #include <cmath>
 #include <iomanip>

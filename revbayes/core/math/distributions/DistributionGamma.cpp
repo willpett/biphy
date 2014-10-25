@@ -16,7 +16,6 @@
 
 #include <cmath>
 
-#include "DistributionChisq.h"
 #include "DistributionGamma.h"
 #include "DistributionNormal.h"
 #include "RbStatisticsHelper.h"

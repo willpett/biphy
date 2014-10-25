@@ -7,7 +7,6 @@
 #include "NewickConverter.h"
 #include "NewickTreeReader.h"
 #include "NclReader.h"
-#include "RbErrorStream.h"
 #include "RbFileManager.h"
 #include "RnaState.h"
 #include "StandardState.h"
@@ -93,10 +92,6 @@ std::vector<AbstractCharacterData* > NclReader::convertFromNcl(const std::string
 			else if (dt == NxsCharactersBlock::standard)
             {
                 m = createStandardMatrix(charBlock);
-            }
-			else if (dt == NxsCharactersBlock::continuous)
-            {
-                m = createContinuousMatrix(charBlock);
             }
 			else if (dt == NxsCharactersBlock::mixed)
             {
@@ -290,54 +285,6 @@ DiscreteCharacterData<AminoAcidState>* NclReader::createUnalignedAminoAcidMatrix
         // add sequence to character matrix
         cMat->addTaxonData( dataVec );
     }
-    
-    return cMat;
-}
-
-/** Create an object to hold continuous data */
-ContinuousCharacterData* NclReader::createContinuousMatrix(NxsCharactersBlock* charblock) {
-    
-    // check that the character block is of the correct type
-	if (charblock->GetDataType() != NxsCharactersBlock::continuous)
-        return NULL;
-    
-    // get the set of characters (and the number of taxa)
-    NxsUnsignedSet charset;
-    for (unsigned int i=0; i<charblock->GetNumChar(); i++)
-        charset.insert(i);
-	int numOrigTaxa = charblock->GetNTax();
-    
-	// get the set of excluded characters
-	NxsUnsignedSet excluded = charblock->GetExcludedIndexSet();
-    
-    // instantiate the character matrix
-	ContinuousCharacterData* cMat = new ContinuousCharacterData();
-    cMat->setHomologyEstablished(true);
-    
-	// read in the data, including taxon names
-	for (int origTaxIndex=0; origTaxIndex<numOrigTaxa; origTaxIndex++) 
-    {
-        // add the taxon name
-        NxsString   tLabel = charblock->GetTaxonLabel(origTaxIndex);
-        std::string tName  = NxsString::GetEscaped(tLabel).c_str();
-        
-        // allocate a vector of Standard states
-        ContinuousTaxonData dataVec = ContinuousTaxonData(tName);
-        
-        // add the real-valued observation
-        for (NxsUnsignedSet::const_iterator cit = charset.begin(); cit != charset.end();cit++)
-        {	
-            ContinuousCharacterState contObs ;
-            const std::vector<double>& x = charblock->GetContinuousValues( origTaxIndex, *cit, std::string("AVERAGE") );
-            contObs.setMean(x[0]);
-            dataVec.addCharacter( contObs );
-        }
-        
-        // add sequence to character matrix
-        cMat->addTaxonData( dataVec );
-    }
-    
-    setExcluded( charblock, cMat );
     
     return cMat;
 }
@@ -963,11 +910,6 @@ std::vector<AbstractCharacterData*> NclReader::readMatrices(const std::string &f
     bool readingDirectory = false;
     if ( myFileManager.getFilePath() != "" && myFileManager.getFileName() == "")
         readingDirectory = true;
-    if (readingDirectory == true)
-        RBOUT( "Recursively reading the contents of a directory\n" );
-    else
-        RBOUT( "Attempting to read the contents of file \"" + myFileManager.getFileName() + "\"\n" );
-    
     // set up a vector of strings containing the name or names of the files to be read
     std::vector<std::string> vectorOfFileNames;
     if (readingDirectory == true)
@@ -979,12 +921,6 @@ std::vector<AbstractCharacterData*> NclReader::readMatrices(const std::string &f
 #       else
         vectorOfFileNames.push_back( myFileManager.getFilePath() + "/" + myFileManager.getFileName() );
 #       endif
-    }
-    if (readingDirectory == true)
-    {
-        std::stringstream o1;
-        o1 << "Found " << vectorOfFileNames.size() << " files in directory";
-        RBOUT( o1.str() );
     }
     
     // clear warnings from warnings buffer
@@ -1031,56 +967,6 @@ std::vector<AbstractCharacterData*> NclReader::readMatrices(const std::string &f
     // read the files in the map containing the file names with the output being a vector of pointers to
     // the character matrices that have been read
     std::vector<AbstractCharacterData*> m = readMatrices( fileMap );
-    
-    // print summary of results of file reading to the user
-    if (readingDirectory == true)
-    {
-        std::stringstream o2;
-        if ( m.size() == 0 )
-            o2 << "Failed to read any files";
-        else if ( m.size() == 1 )
-            o2 << "Successfully read one file";
-        else
-            o2 << "Successfully read " << m.size() << " files";
-        RBOUT( o2.str() );
-        std::set<std::string> myWarnings = getWarnings();
-        if ( vectorOfFileNames.size() - m.size() > 0 && myWarnings.size() > 0 )
-        {
-            std::stringstream o3;
-            if (vectorOfFileNames.size() - m.size() == 1)
-                o3 << "Did not read a file for the following ";
-            else
-                o3 << "Did not read " << vectorOfFileNames.size() - m.size() << " files for the following ";
-            if (myWarnings.size() == 1)
-                o3 << "reason:";
-            else
-                o3 << "reasons:";
-            RBOUT( o3.str() );
-            for (std::set<std::string>::iterator it = myWarnings.begin(); it != myWarnings.end(); it++)
-                RBOUT( "* "+(*it) );
-        }
-    }
-    else
-    {
-        if (m.size() > 0)
-            RBOUT( "Successfully read file" );
-        else
-        {
-            std::set<std::string> myWarnings = getWarnings();
-            if ( myWarnings.size() > 0 )
-            {
-                std::stringstream o3;
-                o3 << "Did not read the file for the following ";
-                if (myWarnings.size() == 1)
-                    o3 << "reason:";
-                else
-                    o3 << "reasons:";
-                RBOUT( o3.str() );
-                for (std::set<std::string>::iterator it = myWarnings.begin(); it != myWarnings.end(); it++)
-                    RBOUT( "* "+(*it) );
-            }
-        }
-    }
     
     return m;
 }
@@ -1200,8 +1086,6 @@ std::vector<AbstractCharacterData*> NclReader::readMatrices(const std::vector<st
 
 /** Reads a single file using NCL */
 std::vector<AbstractCharacterData*> NclReader::readMatrices(const char* fileName, const std::string fileFormat, const std::string dataType, const bool isInterleaved) {
-    
-    RBOUT( "Attempting to read the contents of file \"" + std::string(fileName) + "\"\n" );
 	
     // check that the file exists
 	if ( !fileExists(fileName) )	
@@ -1360,11 +1244,7 @@ std::vector<TimeTree*> NclReader::readTimeTrees( const std::string &treeFilename
     bool readingDirectory = false;
     if ( myFileManager.getFilePath() != "" && myFileManager.getFileName() == "")
         readingDirectory = true;
-    if (readingDirectory == true)
-        RBOUT( "Recursively reading the contents of a directory" );
-    else
-        RBOUT( "Attempting to read the contents of file \"" + myFileManager.getFileName() + "\"" );
-    
+
     // set up a vector of strings containing the name or names of the files to be read
     std::vector<std::string> vectorOfFileNames;
     if (readingDirectory == true)
@@ -1382,12 +1262,6 @@ std::vector<TimeTree*> NclReader::readTimeTrees( const std::string &treeFilename
         }
         filepath += myFileManager.getFileName();
         vectorOfFileNames.push_back( filepath );
-    }
-    if (readingDirectory == true)
-    {
-        std::stringstream o1;
-        o1 << "Found " << vectorOfFileNames.size() << " files in directory";
-        RBOUT( o1.str() );
     }
     
     // clear warnings from its warnings buffer
@@ -1429,51 +1303,6 @@ std::vector<TimeTree*> NclReader::readTimeTrees( const std::string &treeFilename
                 TimeTree* convertedTree = TreeUtilities::convertTree( *(*it) );
                 delete (*it);
                 trees.push_back( convertedTree );
-            }
-        }
-    }
-    
-    // print summary of results of file reading to the user
-    if (readingDirectory == true) {
-        std::stringstream o2;
-        if ( trees.size() == 0 )
-            o2 << "Failed to read any tree";
-        else if ( trees.size() == 1 )
-            o2 << "Successfully read one tree";
-        else
-            o2 << "Successfully read " << trees.size() << " trees";
-        RBOUT( o2.str() );
-        std::set<std::string> myWarnings = getWarnings();
-        if ( vectorOfFileNames.size() - trees.size() > 0 && myWarnings.size() > 0 ) {
-            std::stringstream o3;
-            if (vectorOfFileNames.size() - trees.size() == 1)
-                o3 << "Did not read a file for the following ";
-            else
-                o3 << "Did not read " << vectorOfFileNames.size() - trees.size() << " files for the following ";
-            if (myWarnings.size() == 1)
-                o3 << "reason:";
-            else
-                o3 << "reasons:";
-            RBOUT( o3.str() );
-            for (std::set<std::string>::iterator it = myWarnings.begin(); it != myWarnings.end(); it++)
-                RBOUT( "* "+(*it) );
-        }
-    }
-    else {
-        if (trees.size() > 0)
-            RBOUT( "Successfully read file" );
-        else {
-            std::set<std::string> myWarnings = getWarnings();
-            if ( myWarnings.size() > 0 ) {
-                std::stringstream o3;
-                o3 << "Did not read the file for the following ";
-                if (myWarnings.size() == 1)
-                    o3 << "reason:";
-                else
-                    o3 << "reasons:";
-                RBOUT( o3.str() );
-                for (std::set<std::string>::iterator it = myWarnings.begin(); it != myWarnings.end(); it++)
-                    RBOUT( "* " + (*it) );
             }
         }
     }

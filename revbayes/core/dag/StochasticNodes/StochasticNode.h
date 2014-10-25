@@ -89,7 +89,6 @@ namespace RevBayesCore {
 #include "RbConstants.h"
 #include "RbOptions.h"
 #include "TypedDistribution.h"
-#include "UserInterface.h"
 
 template<class valueType>
 void RevBayesCore::StochasticNode<valueType>::extractValue(std::istream &is) {
