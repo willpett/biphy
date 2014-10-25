@@ -88,7 +88,6 @@ namespace RevBayesCore {
         // the likelihoods
         std::vector<double>                                                 partialLikelihoods;
         std::vector<size_t>                                                 activeLikelihood;
-        size_t																lnVectorSize;
         
         // the data
         std::map<std::string,std::vector<unsigned long> >                   charMatrix;
@@ -133,7 +132,8 @@ namespace RevBayesCore {
 
 template<class charType, class treeType>
 RevBayesCore::AbstractCharEvoModel<charType, treeType>::AbstractCharEvoModel(const TypedDagNode<treeType> *t, size_t nChars, bool c, size_t nSites) : TypedDistribution< AbstractCharacterData >(  new DiscreteCharacterData<charType>() ),
-    numSites( nSites ), 
+    lnProb(0.0),
+	numSites( nSites ),
     numChars( nChars ),
     tau( t ), 
     charMatrix(), 
@@ -158,12 +158,12 @@ RevBayesCore::AbstractCharEvoModel<charType, treeType>::AbstractCharEvoModel(con
 
 template<class charType, class treeType>
 RevBayesCore::AbstractCharEvoModel<charType, treeType>::AbstractCharEvoModel(const AbstractCharEvoModel &n) : TypedDistribution< AbstractCharacterData >( n ),
-    numSites( n.numSites ), 
+    lnProb(n.lnProb),
+	numSites( n.numSites ),
     numChars( n.numChars ),
     tau( n.tau ), 
     transitionProbMatrices( n.transitionProbMatrices ),
     activeLikelihood( n.activeLikelihood ),
-	lnVectorSize(n.lnVectorSize),
     charMatrix( n.charMatrix ), 
     gapMatrix( n.gapMatrix ), 
     patternCounts( n.patternCounts ),
@@ -217,6 +217,8 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
     patternCounts.clear();
     numPatterns = 0;
     
+    numSites = value->getNumberOfIncludedCharacters();
+
     // check whether there are ambiguous characters (besides gaps)
     bool ambiguousCharacters = false;
     // find the unique site patterns and compute their respective frequencies

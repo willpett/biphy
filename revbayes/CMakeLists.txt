@@ -235,10 +235,6 @@ ${REVBAYES_DIR}/core/datatypes
 ${REVBAYES_DIR}/core/datatypes/math
 ${REVBAYES_DIR}/core/datatypes/math/MatrixReal.cpp
 ${REVBAYES_DIR}/core/datatypes/math/TransitionProbabilityMatrix.h
-#${REVBAYES_DIR}/core/datatypes/math/DualityDiagram.h
-#${REVBAYES_DIR}/core/datatypes/math/PrecisionMatrix.cpp
-#${REVBAYES_DIR}/core/datatypes/math/DualityDiagram.cpp
-#${REVBAYES_DIR}/core/datatypes/math/PrecisionMatrix.h
 ${REVBAYES_DIR}/core/datatypes/math/MatrixReal.h
 ${REVBAYES_DIR}/core/datatypes/math/TransitionProbabilityMatrix.cpp
 ${REVBAYES_DIR}/core/datatypes/RbIterator.h
