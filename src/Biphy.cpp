@@ -316,7 +316,7 @@ bool Biphy::run( void ) {
 			else if(correctionType & NO_PRESENT_SITES)
 					std::cout << "\tconstant presence\n";
 
-			if(correctionType & NO_SINGLETON_GAINS && correctionType & NO_SINGLETON_LOSSES)
+			if((correctionType & NO_SINGLETONS) == NO_SINGLETONS)
 				std::cout << "\tsingletons\n";
 			else if(correctionType & NO_SINGLETON_GAINS)
 				std::cout << "\tsingleton gains\n";
