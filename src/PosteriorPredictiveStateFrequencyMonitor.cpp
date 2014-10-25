@@ -75,10 +75,8 @@ void PosteriorPredictiveStateFrequencyMonitor::monitor(long gen) {
     	std::vector<std::string> newNames = newData.getTaxonNames();
     	for(size_t i=0;i<taxonNames.size();i++){
 			size_t idx = std::find(newNames.begin(),newNames.end(),taxonNames[i]) - newNames.begin();
-			std::cerr << taxonNames[i] << " -> " << newData.getTaxonNameWithIndex(idx) << std::endl;
 			outStream << frequencies[idx][1] << "\t";
     	}
-    	std::cerr << std::endl;
     	outStream << std::endl;
     	data->clamp(oldData);
     }

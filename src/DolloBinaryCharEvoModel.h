@@ -253,15 +253,15 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 		//get the 1->1 transition probabilities for each branch
 		double tr = 	node.getBranchLength();
 		this->updateTransitionProbabilities( nodeIndex, tr );
-		double pr    		= this->transitionProbMatrices[mixture].theMatrix[3];
+		double pr    		= this->transitionProbMatrices[mixture][1][1];
 
 		double tij = left_node.getBranchLength();
 		this->updateTransitionProbabilities( left, tij );
-		double pij    		= this->transitionProbMatrices[mixture].theMatrix[3];
+		double pij    		= this->transitionProbMatrices[mixture][1][1];
 
 		double tik = right_node.getBranchLength();
 		this->updateTransitionProbabilities( right, tik );
-		double pik    		= this->transitionProbMatrices[mixture].theMatrix[3];
+		double pik    		= this->transitionProbMatrices[mixture][1][1];
 
 		//get the rate modifier for this mixture category
 		double r = 1.0;
@@ -344,10 +344,10 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 		{
 			//get the 1->1 transition probabilities for each branch
 			this->updateTransitionProbabilities( left, this->tau->getValue().getNode(left).getBranchLength() );
-			double pij    		= this->transitionProbMatrices[mixture].theMatrix[3];
+			double pij    		= this->transitionProbMatrices[mixture][1][1];
 
 			this->updateTransitionProbabilities( right, this->tau->getValue().getNode(right).getBranchLength() );
-			double pik    		= this->transitionProbMatrices[mixture].theMatrix[3];
+			double pik    		= this->transitionProbMatrices[mixture][1][1];
 
 			//get the rate modifier for this mixture category
 			double r = 1.0;
@@ -493,8 +493,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestralNodes(cons
 template<class treeType>
 void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 
-	if(this->dagNode != NULL)
-		this->dagNode->touch();
+	this->computeLnProbability();
 
     // delete the old value first
     delete this->value;
@@ -515,7 +514,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
     // by sampling a node in proportion to its totalmass
     RandomNumberGenerator* rng = GLOBAL_RNG;
 
-    //std::cerr << omega << std::endl;
+    size_t cap = 0;
     for ( size_t i = 0; i < this->numSites; ++i )
     {
     	double u = rng->uniform01();
@@ -556,6 +555,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 		}
     }
 
+    std::cerr << (double)cap/this->numSites << std::endl;
+
     // compress the data and initialize internal variables
     this->compress();
 
@@ -589,10 +590,10 @@ size_t RevBayesCore::DolloBinaryCharEvoModel<treeType>::simulate( const Topology
 
         StandardState &childState = taxa[ child.getIndex() ];
 
-		double *pij = this->transitionProbMatrices[ rateIndex ][ 3 ];
+		double *pij = this->transitionProbMatrices[ rateIndex ][ 1 ];
 
 		if(parentState.getState() == 2){
-			if(rng->uniform01() < *pij){
+			if(rng->uniform01() < pij[1]){
 				childState++;
 				numLeaves += simulate( child, taxa, birthNode, rateIndex );
 			}
