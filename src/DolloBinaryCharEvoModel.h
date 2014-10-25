@@ -24,7 +24,7 @@ namespace RevBayesCore {
         DolloBinaryCharEvoModel*         					clone(void) const;
 		void                                                swapParameter(const DagNode *oldP, const DagNode *newP);
 
-		//virtual void                                        redrawValue(void);
+		virtual void                                        redrawValue(void);
         
     protected:
 
@@ -40,6 +40,9 @@ namespace RevBayesCore {
         void                                                computeAncestral(void);
         bool                                                computeAncestralMap(const TopologyNode& node, size_t site);
         void                                                computeAncestralNodes(const TopologyNode& node, size_t site);
+
+        size_t 												simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t birthNode, size_t rateIndex);
+
 
         std::vector<std::vector<size_t> >                   ancestralNodes;
         std::map<size_t,bool>								ancestralMap;
@@ -280,15 +283,12 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 		//Probability of presence in all leaves descending from this node
 		u[2] 	= pij*u_j[2]*pik*u_k[2];
 
+		bool jl = left_node.isTip();
+		bool kl = right_node.isTip();
+
 		//Probability of presence in all but one leaves descending from this node
-		if(left_node.isTip() && !right_node.isTip())
-			u[3] = (1-pij)*pik*u_k[2] + pij*pik*u_k[3];
-		else if(!left_node.isTip() && right_node.isTip())
-			u[3] = pij*u_j[3]*pik + (1-pik)*pij*u_j[2];
-		else if(!left_node.isTip() && !right_node.isTip())
-			u[3] = pij*u_j[3]*pik*u_k[2] + pij*u_j[2]*pik*u_k[3];
-		else
-			u[3] = u[1];
+		u[3] = (1-pij*(1-u_j[3]) + !jl*(pij-1))*pik*u_k[2]
+			 + (1-pik*(1-u_k[3]) + !kl*(pik-1))*pij*u_j[2];
 
 		double prob = 1.0;
 		if(this->type & NO_ABSENT_SITES)
@@ -298,7 +298,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 		if(this->type & NO_PRESENT_SITES)
 			prob -= u[2];
 		//If both of this node's children are leaves, then u[1] = u[3]
-		if((this->type & NO_SINGLETON_LOSSES) && !(left_node.isTip() && right_node.isTip()))
+		if((this->type & NO_SINGLETON_LOSSES) && !(jl && kl))
 			prob -= u[3];
 
 		// correct rounding errors
@@ -369,15 +369,12 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 			//Probability of presence in all leaves descending from this node
 			u[2] 	= pij*u_j[2]*pik*u_k[2];
 
+			bool jl = left_node.isTip();
+			bool kl = right_node.isTip();
+
 			//Probability of presence in all but one leaves descending from this node
-			if(left_node.isTip() && !right_node.isTip())
-				u[3] = (1-pij)*pik*u_k[2] + pij*pik*u_k[3];
-			else if(!left_node.isTip() && right_node.isTip())
-				u[3] = pij*u_j[3]*pik + (1-pik)*pij*u_j[2];
-			else if(!left_node.isTip() && !right_node.isTip())
-				u[3] = pij*u_j[3]*pik*u_k[2] + pij*u_j[2]*pik*u_k[3];
-			else
-				u[3] = u[1];
+			u[3] = (1-pij*(1-u_j[3]) + !jl*(pij-1))*pik*u_k[2]
+				 + (1-pik*(1-u_k[3]) + !kl*(pik-1))*pij*u_j[2];
 
 			double prob = 1.0;
 			if(this->type & NO_ABSENT_SITES)
@@ -387,7 +384,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 			if(this->type & NO_PRESENT_SITES)
 				prob -= u[2];
 			//If both of this node's children are leaves, then u[1] = u[3]
-			if((this->type & NO_SINGLETON_LOSSES) && !(left_node.isTip() && right_node.isTip()))
+			if((this->type & NO_SINGLETON_LOSSES) && !(jl && kl))
 				prob -= u[3];
 
 			// correct rounding errors
@@ -492,86 +489,120 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestralNodes(cons
 	}
 }
 
-/*
+
 template<class treeType>
 void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 
-	this->dagNode->getLnProbability();
+	if(this->dagNode != NULL)
+		this->dagNode->touch();
+
     // delete the old value first
-    //delete this->value;
+    delete this->value;
 
     // create a new character data object
-    //this->value = new DiscreteCharacterData<charType>();
+    this->value = new DiscreteCharacterData<StandardState>();
 
-    // create a vector of taxon data
-    //std::vector< DiscreteTaxonData<charType> > taxa = std::vector< DiscreteTaxonData< charType > >( tau->getValue().getNumberOfNodes(), DiscreteTaxonData<charType>() );
+    size_t numTips = this->tau->getValue().getNumberOfTips();
+
+    for (size_t t = 0; t < numTips; ++t)
+	{
+		DiscreteTaxonData<StandardState> data;
+		data.setTaxonName( this->tau->getValue().getNode(t).getName() );
+		this->value->addTaxonData(data);
+	}
 
     // first, simulate a birth for each character
     // by sampling a node in proportion to its totalmass
     RandomNumberGenerator* rng = GLOBAL_RNG;
-    std::vector<size_t> perSiteBirthNodes;
+
     //std::cerr << omega << std::endl;
     for ( size_t i = 0; i < this->numSites; ++i )
     {
     	double u = rng->uniform01();
     	double total = 0;
-    	size_t i = 0;
+    	size_t birthNode = 0;
     	while(total < u*omega){
-    		total += totalmass[i++];
+    		total += totalmass[birthNode++];
     	}
-    	perSiteBirthNodes.push_back(i-1);
-    }
+    	birthNode--;
 
-    // next, simulate the per site rates
-    std::vector<size_t> perSiteRates;
-    for ( size_t i = 0; i < this->numSites; ++i )
-    {
         // draw the state
-        double u = rng->uniform01();
+        u = rng->uniform01();
         size_t rateIndex = (int)(u*this->numSiteRates);
-        perSiteRates.push_back( rateIndex );
-    }
 
-    // simulate the root sequence
-    const std::vector< double > &stationaryFreqs = getRootFrequencies();
-    DiscreteTaxonData< charType > &root = taxa[ tau->getValue().getRoot().getIndex() ];
-        // create the character
-        charType c;
-        c.setToFirstState();
-        // draw the state
-        double u = rng->uniform01();
-        std::vector< double >::const_iterator freq = stationaryFreqs.begin();
-        while ( true )
-        {
-            u -= *freq;
+        std::vector<StandardState> taxa(this->tau->getValue().getNumberOfNodes(), StandardState());
 
-            if ( u > 0.0 )
-            {
-                ++c;
-                ++freq;
-            }
-            else
-            {
-                break;
-            }
+		// recursively simulate the sequences
+		size_t numLeaves = simulate( this->tau->getValue().getRoot(), taxa, birthNode, rateIndex );
 
-        }
+		if((this->type & NO_ABSENT_SITES) && numLeaves == 0){
+			i--;
+			continue;
+		}else if((this->type & NO_PRESENT_SITES) && numLeaves == numTips){
+			i--;
+			continue;
+		}else if((this->type & NO_SINGLETON_GAINS) && numLeaves == 1){
+			i--;
+			continue;
+		}else if((this->type & NO_SINGLETON_LOSSES) && numLeaves == numTips - 1){
+			i--;
+			continue;
+		}
 
-        // add the character to the sequence
-        root.addCharacter( c );
-
-    // recursively simulate the sequences
-    simulate( tau->getValue().getRoot(), taxa, perSiteRates );
-
-    // add the taxon data to the character data
-    for (size_t i = 0; i < tau->getValue().getNumberOfTips(); ++i)
-    {
-        this->value->addTaxonData( taxa[i] );
+		// add the taxon data to the character data
+		for (size_t t = 0; t < this->tau->getValue().getNumberOfTips(); ++t)
+		{
+			this->value->getTaxonData(t).addCharacter(taxa[t]);
+		}
     }
 
     // compress the data and initialize internal variables
     this->compress();
 
 }
-*/
+
+template<class treeType>
+size_t RevBayesCore::DolloBinaryCharEvoModel<treeType>::simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t birthNode, size_t rateIndex) {
+
+	size_t numLeaves = 0;
+    // get the children of the node
+    const std::vector<TopologyNode*>& children = node.getChildren();
+
+    // get the sequence of this node
+    size_t nodeIndex = node.getIndex();
+    StandardState &parentState = taxa[ nodeIndex ];
+
+    if(node.getIndex() == birthNode)
+    	parentState++;
+
+    if(parentState.getState() == 2 && node.isTip())
+    	numLeaves++;
+
+    // simulate the sequence for each child
+    RandomNumberGenerator* rng = GLOBAL_RNG;
+    for (std::vector< TopologyNode* >::const_iterator it = children.begin(); it != children.end(); ++it)
+    {
+        const TopologyNode &child = *(*it);
+
+        // update the transition probability matrix
+        this->updateTransitionProbabilities( child.getIndex(), child.getBranchLength() );
+
+        StandardState &childState = taxa[ child.getIndex() ];
+
+		double *pij = this->transitionProbMatrices[ rateIndex ][ 3 ];
+
+		if(parentState.getState() == 2){
+			if(rng->uniform01() < *pij){
+				childState++;
+				numLeaves += simulate( child, taxa, birthNode, rateIndex );
+			}
+		}else{
+			numLeaves += simulate( child, taxa, birthNode, rateIndex );
+		}
+	}
+
+    return numLeaves;
+
+}
+
 #endif
