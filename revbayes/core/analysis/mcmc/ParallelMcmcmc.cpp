@@ -392,9 +392,16 @@ void ParallelMcmcmc::readStream(size_t generations)
 
     for (int k=1; k<=generations; k++)
     {
-		fromStream(stream);
-		chains[chainIdxByHeat[0]]->monitor(currentGeneration);
+		try{
+			fromStream(stream);
+			chains[chainIdxByHeat[0]]->monitor(currentGeneration);
 
-		currentGeneration += swapInterval*every;
+			currentGeneration += swapInterval*every;
+		}catch(RbException &e){
+			if(e.getMessage() == "premature end of stream")
+				break;
+			else
+				throw(e);
+		}
     }
 }
