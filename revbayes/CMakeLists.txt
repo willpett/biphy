@@ -79,7 +79,7 @@ ${REVBAYES_DIR}/core/monitors/ScreenMonitor.cpp
 ${REVBAYES_DIR}/core/io
 ${REVBAYES_DIR}/core/io/TaxonReader.h
 ${REVBAYES_DIR}/core/io/NclReader.cpp
-#${REVBAYES_DIR}/core/io/FastaWriter.cpp
+${REVBAYES_DIR}/core/io/FastaWriter.cpp
 ${REVBAYES_DIR}/core/io/NewickTreeReader.cpp
 ${REVBAYES_DIR}/core/io/NewickTreeReader.h
 ${REVBAYES_DIR}/core/io/NewickConverter.cpp

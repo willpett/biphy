@@ -92,6 +92,7 @@ namespace RevBayesCore {
         // the data
         std::map<std::string,std::vector<unsigned long> >                   charMatrix;
         std::map<std::string,std::vector<bool> >                            gapMatrix;
+        std::map<size_t,size_t>												patternMap;
         std::vector<size_t>                                                 patternCounts;
         size_t                                                              numPatterns;
         bool                                                                compressed;
@@ -167,6 +168,7 @@ RevBayesCore::AbstractCharEvoModel<charType, treeType>::AbstractCharEvoModel(con
     charMatrix( n.charMatrix ), 
     gapMatrix( n.gapMatrix ), 
     patternCounts( n.patternCounts ),
+	patternMap(n.patternMap),
     numPatterns( n.numPatterns ),
     compressed( n.compressed ),
     changedNodes( n.changedNodes ),
@@ -215,6 +217,7 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
     charMatrix.clear();
     gapMatrix.clear();
     patternCounts.clear();
+    patternMap.clear();
     numPatterns = 0;
     
     numSites = value->getNumberOfCharacters();
@@ -288,6 +291,7 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
                 // we have already seen this pattern
                 // increase the frequency counter
                 patternCounts[ index->second ]++;
+                patternMap[site] = index->second;
                 
                 // obviously this site isn't unique nor the first encounter
                 unique[site] = false;
@@ -297,6 +301,8 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
                 // create a new pattern frequency counter for this pattern
                 patternCounts.push_back(1);
                 
+                patternMap[site] = patternCounts.size();
+
                 // insert this pattern with the corresponding index in the map
                 patterns.insert( std::pair<std::string,size_t>(pattern,numPatterns) );
                 
@@ -313,6 +319,8 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
         // we do not compress
         numPatterns = numSites;
         patternCounts = std::vector<size_t>(numSites,1);
+        for (size_t site = 0; site < numSites; ++site)
+        	patternMap[site] = site;
     }
     
     

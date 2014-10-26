@@ -33,13 +33,17 @@ namespace RevBayesCore {
         // public member functions
         BinaryCharEvoModel*         						clone(void) const;
         virtual void                                        redrawValue(void);
+        DiscreteTaxonData<StandardState> *					getDolloCompatible(void);
 
     protected:
         
         virtual void                                        setCorrectionPatterns();
         size_t 												simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t rateIndex);
         
+        size_t												numBirths(size_t site, const std::vector<DiscreteTaxonData<StandardState> > &mapping, const TopologyNode &node);
+
         int													type;
+        DiscreteTaxonData<StandardState> *					dolloCompatible;
 
     };
     
@@ -58,7 +62,8 @@ namespace RevBayesCore {
 template<class treeType>
 RevBayesCore::BinaryCharEvoModel<treeType>::BinaryCharEvoModel(const TypedDagNode< treeType > *t, bool c, size_t nSites, int type) :
 	AbstractCharEvoModel<StandardState, treeType>(t, 2, c, nSites),
-	AbstractSiteCorrectionModel<StandardState, treeType>(t, 2, c , nSites), type(type)
+	AbstractSiteCorrectionModel<StandardState, treeType>(t, 2, c , nSites), type(type),
+	dolloCompatible(new DiscreteTaxonData<StandardState>())
 {
 	size_t numTips = this->tau->getValue().getNumberOfTips();
 
@@ -74,7 +79,7 @@ RevBayesCore::BinaryCharEvoModel<treeType>::BinaryCharEvoModel(const TypedDagNod
 template<class treeType>
 RevBayesCore::BinaryCharEvoModel<treeType>::BinaryCharEvoModel(const BinaryCharEvoModel &d) :
 	AbstractCharEvoModel<StandardState, treeType>( d ),
-	AbstractSiteCorrectionModel<StandardState, treeType>(d), type(d.type)
+	AbstractSiteCorrectionModel<StandardState, treeType>(d), type(d.type), dolloCompatible(new DiscreteTaxonData<StandardState>())
 {
 }
 
@@ -236,6 +241,71 @@ size_t RevBayesCore::BinaryCharEvoModel<treeType>::simulate( const TopologyNode 
 	}
 
     return numLeaves;
+
+}
+
+template<class treeType>
+RevBayesCore::DiscreteTaxonData<RevBayesCore::StandardState>* RevBayesCore::BinaryCharEvoModel<treeType>::getDolloCompatible(void) {
+
+	delete dolloCompatible;
+	dolloCompatible = new DiscreteTaxonData<StandardState>();
+
+    const std::vector<DiscreteTaxonData<StandardState> > &mapping = this->getMapping();
+
+    const TopologyNode &root = this->tau->getValue().getRoot();
+    const TopologyNode &left = root.getChild(0);
+    const TopologyNode &right = root.getChild(1);
+
+    for (size_t i = 0; i < this->numSites; ++i)
+    {
+    	StandardState rootState = mapping[root.getIndex()].getCharacter(i);
+    	StandardState leftState = mapping[left.getIndex()].getCharacter(i);
+    	StandardState rightState = mapping[right.getIndex()].getCharacter(i);
+
+    	size_t births = 0;
+    	if(rootState.getState() == 1 && leftState.getState() == 2)
+			births++;
+		if(rootState.getState() == 1 && rightState.getState() == 2)
+			births++;
+
+    	if(!left.isTip())
+    		births += numBirths(i,mapping,left);
+    	if(!right.isTip())
+    		births += numBirths(i,mapping,right);
+
+    	StandardState c;
+    	c.setToFirstState();
+    	if(births <= 1)
+    		c++;
+
+    	dolloCompatible->addCharacter(c);
+    }
+
+    return dolloCompatible;
+}
+
+template<class treeType>
+size_t RevBayesCore::BinaryCharEvoModel<treeType>::numBirths(size_t site, const std::vector<DiscreteTaxonData<StandardState> > &mapping, const TopologyNode &node) {
+
+	const TopologyNode &left = node.getChild(0);
+	const TopologyNode &right = node.getChild(1);
+
+	StandardState nodeState = mapping[node.getIndex()].getCharacter(site);
+	StandardState leftState = mapping[left.getIndex()].getCharacter(site);
+	StandardState rightState = mapping[right.getIndex()].getCharacter(site);
+
+	size_t births = 0;
+	if(nodeState.getState() == 1 && leftState.getState() == 2)
+		births++;
+	if(nodeState.getState() == 1 && rightState.getState() == 2)
+		births++;
+
+	if(!left.isTip())
+		births += numBirths(site,mapping,left);
+	if(!right.isTip())
+		births += numBirths(site,mapping,right);
+
+	return births;
 
 }
 

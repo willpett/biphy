@@ -48,7 +48,7 @@
     										bool saveall,
     										bool nexus,
 											int correctionType);
-    	Biphy(const std::string &name, const std::string &cvfile, bool ppred);
+    	Biphy(const std::string &name, const std::string &cvfile, bool ppred, bool dolloMapping = false);
     	Biphy(const std::string &name);
         virtual                                ~Biphy(void);                                                            //!< Virtual destructor
         
@@ -86,6 +86,7 @@
         int										correctionType;
         bool									readstream;
         bool									restart;
+        bool									dolloMapping;
         
     };
 

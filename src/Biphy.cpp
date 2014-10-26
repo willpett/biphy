@@ -2,6 +2,7 @@
 #include "Biphy.h"
 #include "BinaryCharEvoModel.h"
 #include "BinaryDivision.h"
+#include "BinaryDolloCompatibleMonitor.h"
 #include "BinaryMultiplication.h"
 #include "BinarySubtraction.h"
 #include "BetaDistribution.h"
@@ -19,6 +20,7 @@
 #include "DppNumTablesStatistic.h"
 #include "DPPBetaSimplexMove.h"
 #include "ExponentialDistribution.h"
+#include "FastaWriter.h"
 #include "FileMonitor.h"
 #include "FreeBinaryRateMatrixFunction.h"
 #include "FreeBinaryRateMatrixVectorFunction.h"
@@ -111,12 +113,13 @@ Biphy::Biphy(const std::string &datafile,
     save();
 }
 
-Biphy::Biphy(const std::string &name, const std::string &cvfile, bool ppred) :
+Biphy::Biphy(const std::string &name, const std::string &cvfile, bool ppred, bool dolloMapping) :
 		name( name ),
 		cvfile(cvfile),
 		ppred(ppred),
 		readstream(true),
-		restart(false)
+		restart(false),
+		dolloMapping(dolloMapping)
 {
     open();
     every = 1;
@@ -199,6 +202,9 @@ bool Biphy::run( void ) {
     /* First, we read in the data */
     // the matrix
 	RbSettings::userSettings().setPrintNodeIndex(false);
+
+	if(dolloMapping && dollo)
+		throw(RbException("Error: cannot simulate Dollo mappings under Dollo model"));
 
     std::vector<AbstractCharacterData*> data = NclReader::getInstance().readMatrices(dataFile);
     std::cout << "Read " << data.size() << " matrices." << std::endl;
@@ -665,6 +671,8 @@ bool Biphy::run( void ) {
 			monitors.push_back( new PosteriorPredictiveStateFrequencyMonitor( charactermodel, every, name+".ppred",useParallelMcmcmc) );
 		if(cvdata.size() > 0)
 			monitors.push_back( new CrossValidationScoreMonitor( charactermodel, cvdata[0], every, name+".cv",useParallelMcmcmc) );
+		if(dolloMapping)
+			monitors.push_back( new BinaryDolloCompatibleMonitor<BranchLengthTree>( charactermodel, every, name+".dollo.fa") );
 	}else{
 		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc || restart, useParallelMcmcmc, false ) );
 		if(!treeFixed){

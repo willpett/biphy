@@ -22,14 +22,17 @@ FastaWriter::FastaWriter( void )
  * \param[in]   fileName    The name of the file into which the objects is to be written.
  * \param[in]   data        The character data object which is written out.
  */
-void FastaWriter::writeData(std::string const &fileName, const AbstractCharacterData &data) 
+void FastaWriter::writeData(std::string const &fileName, const AbstractCharacterData &data, bool append)
 {
     
     // the filestream object
     std::fstream outStream;
     
     // open the stream to the file
-    outStream.open( fileName.c_str(), std::fstream::out );
+    if(append)
+    	outStream.open( fileName.c_str(), std::fstream::out | std::fstream::app);
+    else
+    	outStream.open( fileName.c_str(), std::fstream::out );
     
     const std::vector<std::string> &taxonNames = data.getTaxonNames();
     for (std::vector<std::string>::const_iterator it = taxonNames.begin();  it != taxonNames.end(); ++it) 

@@ -25,6 +25,7 @@ namespace RevBayesCore {
         GeneralCharEvoModel*             					clone(void) const;
         virtual void                                        swapParameter(const DagNode *oldP, const DagNode *newP);
         virtual void                                        redrawValue(void);
+        const std::vector< DiscreteTaxonData<charType> >&   getMapping(void);
         
     protected:
         
@@ -34,11 +35,17 @@ namespace RevBayesCore {
         virtual void                                        touchSpecialization(DagNode *toucher);
         virtual void                                        updateTransitionProbabilities(size_t nodeIdx, double brlen);
         virtual void                                        resizeLikelihoodVectors(void);
-        
+
+        virtual void                                        redrawMapping(void);
+        virtual void                                        simulateMapping(const TopologyNode &node, size_t nodeIndex, std::vector<size_t> perSiteRates);
+
         
     private:        
         
         void                                                simulate(const TopologyNode& node, std::vector< DiscreteTaxonData< charType > > &t, const std::vector<size_t> &perSiteRates);
+        std::vector< DiscreteTaxonData<charType> > 			mapping;
+
+        std::vector<std::vector<double> > 					per_node_Likelihoods;
 
     };
     
@@ -496,6 +503,138 @@ void RevBayesCore::GeneralCharEvoModel<charType, treeType>::simulate( const Topo
     }
 
 }
+
+template<class charType, class treeType>
+const std::vector< RevBayesCore::DiscreteTaxonData<charType> >& RevBayesCore::GeneralCharEvoModel<charType, treeType>::getMapping(void) {
+
+	redrawMapping();
+	return mapping;
+}
+
+template<class charType, class treeType>
+void RevBayesCore::GeneralCharEvoModel<charType, treeType>::redrawMapping(void)
+{
+    this->computeLnProbability();
+
+	mapping = std::vector< DiscreteTaxonData< charType > >( this->tau->getValue().getNumberOfNodes(), DiscreteTaxonData<charType>() );
+
+	// first, simulate the per site rates
+	RandomNumberGenerator* rng = GLOBAL_RNG;
+
+	std::vector<size_t> perSiteRates;
+	for ( size_t i = 0; i < this->numSites; ++i )
+	{
+		// draw the state
+		double u = rng->uniform01();
+		size_t rateIndex = (int)(u*this->numSiteRates);
+		perSiteRates.push_back( rateIndex );
+	}
+
+	// compute the ln probability by recursively calling the probability calculation for each node
+	const TopologyNode &root = this->tau->getValue().getRoot();
+
+	// we start with the root and then traverse down the tree
+	size_t rootIndex = root.getIndex();
+
+	// start by filling the likelihood vector for the two children of the root
+	const TopologyNode &left = root.getChild(0);
+	size_t leftIndex = left.getIndex();
+	simulateMapping( left, leftIndex, perSiteRates );
+	const TopologyNode &right = root.getChild(1);
+	size_t rightIndex = right.getIndex();
+	simulateMapping( right, rightIndex , perSiteRates);
+
+	const std::vector<double> &f                    = this->getRootFrequencies();
+
+	DiscreteTaxonData< charType > &rootData = mapping[ rootIndex ];
+	for ( size_t i = 0; i < this->numSites; ++i )
+	{
+		size_t offset = perSiteRates[i]*this->mixtureOffset + this->patternMap[i]*this->siteOffset;
+
+		std::vector<double>::const_iterator   p_left  = this->partialLikelihoods.begin() + this->activeLikelihood[leftIndex]*this->activeLikelihoodOffset + leftIndex*this->nodeOffset + offset;
+		std::vector<double>::const_iterator   p_right = this->partialLikelihoods.begin() + this->activeLikelihood[rightIndex]*this->activeLikelihoodOffset + rightIndex*this->nodeOffset + offset;
+
+		double sum = 0.0;
+		for (size_t c1 = 0; c1 < this->numChars; ++c1)
+		{
+			sum += p_left[c1]*p_right[c1]*f[c1];
+		}
+
+
+		// create the character
+		charType c;
+		c.setToFirstState();
+		// draw the state
+		double u = rng->uniform01();
+
+		double tmp = 0.0;
+		while(tmp < u*sum)
+		{
+			unsigned long c1 = c.getState()-1;
+			tmp += p_left[c1]*p_right[c1]*f[c1];
+			c++;
+		}
+		c--;
+
+		rootData.addCharacter(c);
+	}
+
+}
+
+template<class charType, class treeType>
+void RevBayesCore::GeneralCharEvoModel<charType, treeType>::simulateMapping(const TopologyNode &node, size_t nodeIndex, std::vector<size_t> perSiteRates ) {
+
+    // first, simulate the per site rates
+    RandomNumberGenerator* rng = GLOBAL_RNG;
+
+    if(node.isTip()){
+    	for ( size_t i = 0; i < this->numSites; ++i )
+    		mapping[nodeIndex].addCharacter(this->value->getTaxonData(nodeIndex).getCharacter(i));
+    	return;
+    }
+
+    const TopologyNode &left = node.getChild(0);
+	size_t leftIndex = left.getIndex();
+	simulateMapping( left, leftIndex, perSiteRates );
+	const TopologyNode &right = node.getChild(1);
+	size_t rightIndex = right.getIndex();
+	simulateMapping( right, rightIndex , perSiteRates);
+
+
+    // simulate the sequence at this node
+    DiscreteTaxonData< charType > &nodeData = mapping[ nodeIndex ];
+    for ( size_t i = 0; i < this->numSites; ++i )
+    {
+        size_t offset = perSiteRates[i]*this->mixtureOffset + this->patternMap[i]*this->siteOffset;
+
+        std::vector<double>::const_iterator   p_left  = this->partialLikelihoods.begin() + this->activeLikelihood[leftIndex]*this->activeLikelihoodOffset + leftIndex*this->nodeOffset + offset;
+	    std::vector<double>::const_iterator   p_right = this->partialLikelihoods.begin() + this->activeLikelihood[rightIndex]*this->activeLikelihoodOffset + rightIndex*this->nodeOffset + offset;
+
+		double sum = 0.0;
+		for (size_t c1 = 0; c1 < this->numChars; ++c1)
+		{
+			sum += p_left[c1]*p_right[c1];
+		}
+
+		// create the character
+		charType c;
+		c.setToFirstState();
+		// draw the state
+		double u = rng->uniform01();
+
+		double tmp = 0.0;
+		while(tmp < u*sum)
+		{
+			tmp += p_left[c.getState()-1]*p_right[c.getState()-1];
+			c++;
+		}
+		c--;
+
+		nodeData.addCharacter(c);
+    }
+
+}
+
 
 
 #endif

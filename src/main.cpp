@@ -49,7 +49,9 @@ int main (int argc, const char * argv[])
 		bool saveall = false;
 		bool nexus = false;
 
-		int correctionType = 1;
+		bool dolloMapping = false;
+
+		int correctionType = 0;
 
 		int every = 1;
 		int until = -1;
@@ -110,6 +112,8 @@ int main (int argc, const char * argv[])
 						nexus = true;
 					}else if (s == "-dollo"){
 						dollo = true;
+					}else if (s == "-map"){
+						dolloMapping = true;
 					}else if (s == "-h")	{
 						heterogeneous = 0;
 					}else if (s == "-dpp")	{
@@ -272,7 +276,9 @@ int main (int argc, const char * argv[])
 				remove((name+".ppred").c_str());
 			if(cvfile != "None")
 				remove((name+".cv").c_str());
-			chain = new Biphy(name,cvfile,ppred);
+			if(dolloMapping)
+				remove((name+".dollo.fa").c_str());
+			chain = new Biphy(name,cvfile,ppred,dolloMapping);
 		}
 	}
 
