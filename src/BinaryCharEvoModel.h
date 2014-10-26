@@ -99,6 +99,9 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::setCorrectionPatterns(){
 	std::vector<TopologyNode*> nodes = this->tau->getValue().getNodes();
 	// allocate and fill the cells of the matrices
 
+	this->correctionCharMatrix.clear();
+	this->correctionGapMatrix.clear();
+
 	size_t nonSingletons = (bool)(type & NO_ABSENT_SITES) + (bool)(type & NO_PRESENT_SITES);
 	size_t i = 0;
 	for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it)

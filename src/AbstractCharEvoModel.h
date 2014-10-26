@@ -217,7 +217,7 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
     patternCounts.clear();
     numPatterns = 0;
     
-    numSites = value->getNumberOfIncludedCharacters();
+    numSites = value->getNumberOfCharacters();
 
     // check whether there are ambiguous characters (besides gaps)
     bool ambiguousCharacters = false;
