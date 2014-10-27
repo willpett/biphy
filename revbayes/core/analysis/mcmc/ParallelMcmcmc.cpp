@@ -347,7 +347,7 @@ void ParallelMcmcmc::swapChains(void)
     
 }
 
-void ParallelMcmcmc::fromStream(std::istream& is, bool keep){
+void ParallelMcmcmc::fromStream(std::istream& is, bool keep, bool coldOnly){
 	int index = 0;
 	for ( size_t i = 0; i < numChains; i++){
 		if(numChains > 1){
@@ -356,7 +356,7 @@ void ParallelMcmcmc::fromStream(std::istream& is, bool keep){
 				throw(RbException("premature end of stream"));
 		}
 
-		chains[index]->fromStream(is,keep);
+		chains[index]->fromStream(is,keep && (i==0 || !coldOnly));
 		chains[i]->setChainActive(i == 0);
 
 		chainIdxByHeat[i] = index;
@@ -380,7 +380,7 @@ void ParallelMcmcmc::toStream(std::ostream& os){
 	os.flush();
 }
 
-void ParallelMcmcmc::readStream(size_t generations)
+void ParallelMcmcmc::readStream(size_t generations, bool coldOnly)
 {
 	if(filename == "")
 		throw(RbException("in ParallelMcmcmc::lastCycle -> Mcmc chain file not specified"));
@@ -393,7 +393,7 @@ void ParallelMcmcmc::readStream(size_t generations)
     for (int k=1; k<=generations; k++)
     {
 		try{
-			fromStream(stream);
+			fromStream(stream, coldOnly);
 			chains[chainIdxByHeat[0]]->monitor(currentGeneration);
 
 			currentGeneration += swapInterval*every;

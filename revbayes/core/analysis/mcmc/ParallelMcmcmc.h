@@ -38,7 +38,7 @@ namespace RevBayesCore {
         ParallelMcmcmc*                                     clone(void) const;
         void                                                printOperatorSummary(void) const;
         void                                                run(size_t g);
-        void                                                readStream(size_t g);
+        void                                                readStream(size_t g, bool coldOnly = false);
         bool                                                lastCycle(void);
         unsigned int                                        getCurrentGeneration(void);
         
@@ -48,7 +48,7 @@ namespace RevBayesCore {
         void                                                swapChains(void);
         double                                              computeBeta(double d, double s, size_t i);   // incremental temperature schedule
         
-        void												fromStream(std::istream& is, bool keep = true);
+        void												fromStream(std::istream& is, bool keep = true, bool coldOnly = false);
         void												toStream(std::ostream& os);
 
         size_t                                              numChains;

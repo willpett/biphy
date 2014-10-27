@@ -701,7 +701,7 @@ bool Biphy::run( void ) {
 
 	if(readstream){
 		std::cout << "reading from stream\n";
-		myPmc3.readStream(until);
+		myPmc3.readStream(until,!restart);
 	}else{
 		std::cout << "running\n";
 		myPmc3.run(until);
