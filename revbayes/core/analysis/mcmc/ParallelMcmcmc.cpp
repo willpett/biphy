@@ -393,7 +393,7 @@ void ParallelMcmcmc::readStream(size_t generations, bool coldOnly)
     for (int k=1; k<=generations; k++)
     {
 		try{
-			fromStream(stream, coldOnly);
+			fromStream(stream, true, coldOnly);
 			chains[chainIdxByHeat[0]]->monitor(currentGeneration);
 
 			currentGeneration += swapInterval*every;
