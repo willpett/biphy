@@ -165,10 +165,18 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 
     std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
+    std::vector<size_t> perSiteRates;
+	for ( size_t i = 0; i < this->numSites; ++i )
+	{
+		// draw the state
+		double u = rng->uniform01();
+		size_t rateIndex = (int)(u*this->numSiteRates);
+		perSiteRates.push_back( rateIndex );
+	}
+
     for ( size_t i = 0; i < this->numSites; i++ )
     {
-    	double u = rng->uniform01();
-        size_t rateIndex = (int)(u*this->numSiteRates);
+        size_t rateIndex = perSiteRates[i];
 
         std::vector<StandardState> siteData(numNodes, StandardState());
 
