@@ -659,8 +659,6 @@ bool Biphy::run( void ) {
 		//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
 	}
 
-	//monitoredNodes.push_back(pi_vector);
-
 	Model myModel = Model(charactermodel);
 	std::cout << "model okay\n";
 
@@ -673,6 +671,9 @@ bool Biphy::run( void ) {
 			monitors.push_back( new CrossValidationScoreMonitor( charactermodel, cvdata[0], every, name+".cv",useParallelMcmcmc) );
 		if(dolloMapping)
 			monitors.push_back( new BinaryDolloCompatibleMonitor<BranchLengthTree>( charactermodel, every, name+".dollo.fa") );
+		monitoredNodes.clear();
+		monitoredNodes.push_back(pi_vector);
+		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".pi", "\t", false, true, false, useParallelMcmcmc || restart, useParallelMcmcmc, false ) );
 	}else{
 		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc || restart, useParallelMcmcmc, false ) );
 		if(!treeFixed){
@@ -686,6 +687,7 @@ bool Biphy::run( void ) {
 			}
 		}
 	}
+	std::cout << "monitors okay\n";
 
 	std::string basename = "";
 	if(saveall || readstream)

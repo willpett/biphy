@@ -154,30 +154,29 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
     this->value = new DiscreteCharacterData<StandardState>();
 
     size_t numTips = this->tau->getValue().getNumberOfTips();
-
-    for (size_t t = 0; t < numTips; ++t)
-	{
-    	DiscreteTaxonData<StandardState> data;
-    	data.setTaxonName( this->tau->getValue().getNode(t).getName() );
-		this->value->addTaxonData(data);
-	}
+    size_t numNodes = this->tau->getValue().getNumberOfNodes();
 
     RandomNumberGenerator* rng = GLOBAL_RNG;
+
+    const std::vector< double > &pi = this->getRootFrequencies();
+
+    const TopologyNode &root = this->tau->getValue().getRoot();
+    size_t rootIndex = this->tau->getValue().getRoot().getIndex();
+
+    std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
     for ( size_t i = 0; i < this->numSites; i++ )
     {
     	double u = rng->uniform01();
         size_t rateIndex = (int)(u*this->numSiteRates);
 
-        std::vector<StandardState> taxa(this->tau->getValue().getNumberOfNodes(), StandardState());
-
-        const std::vector< double > &pi = this->getRootFrequencies();
+        std::vector<StandardState> siteData(numNodes, StandardState());
 
         if(rng->uniform01() < pi[1])
-        	taxa[this->tau->getValue().getRoot().getIndex()]++;
+        	siteData[rootIndex]++;
 
 		// recursively simulate the sequences
-		size_t numLeaves = simulate( this->tau->getValue().getRoot(), taxa, rateIndex );
+		size_t numLeaves = simulate( root, siteData, rateIndex );
 
 		if((this->type & NO_ABSENT_SITES) && numLeaves == 0){
 			i--;
@@ -196,9 +195,16 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 		// add the taxon data to the character data
 		for (size_t t = 0; t < numTips; ++t)
 		{
-			this->value->getTaxonData(t).addCharacter(taxa[t]);
+			taxa[t].addCharacter(siteData[this->tau->getValue().getNode(t).getIndex()]);
 		}
     }
+
+    // add the taxon data to the character data
+	for (size_t i = 0; i < this->tau->getValue().getNumberOfTips(); ++i)
+	{
+		taxa[i].setTaxonName(this->tau->getValue().getNode(i).getName());
+		this->value->addTaxonData( taxa[i] );
+	}
 
     // compress the data and initialize internal variables
     this->compress();
@@ -206,7 +212,7 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 }
 
 template<class treeType>
-size_t RevBayesCore::BinaryCharEvoModel<treeType>::simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t rateIndex) {
+size_t RevBayesCore::BinaryCharEvoModel<treeType>::simulate( const TopologyNode &node, std::vector<StandardState> &data, size_t rateIndex) {
 
 	size_t numLeaves = 0;
     // get the children of the node
@@ -214,10 +220,7 @@ size_t RevBayesCore::BinaryCharEvoModel<treeType>::simulate( const TopologyNode 
 
     // get the sequence of this node
     size_t nodeIndex = node.getIndex();
-    StandardState &parentState = taxa[ nodeIndex ];
-
-    if(parentState.getState() == 2 && node.isTip())
-    	numLeaves++;
+    StandardState &parentState = data[ nodeIndex ];
 
     // simulate the sequence for each child
     RandomNumberGenerator* rng = GLOBAL_RNG;
@@ -228,7 +231,7 @@ size_t RevBayesCore::BinaryCharEvoModel<treeType>::simulate( const TopologyNode 
         // update the transition probability matrix
         this->updateTransitionProbabilities( child.getIndex(), child.getBranchLength() );
 
-        StandardState &childState = taxa[ child.getIndex() ];
+        StandardState &childState = data[ child.getIndex() ];
 
         unsigned long cp = parentState.getState();
 
@@ -237,7 +240,10 @@ size_t RevBayesCore::BinaryCharEvoModel<treeType>::simulate( const TopologyNode 
 		if(rng->uniform01() < pij[1])
 			childState++;
 
-		numLeaves += simulate( child, taxa, rateIndex );
+		if(child.isTip())
+		    numLeaves = childState.getState() == 2;
+		else
+			numLeaves += simulate( child, data, rateIndex );
 	}
 
     return numLeaves;
