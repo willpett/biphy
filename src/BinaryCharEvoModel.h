@@ -241,7 +241,7 @@ size_t RevBayesCore::BinaryCharEvoModel<treeType>::simulate( const TopologyNode 
 			childState++;
 
 		if(child.isTip())
-		    numLeaves = childState.getState() == 2;
+		    numLeaves += childState.getState() == 2;
 		else
 			numLeaves += simulate( child, data, rateIndex );
 	}
