@@ -286,14 +286,14 @@ int main (int argc, const char * argv[])
 
 		cerr << "\nModel options:\n";
 		cerr << "\t-dollo\t\tdollo model\n";
-		cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
-		cerr << "\t-nh\t\ttime-heterogeneous hierarchical beta model\n";
-		cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
-		cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n";
+		cerr << "\t-h\t\ttime-homogeneous model (default)\n";
+		cerr << "\t-nh\t\thierarchical beta model\n";
+		cerr << "\t-m <int>\tmixture model with <int> components\n";
+		cerr << "\t-dpp\t\tdirichlet process prior\n";
 
 		cerr << "\nBranch length prior:\n";
 		cerr << "\t-lexp\t\thierarchical exponential prior (default)\n";
-		cerr << "\t-ldir\t\tcompound dirichlet branch length prior\n";
+		cerr << "\t-ldir\t\tcompound dirichlet prior\n";
 
 		cerr << "\nRates across sites prior:\n";
 		cerr << "\t-dgam <int>\tdiscrete gamma model with <int> categories (default: 4)\n";
