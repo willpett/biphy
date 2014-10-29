@@ -42,7 +42,7 @@ int main (int argc, const char * argv[])
 	bool ppred = false;
 	bool dolloMapping = false;
 
-	Biphy *chain;
+	Biphy *chain = NULL;
 
 	try	{
 		if (argc == 2)	{
