@@ -22,7 +22,7 @@ int main (int argc, const char * argv[])
 
 	int dgam = 4;
 
-	Biphy::RootPrior rootprior = Biphy::FREE;
+	Biphy::RootPrior rootprior = Biphy::RIGID;
 	double rootmin = 0.0;
 	double rootmax = 1.0;
 
@@ -95,8 +95,8 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					dgam = atoi(argv[i]);
-				}else if (s == "-rr"){
-					rootprior = Biphy::RIGID;
+				}else if (s == "-rfree"){
+					rootprior = Biphy::FREE;
 				}
 				else if (s == "-nh")	{
 					modeltype = Biphy::HIERARCHICAL;
@@ -222,31 +222,31 @@ int main (int argc, const char * argv[])
 							i--;
 						}
 					}
-				}else if (s == "-rp")	{
+				}else if (s == "-rtrunc")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -rp <min> <max>\n\n";
+						cerr << "error in command: -rtrunc <min> <max>\n\n";
 						exit(1);
 					}
 					s = argv[i];
 					if (! IsFloat(s))	{
-						cerr << "error in command: -rp <min> <max>\n\n";
+						cerr << "error in command: -rtrunc <min> <max>\n\n";
 						exit(1);
 					}
 					rootmin = atof(argv[i]);
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -rp <min> <max>\n\n";
+						cerr << "error in command: -rtrunc <min> <max>\n\n";
 						exit(1);
 					}
 					s = argv[i];
 					if (! IsFloat(s))	{
-						cerr << "error in command: -rp <min> <max>\n\n";
+						cerr << "error in command: -rtrunc <min> <max>\n\n";
 						exit(1);
 					}
 					rootmax = atof(argv[i]);
 					if(rootmin < 0 || rootmax > 1.0 || rootmin > rootmax){
-						cerr << "error in command: -rp <min> <max>\n\n";
+						cerr << "error in command: -rtrunc <min> <max>\n\n";
 						exit(1);
 					}
 					rootprior = Biphy::TRUNCATED;
@@ -273,10 +273,8 @@ int main (int argc, const char * argv[])
 				cerr << "error: truncated root frequency only applies to -h or -nh\n\n";
 				exit(1);
 			}
-			if(rootprior == Biphy::RIGID && (modeltype < Biphy::HIERARCHICAL)){
-				cerr << "error: rigit root frequency does not apply to -dollo or -h\n\n";
-				exit(1);
-			}
+			if(rootprior == Biphy::RIGID && (modeltype < Biphy::HIERARCHICAL))
+				rootprior = Biphy::FREE;
 		}
 	}
 	catch(...)	{
@@ -284,11 +282,11 @@ int main (int argc, const char * argv[])
 		cerr << '\n';
 		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n";
 
-		cerr << "\nModel options:\n";
-		cerr << "\t-dollo\t\tdollo model\n";
-		cerr << "\t-h\t\ttime-homogeneous model (default)\n";
+		cerr << "\nBranch frequency prior:\n";
+		cerr << "\t-dollo\t\tstochastic dollo model\n";
+		cerr << "\t-h\t\ttime-homogeneous beta model (default)\n";
 		cerr << "\t-nh\t\thierarchical beta model\n";
-		cerr << "\t-m <int>\tmixture model with <int> components\n";
+		cerr << "\t-m <int>\tmixture with <int> beta components\n";
 		cerr << "\t-dpp\t\tdirichlet process prior\n";
 
 		cerr << "\nBranch length prior:\n";
@@ -314,8 +312,8 @@ int main (int argc, const char * argv[])
 		cerr << "\nOptional constraints:\n";
 		cerr << "\t-t <file>\tfixed tree filename\n";
 		cerr << "\t-o <file>\toutgroup clade file\n";
-		cerr << "\t-rp <min> <max>\ttruncate root frequency prior (-nh or -h only)\n";
-		cerr << "\t-rr\t\trigid root frequency (heterogeneous models only)\n";
+		cerr << "\t-rtrunc <min> <max>\ttruncate root frequency prior on (min,max) (-nh or -h only)\n";
+		cerr << "\t-rfree\tfree root frequency for heterogeneous models (warning: non-identifiable)\n";
 
 		cerr << "\nMCMCMC options:\n";
 		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";

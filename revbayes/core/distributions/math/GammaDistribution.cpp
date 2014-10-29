@@ -2,6 +2,7 @@
 #include "DistributionGamma.h"
 #include "RandomNumberFactory.h"
 #include "RbConstants.h"
+#include "RbMathLogic.h"
 
 using namespace RevBayesCore;
 
@@ -51,7 +52,9 @@ double GammaDistribution::quantile(double p) const {
 
 void GammaDistribution::redrawValue( void ) {
     *value = RbStatistics::Gamma::rv(shape->getValue(), rate->getValue(), *GLOBAL_RNG);
-    while(*value <= getMin() || *value >= getMax())
+    while(	RbMath::compEssentiallyEqual(*value,1.0,std::numeric_limits<double>::epsilon()) ||
+    		RbMath::compEssentiallyEqual(*value,0.0,std::numeric_limits<double>::epsilon()) ||
+    		RbMath::isNan(*value))
     	*value = RbStatistics::Gamma::rv(shape->getValue(), rate->getValue(), *GLOBAL_RNG);
 }
 

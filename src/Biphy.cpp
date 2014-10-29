@@ -244,52 +244,57 @@ void Biphy::init( void ) {
     }
     
     if(modeltype > HOMOGENEOUS){
-    	std::cout << "branch-wise constant time-heterogeneous model:\n";
+    	std::cout << "branch-wise stationary frequencies:\n";
     	switch(modeltype){
 			case DPP:
-				std::cout << "branch frequencies = pi(i) ~ DPP(G,cp)\n";
-				std::cout << "cp ~ Gamma(a,b)\n";
-				std::cout << "a,b ~ exponential of mean 1";
+				std::cout << "pi(i) ~ DPP(G,cp)\n";
+				std::cout << "cp ~ Gamma(1,1)\n";
+				//std::cout << "a = b = 1~ exponential of mean 1\n";
 				std::cout << "G = Beta(alpha,beta)\n";
 				break;
 			case MIXTURE:
-				std::cout << "branch frequencies = pi(i) ~ mixture of " << mixture << " Beta(alpha,beta) distributions\n";
+				std::cout << "pi(i) ~ Beta(alpha,beta) mixture with " << mixture << " components\n";
 				break;
 			default:
-				std::cout << "branch frequencies = pi(i) ~ Beta(alpha,beta)\n";
+				std::cout << "pi(i) ~ Beta(alpha,beta)\n";
 				break;
     	}
 	}else if(modeltype == DOLLO){
-		std::cout << "dollo model\n";
+		std::cout << "dollo model";
 	}else{
-		std::cout << "time-homogeneous model:\n";
+		std::cout << "time-homogeneous model\n";
 	}
-    if(modeltype > HOMOGENEOUS){
-    	if(rootprior != FREE){
-    		if(rootprior == RIGID)
-    			std::cout << "rigid ";
-			std::cout << "root frequency  = phi ~ Beta(alpha,beta) truncated on (" << rootmin << "," << rootmax << ")\n";
-		}else{
+
+    std::cout << "\n";
+
+    if(modeltype != DOLLO){
+		if(rootprior == FREE && modeltype > HOMOGENEOUS)
+			std::cout << "free ";
+		std::cout << "root frequency:\n";
+		if(modeltype > HOMOGENEOUS){
 			switch(modeltype){
 				case DPP:
-					std::cout << "root frequency = phi ~ DPP(G,cp)\n";
+					std::cout << "phi ~ DPP(G,cp)\n";
 					break;
 				case MIXTURE:
-					std::cout << "root frequency = phi ~ mixture of " << mixture << " Beta(alpha,beta) distributions\n";
+					std::cout << "phi ~ Beta(alpha,beta) mixture with " << mixture << " components\n";
 					break;
 				default:
-					std::cout << "root frequency = phi ~ Beta(alpha,beta)\n";
+					if(rootprior == TRUNCATED)
+						std::cout << "phi ~ Beta(alpha,beta) truncated on (" << rootmin << "," << rootmax << ")\n";
+					else
+						std::cout << "phi ~ Beta(alpha,beta)\n";
 					break;
 			}
-			std::cout << "alpha, beta ~ exponential of mean 1\n";
+			std::cout << "\nalpha, beta ~ exponential of mean 1\n";
+		}else if(modeltype != DOLLO){
+			if(rootprior == TRUNCATED){
+				std::cout << "phi ~ Uniform(" << rootmin << "," << rootmax << ")\n";
+			}else{
+				std::cout << "phi ~ Beta(1,1)\n";
+			}
 		}
-	}else if(modeltype != DOLLO){
-		if(rootprior == TRUNCATED){
-			std::cout << "root frequency  = phi ~ Uniform(" << rootmin << "," << rootmax << ")\n";
-		}else{
-			std::cout << "root frequency  = phi ~ Uniform(0,1)\n";
-		}
-	}
+    }
 
     std::cout << "\n";
 
@@ -346,6 +351,9 @@ void Biphy::init( void ) {
 	size_t numBranches = 2*data[0]->getNumberOfTaxa() - 2;
 	size_t w = numBranches > 0 ? (int) log10 ((double) numBranches) + 1 : 1;
 
+	if(modeltype == MIXTURE)
+		w = mixture > 0 ? (int) log10 ((double) mixture) + 1 : 1;
+
 
     // tree prior
     std::vector<std::string> names = data[0]->getTaxonNames();
@@ -390,8 +398,8 @@ void Biphy::init( void ) {
 	std::vector<const TypedDagNode<double> *> pi_stat;
 
 	//dpp priors
-	ContinuousStochasticNode *dpA;
-	ContinuousStochasticNode *dpB;
+	TypedDagNode<double> *dpA;
+	TypedDagNode<double> *dpB;
 	StochasticNode<double> *cp;
 	DeterministicNode<int> *numCats;
 
@@ -405,6 +413,7 @@ void Biphy::init( void ) {
     const TopologyNode &root = tau->getValue().getRoot();
     size_t left = root.getChild(0).getIndex();
     size_t right = root.getChild(1).getIndex();
+
     // branch frequency prior
 	if(modeltype == HIERARCHICAL){
 		for (size_t i = 0 ; i < numBranches ; i++ ) {
@@ -425,8 +434,9 @@ void Biphy::init( void ) {
 		// This hyperprior is fully conditional on the DPP using a gamma distribution
 		//    the parameters of the gamma distribution are set so that the expectation of the hyperprior = meanCP
 		//    where meanCP = dpA / dpB
-		dpA  = new ContinuousStochasticNode("dp_a", new ExponentialDistribution(one));
-		dpB  = new ContinuousStochasticNode("dp_b", new ExponentialDistribution(one));
+		double meandpp = 1;
+		dpA  = new ConstantNode<double>("dp_a", new double(meandpp) );//new ContinuousStochasticNode("dp_a", new ExponentialDistribution(one));
+		dpB  = new ConstantNode<double>("dp_b", new double(1.0) );//new ContinuousStochasticNode("dp_b", new ExponentialDistribution(one));
 		cp = new StochasticNode<double>("dpp.cp", new GammaDistribution(dpA, dpB) );
 
 		// G_0 is an Beta distribution
@@ -464,7 +474,7 @@ void Biphy::init( void ) {
 
 		qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new FreeBinaryRateMatrixVectorFunction(pi_vector,true) );
 	}else if(modeltype == MIXTURE){
-		ConstantNode<std::vector<double> > *probs = new ConstantNode<std::vector<double> >("probs", new std::vector<double>(mixture,1.0) );
+		ConstantNode<std::vector<double> > *probs = new ConstantNode<std::vector<double> >("probs", new std::vector<double>(mixture,1.0/mixture) );
 		for(size_t i = 0; i < mixture; i++){
 			std::ostringstream pi_name;
 			pi_name << "pi(" << setfill('0') << setw(w) << i << ")";
@@ -475,13 +485,13 @@ void Biphy::init( void ) {
 		delete phi;
 		phi = new StochasticNode<double>( "phi", new MixtureDistribution<double>(pi_mix,probs) );
 
-		for (unsigned int i = 0 ; i < numBranches ; i++ ) {
+		for (size_t i = 0 ; i < numBranches ; i++ ) {
 			std::ostringstream q_name;
 			q_name << "q(" << setfill('0') << setw(w) << i << ")";
 			if((i == left || i == right) && rootprior == RIGID){
-				pi_stat.push_back(new StochasticNode<double>( q_name.str()+"_pi", new MixtureDistribution<double>(pi_mix,probs) ));
-			}else{
 				pi_stat.push_back(new DeterministicNode<double>( q_name.str()+"_pi", new ConstantFunction< double >( phi ) ));
+			}else{
+				pi_stat.push_back(new StochasticNode<double>( q_name.str()+"_pi", new MixtureDistribution<double>(pi_mix,probs) ));
 			}
 			qs.push_back(new DeterministicNode<RateMatrix>( q_name.str(), new FreeBinaryRateMatrixFunction(pi_stat[i]) ));
 		}
@@ -594,12 +604,12 @@ void Biphy::init( void ) {
 		moves.push_back( new SubtreePruneRegraft( tau, 5.0, rootprior == RIGID) );
 
 	for (size_t i = 0 ; i < numBranches ; i ++ ) {
-		if(modeltype == HIERARCHICAL){
-			if(!(i == left || i == right) || !(rootprior == RIGID))
+		if(!(i == left || i == right) || rootprior == FREE)
+			if(modeltype == HIERARCHICAL){
 				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 1.0, true, 2.0 ) );
-		}else if(modeltype == MIXTURE){
-			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 2.0 ) );
-		}
+			}else if(modeltype == MIXTURE){
+				moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 2.0 ) );
+			}
 		if(branchprior == EXPONENTIAL)
 			moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0/(1.0+ 4.0*(modeltype == DOLLO)), true, 1.0 ) );
 	}
@@ -613,10 +623,10 @@ void Biphy::init( void ) {
 	monitoredNodes.push_back( tree_length );
 
 	if(modeltype > DOLLO && modeltype < DPP){
-		if(modeltype < MIXTURE){
-			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1.0, true, 5.0 ) );
-		}else{
+		if(modeltype == MIXTURE){
 			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 2.0 ) );
+		}else{
+			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1.0, true, 5.0 ) );
 		}
 	}
 	if(modeltype != DOLLO)
@@ -650,16 +660,16 @@ void Biphy::init( void ) {
 			monitoredNodes.push_back(numCats);
 			monitoredNodes.push_back(cp);
 
-			moves.push_back( new ScaleMove(dpA, 1.0, true, 1.0) );
-			monitoredNodes.push_back(dpA);
+			//moves.push_back( new ScaleMove(dpA, 1.0, true, 1.0) );
+			//monitoredNodes.push_back(dpA);
 
-			moves.push_back( new ScaleMove(dpB, 1.0, true, 1.0) );
-			monitoredNodes.push_back(dpB);
+			//moves.push_back( new ScaleMove(dpB, 1.0, true, 1.0) );
+			//monitoredNodes.push_back(dpB);
 
 			moves.push_back( new DPPBetaSimplexMove( (StochasticNode<std::vector<double> >*)dpp_vector, 1.0 , 1.0 ) );
 			moves.push_back( new DPPAllocateAuxGibbsMove<double>( (StochasticNode<std::vector<double> >*)dpp_vector, 4, 2.0 ) );
 			moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, numBranches + 1, 2.0 ) );
-		}else if(modeltype == mixture){
+		}else if(modeltype == MIXTURE){
 			std::vector<Move*> mixmoves;
 			for (size_t i = 0 ; i < mixture; i ++ ) {
 				//mixmoves.push_back( new ScaleMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
