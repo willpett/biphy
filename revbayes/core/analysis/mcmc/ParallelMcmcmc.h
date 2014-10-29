@@ -28,8 +28,8 @@ namespace RevBayesCore {
     class ParallelMcmcmc : Cloneable {
         
     public:
-        ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string sT="random",
-        			int nc=4, int np=4, int si=1000, double dt=0.1, double st=1.0, double sh=1.0, std::string fn = "", int ev = 1);
+        ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string fn = "", std::string sT="random", int ev = 1,
+        			int nc=4, int np=4, int si=1000, double dt=0.1, double st=1.0, double sh=1.0, bool saveall = false);
         ParallelMcmcmc(const ParallelMcmcmc &m);
         virtual                                            ~ParallelMcmcmc(void);                                                          //!< Virtual destructor
         
@@ -38,17 +38,16 @@ namespace RevBayesCore {
         ParallelMcmcmc*                                     clone(void) const;
         void                                                printOperatorSummary(void) const;
         void                                                run(size_t g);
-        void                                                readStream(size_t g, bool coldOnly = false);
-        bool                                                lastCycle(void);
+        void                                                readStream(size_t g);
+        bool                                                restore(void);
         unsigned int                                        getCurrentGeneration(void);
-        
 
     private:
         void                                                initialize(void);
         void                                                swapChains(void);
         double                                              computeBeta(double d, double s, size_t i);   // incremental temperature schedule
-        
-        void												fromStream(std::istream& is, bool keep = true, bool coldOnly = false);
+
+        void												fromStream(std::istream& is, bool keep = true, bool keepCold = false);
         void												toStream(std::ostream& os);
 
         size_t                                              numChains;
@@ -60,6 +59,8 @@ namespace RevBayesCore {
         unsigned int                                        currentGeneration;
         unsigned int                                        swapInterval;
         
+        bool												saveall;
+
         std::string											filename;
 		std::fstream										stream;
 		int 												every;

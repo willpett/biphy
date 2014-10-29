@@ -22,39 +22,47 @@
 
 #include <string>
 #include <vector>
+#include "BinaryCharEvoModel.h"
+#include "ParallelMcmcmc.h"
     
-    class Biphy {
+class Biphy {
         
     public:
+
+    	enum ModelType {DOLLO, HOMOGENEOUS, HIERARCHICAL, MIXTURE, DPP};
+		enum RootPrior {FREE, RIGID, TRUNCATED};
+		enum BranchPrior {EXPONENTIAL, DIRICHLET};
+
+
     	Biphy(const std::string &datafile,
     										const std::string &treefile,
     										const std::string &name,
     										const std::string &outgroupfile,
-    										int branchprior,
-    										bool ras,
-    										int heterogeneous,
-    										bool dollo,
+    										ModelType modeltype,
+											BranchPrior branchprior,
+											RootPrior rootprior,
+											RevBayesCore::CorrectionType correction,
+    										int dgam,
     										int mixture,
-    										bool rigidroot,
-    										bool rootprior,
     										double rootmin,
     										double rootmax,
     										int every,
     										int until,
     										int numchains,
     										int swapInterval,
-    										double deltaTemp,
-    										double sigmaTemp,
+    										double delta,
+    										double sigma,
     										bool saveall,
-    										bool nexus,
-											int correctionType);
+    										bool nexus
+											);
     	Biphy(const std::string &name, const std::string &cvfile, bool ppred, bool dolloMapping = false);
     	Biphy(const std::string &name);
         virtual                                ~Biphy(void);                                                            //!< Virtual destructor
         
-        bool                                    run();
+        void									init();
         void                                    open();
         void                                    save();
+        void                                    run();
         
     private:
         
@@ -65,29 +73,30 @@
         std::string                             outgroupFile;
         std::string                             cvfile;
 
-        int										branchprior;
-        bool									ras;
-        int										heterogeneous;
-        bool									dollo;
+        ModelType 								modeltype;
+		BranchPrior 							branchprior;
+		RootPrior 								rootprior;
+		RevBayesCore::CorrectionType 			correction;
+
+        int										dgam;
         int 									mixture;
         bool									ppred;
-        bool									rigidroot;
-        bool									rootprior;
         double                                  rootmin;
         double                                  rootmax;
         int                                     every;
         int                                     until;
         int                                     numChains;
         int                                     swapInterval;
-        double                                  deltaTemp;
-        double                                  sigmaTemp;
+        double                                  delta;
+        double                                  sigma;
         bool									saveall;
         bool									nexus;
-        int										correctionType;
         bool									readstream;
         bool									restart;
         bool									dolloMapping;
         
+        RevBayesCore::ParallelMcmcmc* 			mcmc;
+
     };
 
 #endif

@@ -2,236 +2,338 @@
 #include <iostream>
 #include <stdlib.h>
 #include <fstream>
+#include "util.h"
 #include "Biphy.h"
 
-bool fexists(const std::string& filename) {
-  std::ifstream ifile(filename.c_str());
-  return ifile;
-}
-
-void our_terminate (void);
-
-namespace {
-    static const bool SET_TERMINATE = std::set_terminate(our_terminate);
-}
-
-void our_terminate (void) { // try 1
-    try { throw; }
-    catch (RbException& e) {
-    	std::cout << "RbException:\t" << e.getMessage() << '\n';
-    }
-}
-
+using namespace std;
 
 int main (int argc, const char * argv[])
 {
-		std::string datafile = "None";
-		std::string treefile = "None";
-		std::string cvfile = "None";
-		std::string outgroupfile = "None";
-		std::string name = "";
+	string datafile = "None";
+	string treefile = "None";
+	string cvfile = "None";
+	string outgroupfile = "None";
+	string name = "";
 
-		int numChains = 1;
-		int swapInterval = 1;
-		double deltaTemp = 0.1;
-		double sigmaTemp = 1;
-		int branchprior = 0;
-		int heterogeneous = 0;
-		bool dollo = false;
-		int mixture = 0;
-		bool overwrite = false;
-		bool ppred = false;
-		bool rigidroot = false;
-		bool rootprior = false;
-		bool ras = false;
-		double rootmin = 0.0;
-		double rootmax = 1.0;
-		bool saveall = false;
-		bool nexus = false;
+	Biphy::ModelType modeltype = Biphy::HOMOGENEOUS;
+	int mixture = 0;
 
-		bool dolloMapping = false;
+	Biphy::BranchPrior branchprior = Biphy::EXPONENTIAL;
 
-		int correctionType = 0;
+	int dgam = 4;
 
-		int every = 1;
-		int until = -1;
+	Biphy::RootPrior rootprior = Biphy::FREE;
+	double rootmin = 0.0;
+	double rootmax = 1.0;
 
-		Biphy *chain;
+	RevBayesCore::CorrectionType correction = RevBayesCore::NONE;
 
+	int every = 1;
+	int until = -1;
+	bool overwrite = false;
+
+	int numChains = 1;
+	int swapInterval = 1;
+	double delta = 0.1;
+	double sigma = 1;
+
+	bool saveall = false;
+	bool nexus = false;
+	bool ppred = false;
+	bool dolloMapping = false;
+
+	Biphy *chain;
+
+	try	{
 		if (argc == 2)	{
-
 			name = argv[1];
-
-			if(!fexists(name+".chain")){
-				std::cerr << "chain '" << name << "' does not exist\n";
+			if (name == "-help" || name == "--help" || name == "-h")	{
+				throw(0);
+			}
+			if(!fexists(name+".stream")){
+				cerr << "run '" << name << "' does not exist\n";
 				exit(1);
 			}
 
 			chain = new Biphy(name);
-
+		}else if (argc == 1){
+			throw(0);
 		}else{
 
-			try	{
+			int i = 1;
+			while (i < argc)	{
+				string s = argv[i];
 
-				if (argc < 2)	{
-					throw(0);
-				}
-
-				int i = 1;
-				while (i < argc)	{
-					std::string s = argv[i];
-
-					if (s == "-d")	{
-						i++;
-						datafile = argv[i];
-					}else if (s == "-f")	{
-						overwrite = true;
-					}
-					else if ((s == "-t") || (s == "-T"))	{
-						i++;
-						treefile = argv[i];
-					}
-					else if (s == "-cv")	{
-						i++;
-						cvfile = argv[i];
-					}
-					else if (s == "-o")	{
-						i++;
-						outgroupfile = argv[i];
-					}else if (s == "-s"){
-						saveall = true;
-					}else if (s == "-ras"){
-						ras = true;
-					}else if (s == "-rr"){
-						rigidroot = true;
-					}
-					else if (s == "-nh")	{
-						heterogeneous = 1;
-					}
-					else if (s == "-e")	{
-						nexus = true;
-					}else if (s == "-dollo"){
-						dollo = true;
-					}else if (s == "-map"){
-						dolloMapping = true;
-					}else if (s == "-h")	{
-						heterogeneous = 0;
-					}else if (s == "-dpp")	{
-						heterogeneous = 2;
-					}else if (s == "-dir")	{
-						branchprior = 1;
-					}else if (s == "-n")	{
-						i++;
-						numChains = atoi(argv[i]);
-					}else if (s == "-absent")	{
-						i++;
-						correctionType = atoi(argv[i]);
-					}else if (s == "-m")	{
-						i++;
-						mixture = atoi(argv[i]);
-						if(mixture > 1){
-							heterogeneous = 3;
-						}else{
-							mixture = 0;
-						}
-					}
-					else if (s == "-delta")	{
-						i++;
-						deltaTemp = atof(argv[i]);
-					}
-					else if (s == "-sigma")	{
-						i++;
-						sigmaTemp = atof(argv[i]);
-					}
-					else if (s == "-si")	{
-						i++;
-						swapInterval = atoi(argv[i]);
-					}else if (s == "-x")	{
-						i++;
-						if (i == argc) throw(0);
-						every = atoi(argv[i]);
-						i++;
-						if (i == argc) throw(0);
-						until = atoi(argv[i]);
-					}else if (s == "-rp")	{
-						i++;
-						if (i == argc) throw(0);
-						rootmin = atof(argv[i]);
-						i++;
-						if (i == argc) throw(0);
-						rootmax = atof(argv[i]);
-						rootprior = true;
-					}else if (s == "-ppred")	{
-						ppred = true;
-					}else{
-						if (i != (argc -1))	{
-							throw(0);
-						}
-						name = argv[i];
-					}
+				if (s == "-d")	{
 					i++;
+					datafile = argv[i];
+				}else if (s == "-f")	{
+					overwrite = true;
 				}
-
-				if(name == "")
-					throw(0);
-				if(mixture > 1 && !heterogeneous)
-					throw(0);
-				if(rootprior && (heterogeneous > 1 || dollo))
-					throw(0);
-				if(heterogeneous && dollo)
-					throw(0);
-				if(rigidroot && !heterogeneous)
-					throw(0);
-				if(correctionType < 0 || correctionType > 15)
-					throw(0);
+				else if ((s == "-t") || (s == "-T"))	{
+					i++;
+					treefile = argv[i];
+				}
+				else if (s == "-cv")	{
+					i++;
+					cvfile = argv[i];
+				}
+				else if (s == "-o")	{
+					i++;
+					outgroupfile = argv[i];
+				}else if (s == "-s"){
+					saveall = true;
+				}else if (s == "-dgam"){
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -dgam <int>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsInt(s))	{
+						cerr << "error in command: -dgam <int>\n\n";
+						exit(1);
+					}
+					dgam = atoi(argv[i]);
+				}else if (s == "-rr"){
+					rootprior = Biphy::RIGID;
+				}
+				else if (s == "-nh")	{
+					modeltype = Biphy::HIERARCHICAL;
+				}
+				else if (s == "-e")	{
+					nexus = true;
+				}else if (s == "-dollo"){
+					modeltype = Biphy::DOLLO;
+				}else if (s == "-map"){
+					dolloMapping = true;
+				}else if (s == "-h")	{
+					modeltype = Biphy::HOMOGENEOUS;
+				}else if (s == "-dpp")	{
+					modeltype = Biphy::DPP;
+				}else if (s == "-ldir")	{
+					branchprior = Biphy::DIRICHLET;
+				}else if (s == "-lexp")	{
+					branchprior = Biphy::EXPONENTIAL;
+				}else if (s == "-n")	{
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -n <int>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsInt(s))	{
+						cerr << "error in command: -n <int>\n\n";
+						exit(1);
+					}
+					numChains = atoi(argv[i]);
+				}else if (s == "-absent")	{
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -absent <int>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsInt(s))	{
+						cerr << "error in command: -absent <int>\n\n";
+						exit(1);
+					}
+					correction = static_cast<RevBayesCore::CorrectionType>(atoi(argv[i]));
+					if(correction < 0 || correction > 15)	{
+						cerr << "error in command: -absent <int>\n\n";
+						exit(1);
+					}
+				}else if (s == "-m")	{
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -m <int>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsInt(s))	{
+						cerr << "error in command: -m <int>\n\n";
+						exit(1);
+					}
+					mixture = atoi(argv[i]);
+					if(mixture > 1){
+						modeltype = Biphy::MIXTURE;
+					}else{
+						modeltype = Biphy::HOMOGENEOUS;
+						mixture = 0;
+					}
+				}
+				else if (s == "-delta")	{
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -delta <float>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsFloat(s))	{
+						cerr << "error in command: -delta <float>\n\n";
+						exit(1);
+					}
+					delta = atof(argv[i]);
+				}
+				else if (s == "-sigma")	{
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -sigma <float>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsFloat(s))	{
+						cerr << "error in command: -sigma <float>\n\n";
+						exit(1);
+					}
+					sigma = atof(argv[i]);
+				}
+				else if (s == "-si")	{
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -si <int>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (!IsInt(s))	{
+						cerr << "error in command: -si <int>\n\n";
+						exit(1);
+					}
+					swapInterval = atof(argv[i]);
+				}else if (s == "-x")	{
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -x <every> <until>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsInt(s))	{
+						cerr << "error in command: -x <every> <until>\n\n";
+						exit(1);
+					}
+					every = atoi(argv[i]);
+					i++;
+					if (i != argc)	{
+						s = argv[i];
+						if (IsInt(s))	{
+							until = atoi(argv[i]);
+						}
+						else	{
+							i--;
+						}
+					}
+				}else if (s == "-rp")	{
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -rp <min> <max>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsFloat(s))	{
+						cerr << "error in command: -rp <min> <max>\n\n";
+						exit(1);
+					}
+					rootmin = atof(argv[i]);
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -rp <min> <max>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsFloat(s))	{
+						cerr << "error in command: -rp <min> <max>\n\n";
+						exit(1);
+					}
+					rootmax = atof(argv[i]);
+					if(rootmin < 0 || rootmax > 1.0 || rootmin > rootmax){
+						cerr << "error in command: -rp <min> <max>\n\n";
+						exit(1);
+					}
+					rootprior = Biphy::TRUNCATED;
+				}else if (s == "-ppred")	{
+					ppred = true;
+				}else{
+					if (i != (argc -1))	{
+						throw(0);
+					}
+					name = argv[i];
+				}
+				i++;
 			}
-			catch(...)	{
-				std::cerr << "biphy version 1.0\n";
-				std::cerr << '\n';
-				std::cerr << "usage: biphy -d <alignment> [-x <every> <until>] <chainname>\n\n";
 
-				std::cerr << "Stationary frequency priors:\n";
-				std::cerr << "\t-dollo\t\tdollo model\n";
-				std::cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
-				std::cerr << "\t-nh\t\ttime-heterogeneous hierarchical beta model\n";
-				std::cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
-				std::cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n\n";
-
-				std::cerr << "Other priors:\n";
-				std::cerr << "\t-dir\t\tcompound dirichlet branch length prior\n";
-				std::cerr << "\t-ras\t\tdiscrete gamma rates across sites model\n\n";
-
-				std::cerr << "Corrections for unobserved site patterns:\n";
-				std::cerr << "\t-absent <int>\twhere <int> is one of:\n";
-				std::cerr << "\t\t0:\tno site patterns have been omitted\n";
-				std::cerr << "\t\t1:\tconstant absence sites have been removed (default)\n";
-				std::cerr << "\t\t2:\tconstant presence sites have been removed\n";
-				std::cerr << "\t\t4:\tsingleton gains have been removed\n";
-				std::cerr << "\t\t8:\tsingleton losses have been removed\n\n";
-
-				std::cerr << "\tcombinations are achieved by adding the above values\n";
-				std::cerr << "\te.g.  3 = constant sites have been removed\n";
-				std::cerr << "\t     15 = uninformative sites have been removed\n\n";
-
-				std::cerr << "Optional constraints:\n";
-				std::cerr << "\t-t <file>\tfixed tree filename\n";
-				std::cerr << "\t-o <file>\toutgroup clade file\n";
-				std::cerr << "\t-rp <min> <max>\ttruncate root frequency prior (-nh or -h only)\n";
-				std::cerr << "\t-rr\t\trigid root frequency (heterogeneous models only)\n\n";
-
-				std::cerr << "MCMCMC options:\n";
-				std::cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
-				std::cerr << "\t-delta <float>\t(default = 0.1)\n";
-				std::cerr << "\t-sigma <float>\t(default = 1)\n\n";
-
-				std::cerr << "Other options:\n";
-				std::cerr << "\t-s\t\tsave entire output (default: disabled)\n";
-				std::cerr << "\t-e\t\tsave nexus treefile output (default: disabled)\n";
-				std::cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
-				std::cerr << "\t-cv <file>\tcross-validation test alignment\n";
+			if(name == ""){
+				cerr << "error: could determine run name\n\n";
 				exit(1);
 			}
 
+			if(mixture > 1 && modeltype != Biphy::MIXTURE)
+				throw(0);
+
+			if(rootprior == Biphy::TRUNCATED && (modeltype > Biphy::HIERARCHICAL || modeltype == Biphy::DOLLO)){
+				cerr << "error: truncated root frequency only applies to -h or -nh\n\n";
+				exit(1);
+			}
+			if(rootprior == Biphy::RIGID && (modeltype < Biphy::HIERARCHICAL)){
+				cerr << "error: rigit root frequency does not apply to -dollo or -h\n\n";
+				exit(1);
+			}
+		}
+	}
+	catch(...)	{
+		cerr << "biphy version 1.0\n";
+		cerr << '\n';
+		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n\n";
+
+		cerr << "Model options:\n";
+		cerr << "\t-dollo\t\tdollo model\n";
+		cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
+		cerr << "\t-nh\t\ttime-heterogeneous hierarchical beta model\n";
+		cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
+		cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n\n";
+
+		cerr << "Branch length prior:\n";
+		cerr << "\t-lexp\t\thierarchical exponential prior (default)\n";
+		cerr << "\t-ldir\t\tcompound dirichlet branch length prior\n\n";
+
+		cerr << "Rates across sites prior:\n";
+		cerr << "\t-dgam <int>\tdiscrete gamma model with <int> categories (default: 4)\n";
+		cerr << "\t\t\t0 or 1 specifies constant rates model\n\n";
+
+		cerr << "Corrections for unobserved site patterns:\n";
+		cerr << "\t-absent <int>\twhere <int> is one of:\n";
+		cerr << "\t\t0:\tno site patterns have been omitted\n";
+		cerr << "\t\t1:\tconstant absence sites have been removed (default)\n";
+		cerr << "\t\t2:\tconstant presence sites have been removed\n";
+		cerr << "\t\t4:\tsingleton gains have been removed\n";
+		cerr << "\t\t8:\tsingleton losses have been removed\n\n";
+
+		cerr << "\tcombinations are achieved by adding the above values\n";
+		cerr << "\te.g.  3 = constant sites have been removed\n";
+		cerr << "\t     15 = uninformative sites have been removed\n\n";
+
+		cerr << "Optional constraints:\n";
+		cerr << "\t-t <file>\tfixed tree filename\n";
+		cerr << "\t-o <file>\toutgroup clade file\n";
+		cerr << "\t-rp <min> <max>\ttruncate root frequency prior (-nh or -h only)\n";
+		cerr << "\t-rr\t\trigid root frequency (heterogeneous models only)\n\n";
+
+		cerr << "MCMCMC options:\n";
+		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
+		cerr << "\t-delta <float>\t(default = 0.1)\n";
+		cerr << "\t-sigma <float>\t(default = 1)\n";
+		cerr << "\t-si <int>\tchain swap interval(default = 1)\n\n";
+
+		cerr << "Output options:\n";
+		cerr << "\t-s\t\tsave entire output (default: disabled)\n";
+		cerr << "\t-e\t\tsave nexus treefile output (default: disabled)\n\n";
+
+		cerr << "Model-checking options:\n";
+		cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
+		cerr << "\t-cv <file>\tcross-validation test alignment\n";
+		exit(1);
+	}
+
+	if(chain == NULL)
 		if(datafile != "None"){
 			if(datafile.at(0) != '.' && datafile.at(0) != '/'){
 				datafile = "./"+datafile;
@@ -244,18 +346,10 @@ int main (int argc, const char * argv[])
 			}
 
 			if(fexists(name+".param") && !overwrite){
-				std::cerr << "chain '" << name << "' exists. use overwrite option -f\n";
+				cerr << "run '" << name << "' exists. use overwrite option -f\n";
 				exit(1);
 			}else if(overwrite){
-				if(saveall){
-					for(int i = 0; i < numChains; i++){
-						std::stringstream chainname;
-						chainname << name+".chain";
-						if(i > 0)
-							chainname << i;
-						remove(chainname.str().c_str());
-					}
-				}
+				remove((name+".stream").c_str());
 				remove((name+".param").c_str());
 				remove((name+".trace").c_str());
 				remove((name+".treelist").c_str());
@@ -263,10 +357,10 @@ int main (int argc, const char * argv[])
 					remove((name+".treelist.nex").c_str());
 			}
 
-			chain = new Biphy(datafile,name,treefile,outgroupfile,branchprior,ras,heterogeneous,dollo,mixture,rigidroot,rootprior,rootmin,rootmax,every,until,numChains,swapInterval,deltaTemp,sigmaTemp,saveall,nexus,correctionType);
+			chain = new Biphy(datafile,name,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
 		}else{
-			if(!fexists(name+".chain")){
-				std::cerr << "chain '" << name << "' does not exist\n";
+			if(!fexists(name+".stream")){
+				cerr << "run '" << name << "' does not exist\n";
 				exit(1);
 			}
 			if(cvfile != "None" && cvfile.at(0) != '.' && cvfile.at(0) != '/'){
@@ -280,7 +374,6 @@ int main (int argc, const char * argv[])
 				remove((name+".dollo.fa").c_str());
 			chain = new Biphy(name,cvfile,ppred,dolloMapping);
 		}
-	}
 
 	try
 	{
@@ -288,7 +381,7 @@ int main (int argc, const char * argv[])
 	}
 	catch (RbException& e)
 	{
-		std::cout << "Error:\t" << e.getMessage() << '\n';
+		cerr << "Error:\t" << e.getMessage() << '\n';
 		exit(1);
 	}
     

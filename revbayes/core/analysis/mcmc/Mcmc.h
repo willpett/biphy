@@ -31,7 +31,7 @@ namespace RevBayesCore {
     class Mcmc {
     
     public:
-        Mcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string sT="random", bool ca=true, double ch=1.0, int ci=0, std::string fn = "", int every = 1);
+        Mcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string sT="random", bool ca=true, double ch=1.0, int ci=0, std::string fn = "", int every = 1, bool saveall = false);
         Mcmc(const Mcmc &m);
         virtual                                            ~Mcmc(void);                                                                             //!< Virtual destructor
        
@@ -51,7 +51,7 @@ namespace RevBayesCore {
         bool                                                isChainActive(void);
         void                                                monitor(unsigned long g);
         virtual unsigned long                               nextCycle(bool advanceCycle);
-        bool                                                lastCycle(void);
+        bool                                                restore(void);
         void                                                printOperatorSummary(void) const;
         void                                                redrawChainState(void);
         virtual void                                        run(int g);
@@ -90,6 +90,8 @@ namespace RevBayesCore {
         std::string											filename;
         std::fstream										stream;
 		int 												every;
+
+		bool												saveall;
 
     };
 

@@ -38,18 +38,19 @@ using namespace RevBayesCore;
  * \param[in]    ci   The chain index (for multiple chain, e.g. in MCMCMC).
  * \param[in]    sT   Move schedule type (one of "random", "single", or "sequential").
  */
-Mcmc::Mcmc(const Model& m, const std::vector<Move*> &mvs, const std::vector<Monitor*> &mons, std::string sT, bool ca, double ch, int ci, std::string fn, int ev) :
+Mcmc::Mcmc(const Model& m, const std::vector<Move*> &mvs, const std::vector<Monitor*> &mons, std::string sT, bool ca, double ch, int ci, std::string fn, int ev, bool saveall) :
     chainActive(ca),
     chainHeat(ch),
     chainIdx(ci),
+	filename(fn),
     generation(0),
     model( m ),
     monitors(),
     moves(),
     schedule(NULL),
     scheduleType(sT),
-	filename(fn),
-	every(ev)
+	every(ev),
+	saveall(saveall)
 {
     
     // create an independent copy of the model, monitors and moves
@@ -76,7 +77,8 @@ Mcmc::Mcmc(const Mcmc &m) :
         schedule(NULL),
         scheduleType( m.scheduleType ),
 		filename(m.filename),
-		every(m.every)
+		every(m.every),
+		saveall(m.saveall)
 {
    
     // temporary references
@@ -549,35 +551,6 @@ unsigned long Mcmc::nextCycle(bool advanceCycle) {
     return generation;
 }
 
-bool Mcmc::lastCycle(void) {
-	if(filename == "")
-		throw(RbException("Error in Mcmc::lastCycle -> Mcmc chain file not specified"));
-
-	if(stream.is_open())
-	    stream.close();
-
-	stream.open( filename.c_str(), std::fstream::in);
-
-	size_t pos = stream.tellg();
-	size_t lastsample = pos;
-
-	fromStream(stream,false);
-
-	while(!stream.eof()){
-		lastsample = pos;
-		pos = stream.tellg();
-		fromStream(stream,false);
-		generation += every;
-	}
-
-	stream.clear();
-	stream.seekg(lastsample);
-
-	fromStream(stream);
-
-	return true;
-}
-
 
 void Mcmc::printOperatorSummary(void) const {
     
@@ -690,11 +663,18 @@ void Mcmc::run(int kIterations) {
     initializeChain();
     initializeMonitors();
     
+    if(stream.is_open())
+		stream.close();
+
+	stream.open( filename.c_str(), std::fstream::out | std::fstream::app);
+
     if ( generation == 0 )
     {
         // Monitor
         startMonitors();
         monitor(0);
+        stream << generation << "\n";
+        toStream(stream);
     }
     
     // reset the counters for the move schedules
@@ -710,6 +690,14 @@ void Mcmc::run(int kIterations) {
         
         // Monitor
         monitor(generation);
+
+        if(!saveall){
+			stream.close();
+			stream.open( filename.c_str(), std::fstream::trunc | std::fstream::out);
+		}
+
+		stream << generation << "\n";
+		toStream(stream);
                         
     }
     
@@ -746,6 +734,32 @@ void Mcmc::startMonitors( void ) {
         
         // if this chain is active, print the header
     }
+}
+
+bool Mcmc::restore(void){
+	if(stream.is_open())
+		stream.close();
+
+	stream.open(filename.c_str(), std::fstream::in);
+
+	size_t pos = stream.tellg();
+	size_t lastsample = pos;
+
+	while(!stream.eof()){
+		stream >> generation;
+		fromStream(stream,false);
+
+		lastsample = pos;
+		pos = stream.tellg();
+	}
+
+	stream.clear();
+	stream.seekg(lastsample);
+
+	stream >> generation;
+	fromStream(stream);
+
+	return true;
 }
 
 void Mcmc::fromStream(std::istream& is, bool keep){

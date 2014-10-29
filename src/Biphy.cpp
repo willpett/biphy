@@ -15,6 +15,7 @@
 #include "DeterministicNode.h"
 #include "DirichletDistribution.h"
 #include "DirichletProcessPriorDistribution.h"
+#include "DolloBinaryCharEvoModel.h"
 #include "DPPAllocateAuxGibbsMove.h"
 #include "DPPGibbsConcentrationMove.h"
 #include "DppNumTablesStatistic.h"
@@ -32,13 +33,12 @@
 #include "MeanFunction.h"
 #include "Model.h"
 #include "Monitor.h"
-
-#include "DolloBinaryCharEvoModel.h"
 #include "Move.h"
 #include "MultiMove.h"
 #include "NclReader.h"
 #include "NewickTreeMonitor.h"
 #include "NexusTreeMonitor.h"
+#include "ParallelMcmcmc.h"
 #include "PosteriorPredictiveStateFrequencyMonitor.h"
 #include "QuantileFunction.h"
 #include "RbSettings.h"
@@ -65,51 +65,48 @@ Biphy::Biphy(const std::string &datafile,
 									const std::string &name,
 									const std::string &treefile,
 									const std::string &outgroupfile,
-									int branchprior,
-									bool ras,
-									int heterogeneous,
-									bool dollo,
+									ModelType modeltype,
+									BranchPrior branchprior,
+									RootPrior rootprior,
+									CorrectionType correction,
+									int dgam,
 									int mixture,
-									bool rigidroot,
-									bool rootprior,
 									double rootmin,
 									double rootmax,
 									int every,
 									int until,
 									int numchains,
 									int swapInterval,
-									double deltaTemp,
-									double sigmaTemp,
+									double delta,
+									double sigma,
 									bool saveall,
-									bool nexus,
-									int correctionType) :
+									bool nexus) :
 		dataFile( datafile ),
 		name( name ),
 		treeFile( treefile ),
 		outgroupFile( outgroupfile ),
 		cvfile("None"),
+		modeltype(modeltype),
 		branchprior(branchprior),
-		ras( ras),
-		heterogeneous( heterogeneous ),
-		dollo(dollo),
+		rootprior(rootprior),
+		correction(correction),
+		dgam( dgam),
 		mixture( mixture),
 		ppred(false),
-		rigidroot(rigidroot),
-		rootprior( rootprior),
 		rootmin( rootmin),
 		rootmax( rootmax),
 		every( every ),
 		until( until ),
 		numChains( numchains),
 		swapInterval( swapInterval ),
-		deltaTemp( deltaTemp ),
-		sigmaTemp( sigmaTemp ),
+		delta( delta ),
+		sigma( sigma ),
 		saveall( saveall),
 		nexus(nexus),
-		correctionType(correctionType),
 		readstream(false),
 		restart(false)
 {
+	init();
     save();
 }
 
@@ -121,14 +118,17 @@ Biphy::Biphy(const std::string &name, const std::string &cvfile, bool ppred, boo
 		restart(false),
 		dolloMapping(dolloMapping)
 {
-    open();
-    every = 1;
+	every = 1;
+
+	open();
+	init();
 }
 
 Biphy::Biphy(const std::string &name) :
 		name( name ), cvfile("None"), ppred(false), readstream(false), restart(true)
 {
-    open();
+	open();
+	init();
 }
 
 Biphy::~Biphy() {
@@ -141,28 +141,32 @@ void Biphy::open( void ) {
 		std::cerr << "error : cannot find file : " << name << ".param\n";
 		exit(1);
 	}
+	int i;
 
 	is >> dataFile;
 	is >> name;
 	is >> treeFile;
 	is >> outgroupFile;
-	is >> heterogeneous;
-	is >> dollo;
+	is >> i;
+	modeltype = static_cast<ModelType>(i);
+	is >> i;
+	branchprior = static_cast<BranchPrior>(i);
+	is >> i;
+	rootprior = static_cast<RootPrior>(i);
+	is >> i;
+	correction = static_cast<CorrectionType>(i);
 	is >> mixture;
-	is >> ras;
-	is >> rigidroot;
-	is >> rootprior;
+	is >> dgam;
 	is >> rootmin;
 	is >> rootmax;
 	is >> every;
 	is >> until;
 	is >> numChains;
 	is >> swapInterval;
-	is >> deltaTemp;
-	is >> sigmaTemp;
+	is >> delta;
+	is >> sigma;
 	is >> saveall;
 	is >> nexus;
-	is >> correctionType;
 
 	is.close();
 }
@@ -174,37 +178,36 @@ void Biphy::save( void ) {
 	os << name << "\n";
 	os << treeFile << "\n";
 	os << outgroupFile << "\n";
-	os << heterogeneous << "\n";
-	os << dollo << "\n";
-	os << mixture << "\n";
-	os << ras << "\n";
-	os << rigidroot << "\n";
+	os << modeltype << "\n";
+	os << branchprior << "\n";
 	os << rootprior << "\n";
+	os << correction << "\n";
+	os << mixture << "\n";
+	os << dgam << "\n";
 	os << rootmin << "\n";
 	os << rootmax << "\n";
 	os << every << "\n";
 	os << until << "\n";
 	os << numChains << "\n";
 	os << swapInterval << "\n";
-	os << deltaTemp << "\n";
-	os << sigmaTemp << "\n";
+	os << delta << "\n";
+	os << sigma << "\n";
 	os << saveall << "\n";
 	os << nexus << "\n";
-	os << correctionType << "\n";
 
 	os.close();
 }
 
 
 
-bool Biphy::run( void ) {
+void Biphy::init( void ) {
     
     /* First, we read in the data */
     // the matrix
 	RbSettings::userSettings().setPrintNodeIndex(false);
 
-	if(dolloMapping && dollo)
-		throw(RbException("Error: cannot simulate Dollo mappings under Dollo model"));
+	if(dolloMapping && modeltype == DOLLO)
+		throw(RbException("Error: simulation of Dollo incompatible mappings under Dollo model doesn't make sense"));
 
     std::vector<AbstractCharacterData*> data = NclReader::getInstance().readMatrices(dataFile);
     std::cout << "Read " << data.size() << " matrices." << std::endl;
@@ -240,48 +243,48 @@ bool Biphy::run( void ) {
     	std::cout << std::endl;
     }
     
-    if(heterogeneous){
+    if(modeltype > HOMOGENEOUS){
     	std::cout << "branch-wise constant time-heterogeneous model:\n";
-    	switch(heterogeneous){
-			case 2:
+    	switch(modeltype){
+			case DPP:
 				std::cout << "branch frequencies = pi(i) ~ DPP(G,cp)\n";
 				std::cout << "cp ~ Gamma(a,b)\n";
-				std::cout << "a,b ~ iid exponential of mean 1";
+				std::cout << "a,b ~ exponential of mean 1";
 				std::cout << "G = Beta(alpha,beta)\n";
 				break;
-			case 3:
+			case MIXTURE:
 				std::cout << "branch frequencies = pi(i) ~ mixture of " << mixture << " Beta(alpha,beta) distributions\n";
 				break;
 			default:
-				std::cout << "branch frequencies = pi(i) ~ iid Beta(alpha,beta)\n";
+				std::cout << "branch frequencies = pi(i) ~ Beta(alpha,beta)\n";
 				break;
     	}
-	}else if(dollo){
+	}else if(modeltype == DOLLO){
 		std::cout << "dollo model\n";
 	}else{
 		std::cout << "time-homogeneous model:\n";
 	}
-    if(heterogeneous){
-    	if(rigidroot)
-    		std::cout << "rigid ";
-    	if(rootprior){
+    if(modeltype > HOMOGENEOUS){
+    	if(rootprior != FREE){
+    		if(rootprior == RIGID)
+    			std::cout << "rigid ";
 			std::cout << "root frequency  = phi ~ Beta(alpha,beta) truncated on (" << rootmin << "," << rootmax << ")\n";
 		}else{
-			switch(heterogeneous){
-				case 2:
+			switch(modeltype){
+				case DPP:
 					std::cout << "root frequency = phi ~ DPP(G,cp)\n";
 					break;
-				case 3:
+				case MIXTURE:
 					std::cout << "root frequency = phi ~ mixture of " << mixture << " Beta(alpha,beta) distributions\n";
 					break;
 				default:
 					std::cout << "root frequency = phi ~ Beta(alpha,beta)\n";
 					break;
 			}
-			std::cout << "alpha, beta ~ iid exponential of mean 1\n";
+			std::cout << "alpha, beta ~ exponential of mean 1\n";
 		}
-	}else if(!dollo){
-		if(rootprior){
+	}else if(modeltype != DOLLO){
+		if(rootprior == TRUNCATED){
 			std::cout << "root frequency  = phi ~ Uniform(" << rootmin << "," << rootmax << ")\n";
 		}else{
 			std::cout << "root frequency  = phi ~ Uniform(0,1)\n";
@@ -298,31 +301,32 @@ bool Biphy::run( void ) {
     	std::cout << "tree length ~ exponential of mean 1\n";
     }
 
-    if(ras){
+    if(dgam > 1){
 		std::cout << "\n";
 
-		std::cout << "ras ~ gamma of mean 1 and variance 1/lambda^2\n";
+		std::cout << "rates ~ discrete gamma with " << dgam << " rate categories\n";
+		std::cout << "\tmean 1 and variance 1/lambda^2\n";
 		std::cout << "lambda ~ exponential of mean 1\n";
 	}
 
-    if(correctionType > 0){
+    if(correction != NONE){
     	std::cout << "\n";
     	std::cout << "correction for unobserved site-patterns:\n";
-    	if(correctionType == NO_UNINFORMATIVE){
+    	if(correction == NO_UNINFORMATIVE){
     		std::cout << "\tuninformative sites\n";
     	}else{
-    		if((correctionType & NO_CONSTANT_SITES) == NO_CONSTANT_SITES)
+    		if((correction & NO_CONSTANT_SITES) == NO_CONSTANT_SITES)
 				std::cout << "\tconstant sites\n";
-			else if(correctionType & NO_ABSENT_SITES)
+			else if(correction & NO_ABSENT_SITES)
 					std::cout << "\tconstant absence\n";
-			else if(correctionType & NO_PRESENT_SITES)
+			else if(correction & NO_PRESENT_SITES)
 					std::cout << "\tconstant presence\n";
 
-			if((correctionType & NO_SINGLETONS) == NO_SINGLETONS)
+			if((correction & NO_SINGLETONS) == NO_SINGLETONS)
 				std::cout << "\tsingletons\n";
-			else if(correctionType & NO_SINGLETON_GAINS)
+			else if(correction & NO_SINGLETON_GAINS)
 				std::cout << "\tsingleton gains\n";
-			else if(correctionType & NO_SINGLETON_LOSSES)
+			else if(correction & NO_SINGLETON_LOSSES)
 				std::cout << "\tsingleton losses\n";
     	}
     }
@@ -358,11 +362,11 @@ bool Biphy::run( void ) {
 
 	// base frequencies prior
 	TypedDagNode<double> *phi;
-	if(dollo){
+	if(modeltype == DOLLO){
 		phi = new DeterministicNode<double>("phi", new ConstantFunction<double>(zero));
 	}else{
-		if(rootprior){
-			if(heterogeneous){
+		if(rootprior == TRUNCATED){
+			if(modeltype > HOMOGENEOUS){
 				alpha = new StochasticNode<double>( "alpha", new ExponentialDistribution(one) );
 				beta = new StochasticNode<double>( "beta", new ExponentialDistribution(one) );
 				phi = new StochasticNode<double>( "phi", new TruncatedDistributionUnnormalized( new BetaDistribution( alpha, beta ), new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
@@ -370,7 +374,7 @@ bool Biphy::run( void ) {
 				phi = new StochasticNode<double>( "phi", new UniformDistribution( new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
 			}
 		}else{
-			if(heterogeneous){
+			if(modeltype > HOMOGENEOUS){
 				alpha = new StochasticNode<double>( "alpha", new ExponentialDistribution(one) );
 				beta = new StochasticNode<double>( "beta", new ExponentialDistribution(one) );
 				phi = new StochasticNode<double>( "phi", new BetaDistribution( alpha,beta ) );
@@ -402,13 +406,13 @@ bool Biphy::run( void ) {
     size_t left = root.getChild(0).getIndex();
     size_t right = root.getChild(1).getIndex();
     // branch frequency prior
-	if(heterogeneous == 1){
+	if(modeltype == HIERARCHICAL){
 		for (size_t i = 0 ; i < numBranches ; i++ ) {
 			std::ostringstream pi_name;
 			pi_name << "pi(" << setfill('0') << setw(w) << i << ")";
 			std::ostringstream q_name;
 			q_name << "q(" << setfill('0') << setw(w) << i << ")";
-			if((i == left || i == right) && rigidroot)
+			if((i == left || i == right) && rootprior == RIGID)
 				pi_stat.push_back(new DeterministicNode<double>(pi_name.str(), new ConstantFunction<double>(phi)));
 			else
 				pi_stat.push_back(new StochasticNode<double>( pi_name.str(), new BetaDistribution(alpha,beta) ) );
@@ -416,7 +420,7 @@ bool Biphy::run( void ) {
 		}
 		pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
 		qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new RbVectorFunction<RateMatrix>(qs) );
-	}else if(heterogeneous == 2){
+	}else if(modeltype == DPP){
 		// Setting up the hyper prior on the concentration parameter
 		// This hyperprior is fully conditional on the DPP using a gamma distribution
 		//    the parameters of the gamma distribution are set so that the expectation of the hyperprior = meanCP
@@ -429,15 +433,15 @@ bool Biphy::run( void ) {
 		TypedDistribution<double> *g = new BetaDistribution(alpha,beta);
 
 		// branchRates ~ DPP(g, cp, numBranches)
-		dpp_vector = new StochasticNode<std::vector<double> >("dpp_vector", new DirichletProcessPriorDistribution<double>(g, cp, numBranches + 1 - 2*rigidroot) );
+		dpp_vector = new StochasticNode<std::vector<double> >("dpp_vector", new DirichletProcessPriorDistribution<double>(g, cp, numBranches + 1 - 2*(rootprior == RIGID)) );
 		// a deterministic node for calculating the number of rate categories (required for the Gibbs move on cp)
 		numCats = new DeterministicNode<int>("dpp.k", new DppNumTablesStatistic<double>((StochasticNode<std::vector<double> >*)dpp_vector) );
 
 		delete phi;
-		ConstantNode<int> *idx = new ConstantNode<int>("idx", new int(numBranches + 1 - 2*rigidroot) );
+		ConstantNode<int> *idx = new ConstantNode<int>("idx", new int(numBranches + 1 - 2*(rootprior == RIGID)) );
 		phi = new DeterministicNode<double>("phi", new VectorIndexOperator<double>((StochasticNode<std::vector<double> >*)dpp_vector,idx));
 
-		if(rigidroot){
+		if(rootprior == RIGID){
 			size_t comp = 1;
 			std::vector<const TypedDagNode<double>* > tmp;
 			for(size_t i = 0; i < numBranches; i++){
@@ -459,7 +463,7 @@ bool Biphy::run( void ) {
 		}
 
 		qs_node = new DeterministicNode< RbVector< RateMatrix > >( "q_vector", new FreeBinaryRateMatrixVectorFunction(pi_vector,true) );
-	}else if(heterogeneous == 3){
+	}else if(modeltype == MIXTURE){
 		ConstantNode<std::vector<double> > *probs = new ConstantNode<std::vector<double> >("probs", new std::vector<double>(mixture,1.0) );
 		for(size_t i = 0; i < mixture; i++){
 			std::ostringstream pi_name;
@@ -474,7 +478,7 @@ bool Biphy::run( void ) {
 		for (unsigned int i = 0 ; i < numBranches ; i++ ) {
 			std::ostringstream q_name;
 			q_name << "q(" << setfill('0') << setw(w) << i << ")";
-			if((i == left || i == right) && rigidroot){
+			if((i == left || i == right) && rootprior == RIGID){
 				pi_stat.push_back(new StochasticNode<double>( q_name.str()+"_pi", new MixtureDistribution<double>(pi_mix,probs) ));
 			}else{
 				pi_stat.push_back(new DeterministicNode<double>( q_name.str()+"_pi", new ConstantFunction< double >( phi ) ));
@@ -503,7 +507,7 @@ bool Biphy::run( void ) {
 	std::vector< ContinuousStochasticNode *> branchRates_nonConst;
 
 	// branch length prior
-	if(branchprior == 0){
+	if(branchprior == EXPONENTIAL){
 		mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(ten) );
 		rec_mu = new DeterministicNode<double>( "rec_mu", new BinaryDivision<double,double,double>(one,mu));
 		for (size_t i = 0 ; i < numBranches ; i++ ) {
@@ -515,7 +519,7 @@ bool Biphy::run( void ) {
 			branchRates_nonConst.push_back( tmp_branch_rate );
 		}
 		br_vector = new DeterministicNode< std::vector< double > >( "br_vector", new VectorFunction< double >( branchRates ) );
-	}else if(branchprior == 1){
+	}else if(branchprior == DIRICHLET){
 		ConstantNode<std::vector<double> > *conc = new ConstantNode<std::vector<double> >("conc", new std::vector<double>(numBranches,1.0) );
 		tree_length = new StochasticNode<double>("length", new GammaDistribution(one,one));
 		br_times = new StochasticNode< std::vector< double > >( "br_times", new DirichletDistribution( conc));
@@ -527,12 +531,16 @@ bool Biphy::run( void ) {
     std::vector<const TypedDagNode<double>* > gamma_rates = std::vector<const TypedDagNode<double>* >();
     DeterministicNode<std::vector<double> > *site_rates;
     DeterministicNode<std::vector<double> > *site_rates_norm;
-    if(ras){
+    if(dgam > 1){
 		lambda = new ContinuousStochasticNode("lambda", new ExponentialDistribution(one) );
-		gamma_rates.push_back( new DeterministicNode<double>("q4_value", new QuantileFunction(new ConstantNode<double>("q1", new double(0.125) ), new GammaDistribution(lambda, lambda) ) ));
-		gamma_rates.push_back( new DeterministicNode<double>("q4_value", new QuantileFunction(new ConstantNode<double>("q2", new double(0.375) ), new GammaDistribution(lambda, lambda) ) ));
-		gamma_rates.push_back( new DeterministicNode<double>("q4_value", new QuantileFunction(new ConstantNode<double>("q3", new double(0.625) ), new GammaDistribution(lambda, lambda) ) ));
-		gamma_rates.push_back( new DeterministicNode<double>("q4_value", new QuantileFunction(new ConstantNode<double>("q4", new double(0.875) ), new GammaDistribution(lambda, lambda) ) ));
+		for(size_t cat = 0; cat < dgam; cat++){
+			std::stringstream name;
+			std::stringstream value_name;
+			name << "q";
+			name << cat+1;
+			value_name << name << "_value";
+			gamma_rates.push_back( new DeterministicNode<double>(value_name.str(), new QuantileFunction(new ConstantNode<double>(name.str(), new double((cat+1/2.0)/dgam) ), new GammaDistribution(lambda, lambda) ) ));
+		}
 		site_rates = new DeterministicNode<std::vector<double> >( "site_rates", new VectorFunction<double>(gamma_rates) );
 		site_rates_norm = new DeterministicNode<std::vector<double> >( "site_rates_norm", new NormalizeVectorFunction(site_rates) );
     }
@@ -542,16 +550,16 @@ bool Biphy::run( void ) {
 
     BinaryCharEvoModel<BranchLengthTree> *charModel;
     StochasticNode<double> *birthrate;
-    if(dollo){
-		charModel = new DolloBinaryCharEvoModel<BranchLengthTree>(psi, tau, true, data[0]->getNumberOfCharacters(), correctionType);
+    if(modeltype == DOLLO){
+		charModel = new DolloBinaryCharEvoModel<BranchLengthTree>(psi, tau, true, data[0]->getNumberOfCharacters(), correction);
 	}else{
-		charModel = new BinaryCharEvoModel<BranchLengthTree>(psi, true, data[0]->getNumberOfCharacters(), correctionType);
+		charModel = new BinaryCharEvoModel<BranchLengthTree>(psi, true, data[0]->getNumberOfCharacters(), correction);
     }
 
     std::vector<const TypedDagNode<double> *> rf_vec(2);
 	TypedDagNode<std::vector<double> > *rf;
 
-    if(dollo){
+    if(modeltype == DOLLO){
     	rf_vec[1] = one;
     	rf_vec[0] = zero;
     	rf = new DeterministicNode< std::vector< double > >( "rf", new VectorFunction< double >( rf_vec ) );
@@ -560,7 +568,7 @@ bool Biphy::run( void ) {
     	rf_vec[0] = new DeterministicNode<double>( "pi0", new BinarySubtraction<double,double,double>(one,phi));
     	rf = new DeterministicNode< std::vector< double > >( "rf", new VectorFunction< double >( rf_vec ) );
     }
-    if(heterogeneous){
+    if(modeltype > HOMOGENEOUS){
     	charModel->setRateMatrix( qs_node );
     	charModel->setRootFrequencies( rf );
 	}else{
@@ -568,7 +576,8 @@ bool Biphy::run( void ) {
 		charModel->setRootFrequencies( rf );
 	}
     charModel->setClockRate( one );
-	if(ras)
+
+	if(dgam > 1)
 		charModel->setSiteRates( site_rates_norm );
 
     StochasticNode< AbstractCharacterData > *charactermodel = new StochasticNode< AbstractCharacterData >("S", charModel );
@@ -582,81 +591,83 @@ bool Biphy::run( void ) {
 
 	//moves.push_back( new NearestNeighborInterchange( tau, 2.0 ) );
 	if(!treeFixed)
-		moves.push_back( new SubtreePruneRegraft( tau, 5.0, rigidroot) );
+		moves.push_back( new SubtreePruneRegraft( tau, 5.0, rootprior == RIGID) );
 
 	for (size_t i = 0 ; i < numBranches ; i ++ ) {
-		if(heterogeneous == 1){
-			if(!(i == left || i == right) || !rigidroot)
+		if(modeltype == HIERARCHICAL){
+			if(!(i == left || i == right) || !(rootprior == RIGID))
 				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 1.0, true, 2.0 ) );
-		}else if(heterogeneous == 3){
+		}else if(modeltype == MIXTURE){
 			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 2.0 ) );
 		}
-		if(branchprior == 0)
-			moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0/(1.0+ 4.0*dollo), true, 1.0 ) );
+		if(branchprior == EXPONENTIAL)
+			moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0/(1.0+ 4.0*(modeltype == DOLLO)), true, 1.0 ) );
 	}
 
-	if(branchprior == 0){
+	if(branchprior == EXPONENTIAL){
 		tree_length = new DeterministicNode<double >("length", new TreeLengthStatistic<BranchLengthTree>(psi) );
-	}else if(branchprior == 1){
-		moves.push_back(new ScaleMove((StochasticNode<double>*)tree_length, 1.0/(1.0 + 4.0*dollo), true, 1.0));
-		moves.push_back(new SimplexSingleElementScale(br_times, 2.0 + 10.0*dollo, true, (int)numBranches/3));
+	}else if(branchprior == DIRICHLET){
+		moves.push_back(new ScaleMove((StochasticNode<double>*)tree_length, 1.0/(1.0 + 4.0*(modeltype == DOLLO)), true, 1.0));
+		moves.push_back(new SimplexSingleElementScale(br_times, 2.0 + 10.0*(modeltype == DOLLO), true, (int)numBranches/3));
 	}
 	monitoredNodes.push_back( tree_length );
 
-	if(heterogeneous == 3){
-		moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 2.0 ) );
-	}else if(heterogeneous != 2 && !dollo){
-		moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1.0, true, 5.0 ) );
+	if(modeltype > DOLLO && modeltype < DPP){
+		if(modeltype < MIXTURE){
+			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1.0, true, 5.0 ) );
+		}else{
+			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 2.0 ) );
+		}
 	}
-	if(!dollo)
+	if(modeltype != DOLLO)
 		monitoredNodes.push_back( phi );
 
 	DeterministicNode<double>* meanpi;
-	if(heterogeneous){
+	if(modeltype > HOMOGENEOUS){
 		meanpi = new DeterministicNode<double >( "mean_pi", new MeanFunction(pi_vector) );
 		monitoredNodes.push_back( meanpi );
 	}
 
-	if(branchprior==0){
+	if(branchprior == EXPONENTIAL){
 		moves.push_back( new ScaleMove(mu, 1.0, true, 1.0) );
 		monitoredNodes.push_back( mu );
 	}
 
-	if(ras){
+	if(dgam > 1){
 		moves.push_back( new ScaleMove(lambda, 1.0, true, 1.0) );
 		monitoredNodes.push_back( lambda );
 		//monitoredNodes.push_back(site_rates_norm);
 	}
 
-	if(heterogeneous){
+	if(modeltype > HOMOGENEOUS){
 		moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
 		monitoredNodes.push_back( alpha );
 
 		moves.push_back( new ScaleMove(beta, 1.0, true, 1.0) );
 		monitoredNodes.push_back( beta );
-	}
 
-	if(heterogeneous == 2){
-		monitoredNodes.push_back(numCats);
-		monitoredNodes.push_back(cp);
+		if(modeltype == DPP){
+			monitoredNodes.push_back(numCats);
+			monitoredNodes.push_back(cp);
 
-		moves.push_back( new ScaleMove(dpA, 1.0, true, 1.0) );
-		monitoredNodes.push_back(dpA);
+			moves.push_back( new ScaleMove(dpA, 1.0, true, 1.0) );
+			monitoredNodes.push_back(dpA);
 
-		moves.push_back( new ScaleMove(dpB, 1.0, true, 1.0) );
-		monitoredNodes.push_back(dpB);
+			moves.push_back( new ScaleMove(dpB, 1.0, true, 1.0) );
+			monitoredNodes.push_back(dpB);
 
-		moves.push_back( new DPPBetaSimplexMove( (StochasticNode<std::vector<double> >*)dpp_vector, 1.0 , 1.0 ) );
-		moves.push_back( new DPPAllocateAuxGibbsMove<double>( (StochasticNode<std::vector<double> >*)dpp_vector, 4, 2.0 ) );
-		moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, numBranches + 1, 2.0 ) );
-	}else if(heterogeneous == 3){
-		std::vector<Move*> mixmoves;
-		for (size_t i = 0 ; i < mixture; i ++ ) {
-			//mixmoves.push_back( new ScaleMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
-			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
-			monitoredNodes.push_back((StochasticNode<double>*)pi_cats[i]);
+			moves.push_back( new DPPBetaSimplexMove( (StochasticNode<std::vector<double> >*)dpp_vector, 1.0 , 1.0 ) );
+			moves.push_back( new DPPAllocateAuxGibbsMove<double>( (StochasticNode<std::vector<double> >*)dpp_vector, 4, 2.0 ) );
+			moves.push_back( new DPPGibbsConcentrationMove<double>( cp, numCats, dpA, dpB, numBranches + 1, 2.0 ) );
+		}else if(modeltype == mixture){
+			std::vector<Move*> mixmoves;
+			for (size_t i = 0 ; i < mixture; i ++ ) {
+				//mixmoves.push_back( new ScaleMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
+				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
+				monitoredNodes.push_back((StochasticNode<double>*)pi_cats[i]);
+			}
+			//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
 		}
-		//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
 	}
 
 	Model myModel = Model(charactermodel);
@@ -677,7 +688,7 @@ bool Biphy::run( void ) {
 			monitors.push_back( new NewickTreeMonitor( psi, every, name+".treelist", useParallelMcmcmc || restart) );
 			if(nexus){
 				std::set<TypedDagNode<std::vector<double> > *> piset;
-				if(heterogeneous)
+				if(modeltype > HOMOGENEOUS)
 					piset.insert(pi_vector);
 				monitors.push_back( new NexusTreeMonitor( psi, piset, every, name+".treelist.nex", useParallelMcmcmc || restart) );
 				//monitors.push_back( new ExtendedNewickTreeMonitor( tau, piset, every, name+".treelist", "\t", false, false, false, useParallelMcmcmc) );
@@ -685,27 +696,25 @@ bool Biphy::run( void ) {
 		}
 	}
 
-	std::string basename = "";
-	if(saveall || readstream)
-		basename = name+".chain";
-
 	double startingHeat = 1.0;
-	ParallelMcmcmc myPmc3(myModel, moves, monitors, "random", numChains, numChains, swapInterval, deltaTemp, sigmaTemp, startingHeat,basename,every);
+	mcmc = new ParallelMcmcmc(myModel, moves, monitors, name+".stream", "random", every, numChains, numChains, swapInterval, delta, sigma, startingHeat, saveall);
+}
 
-	if(restart){
-		myPmc3.lastCycle();
-		std::cerr << "skipped " << myPmc3.getCurrentGeneration() << " generations\n";
-	}
-
+void Biphy::run( void ) {
 	if(readstream){
+		if(!saveall){
+			std::cerr << "Error: "+name+".stream does not contain complete output. run again with -s option\n\n";
+			exit(1);
+		}
 		std::cout << "reading from stream\n";
-		myPmc3.readStream(until,!restart);
+		mcmc->readStream(until);
 	}else{
+		if(restart)
+			mcmc->restore();
+
 		std::cout << "running\n";
-		myPmc3.run(until);
+		mcmc->run(until);
 	}
 
 	std::cout << "done\n";
-
-    return true;
 }
