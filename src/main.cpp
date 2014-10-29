@@ -282,52 +282,52 @@ int main (int argc, const char * argv[])
 	catch(...)	{
 		cerr << "biphy version 1.0\n";
 		cerr << '\n';
-		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n\n";
+		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n";
 
-		cerr << "Model options:\n";
+		cerr << "\nModel options:\n";
 		cerr << "\t-dollo\t\tdollo model\n";
 		cerr << "\t-h\t\ttime-homogeneous binary substitution model (default)\n";
 		cerr << "\t-nh\t\ttime-heterogeneous hierarchical beta model\n";
 		cerr << "\t-m <int>\ttime-heterogeneous mixture model with <int> components\n";
-		cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n\n";
+		cerr << "\t-dpp\t\tdirichlet process prior on branch frequencies\n";
 
-		cerr << "Branch length prior:\n";
+		cerr << "\nBranch length prior:\n";
 		cerr << "\t-lexp\t\thierarchical exponential prior (default)\n";
-		cerr << "\t-ldir\t\tcompound dirichlet branch length prior\n\n";
+		cerr << "\t-ldir\t\tcompound dirichlet branch length prior\n";
 
-		cerr << "Rates across sites prior:\n";
+		cerr << "\nRates across sites prior:\n";
 		cerr << "\t-dgam <int>\tdiscrete gamma model with <int> categories (default: 4)\n";
-		cerr << "\t\t\t0 or 1 specifies constant rates model\n\n";
+		cerr << "\t\t\t0 or 1 = constant rates model\n";
 
-		cerr << "Corrections for unobserved site patterns:\n";
+		cerr << "\nCorrections for unobserved site patterns:\n";
 		cerr << "\t-absent <int>\twhere <int> is one of:\n";
-		cerr << "\t\t0:\tno site patterns have been omitted\n";
-		cerr << "\t\t1:\tconstant absence sites have been removed (default)\n";
-		cerr << "\t\t2:\tconstant presence sites have been removed\n";
-		cerr << "\t\t4:\tsingleton gains have been removed\n";
-		cerr << "\t\t8:\tsingleton losses have been removed\n\n";
+		cerr << "\t\t0 = no site patterns have been omitted\n";
+		cerr << "\t\t1 = constant absence sites have been removed (default)\n";
+		cerr << "\t\t2 = constant presence sites have been removed\n";
+		cerr << "\t\t4 = singleton gains have been removed\n";
+		cerr << "\t\t8 = singleton losses have been removed\n";
 
 		cerr << "\tcombinations are achieved by adding the above values\n";
 		cerr << "\te.g.  3 = constant sites have been removed\n";
-		cerr << "\t     15 = uninformative sites have been removed\n\n";
+		cerr << "\t     15 = uninformative sites have been removed\n";
 
-		cerr << "Optional constraints:\n";
+		cerr << "\nOptional constraints:\n";
 		cerr << "\t-t <file>\tfixed tree filename\n";
 		cerr << "\t-o <file>\toutgroup clade file\n";
 		cerr << "\t-rp <min> <max>\ttruncate root frequency prior (-nh or -h only)\n";
-		cerr << "\t-rr\t\trigid root frequency (heterogeneous models only)\n\n";
+		cerr << "\t-rr\t\trigid root frequency (heterogeneous models only)\n";
 
-		cerr << "MCMCMC options:\n";
+		cerr << "\nMCMCMC options:\n";
 		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
+		cerr << "\t-si <int>\tchain swap interval (default = 1)\n";
 		cerr << "\t-delta <float>\t(default = 0.1)\n";
 		cerr << "\t-sigma <float>\t(default = 1)\n";
-		cerr << "\t-si <int>\tchain swap interval(default = 1)\n\n";
 
-		cerr << "Output options:\n";
+		cerr << "\nOutput options:\n";
 		cerr << "\t-s\t\tsave entire output (default: disabled)\n";
-		cerr << "\t-e\t\tsave nexus treefile output (default: disabled)\n\n";
+		cerr << "\t-e\t\tsave nexus treefile (default: disabled)\n";
 
-		cerr << "Model-checking options:\n";
+		cerr << "\nModel-checking options:\n";
 		cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
 		cerr << "\t-cv <file>\tcross-validation test alignment\n";
 		exit(1);
