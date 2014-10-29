@@ -312,8 +312,8 @@ int main (int argc, const char * argv[])
 		cerr << "\nOptional constraints:\n";
 		cerr << "\t-t <file>\tfixed tree filename\n";
 		cerr << "\t-o <file>\toutgroup clade file\n";
+		cerr << "\t-rfree\t\tfree root frequency for heterogeneous models (warning: non-identifiable)\n";
 		cerr << "\t-rtrunc <min> <max>\ttruncate root frequency prior on (min,max) (-nh or -h only)\n";
-		cerr << "\t-rfree\tfree root frequency for heterogeneous models (warning: non-identifiable)\n";
 
 		cerr << "\nMCMCMC options:\n";
 		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
