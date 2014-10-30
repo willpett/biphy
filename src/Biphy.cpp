@@ -316,7 +316,7 @@ void Biphy::init( void ) {
 
     if(correction != NONE){
     	std::cout << "\n";
-    	std::cout << "correction for unobserved site-patterns:\n";
+    	std::cout << "correction for unobservable site-patterns:\n";
     	if(correction == NO_UNINFORMATIVE){
     		std::cout << "\tuninformative sites\n";
     	}else{

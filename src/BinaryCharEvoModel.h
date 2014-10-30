@@ -165,6 +165,8 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 
     std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
+    // DON'T sample the rate categories unconditional of the unobservable site-patterns
+    /*
     std::vector<size_t> perSiteRates;
 	for ( size_t i = 0; i < this->numSites; ++i )
 	{
@@ -173,10 +175,13 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 		size_t rateIndex = (int)(u*this->numSiteRates);
 		perSiteRates.push_back( rateIndex );
 	}
-
+	*/
     for ( size_t i = 0; i < this->numSites; i++ )
     {
-        size_t rateIndex = perSiteRates[i];
+    	//size_t rateIndex = perSiteRates[i];
+
+        // DO sample the rate category conditional on the unobservable site-pattern
+        size_t rateIndex = (int)(rng->uniform01()*this->numSiteRates);
 
         std::vector<StandardState> siteData(numNodes, StandardState());
 

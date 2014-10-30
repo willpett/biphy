@@ -34,7 +34,7 @@ int main (int argc, const char * argv[])
 
 	int numChains = 1;
 	int swapInterval = 1;
-	double delta = 0.1;
+	double delta = 0.05;
 	double sigma = 1;
 
 	bool saveall = false;
@@ -297,7 +297,7 @@ int main (int argc, const char * argv[])
 		cerr << "\t-dgam <int>\tdiscrete gamma model with <int> categories (default: 4)\n";
 		cerr << "\t\t\t0 or 1 = constant rates model\n";
 
-		cerr << "\nCorrections for unobserved site patterns:\n";
+		cerr << "\nCorrections for unobservable site patterns:\n";
 		cerr << "\t-absent <int>\twhere <int> is one of:\n";
 		cerr << "\t\t0 = no site patterns have been omitted\n";
 		cerr << "\t\t1 = constant absence sites have been removed (default)\n";
