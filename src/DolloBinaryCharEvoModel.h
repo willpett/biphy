@@ -571,9 +571,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
     	double u = rng->uniform01();
     	double total = 0;
     	size_t birthNode = 0;
-    	//while(total < u*omega){
-    	//	total += totalmass[birthNode++];
-    	//}
+    	while(total < u*omega){
+    		total += totalmass[birthNode++];
+    	}
     	birthNode--;
 
         // draw the state
