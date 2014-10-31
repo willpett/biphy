@@ -553,19 +553,14 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
     this->value = new DiscreteCharacterData<StandardState>();
 
     size_t numTips = this->tau->getValue().getNumberOfTips();
+    size_t numNodes = this->tau->getValue().getNumberOfNodes();
 
-    for (size_t t = 0; t < numTips; ++t)
-	{
-		DiscreteTaxonData<StandardState> data;
-		data.setTaxonName( this->tau->getValue().getNode(t).getName() );
-		this->value->addTaxonData(data);
-	}
+    std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
     // first, simulate a birth for each character
     // by sampling a node in proportion to its totalmass
     RandomNumberGenerator* rng = GLOBAL_RNG;
 
-    size_t cap = 0;
     for ( size_t i = 0; i < this->numSites; ++i )
     {
     	double u = rng->uniform01();
@@ -580,10 +575,10 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
         u = rng->uniform01();
         size_t rateIndex = (int)(u*this->numSiteRates);
 
-        std::vector<StandardState> taxa(this->tau->getValue().getNumberOfNodes(), StandardState());
+        std::vector<StandardState> siteData(numNodes, StandardState());
 
 		// recursively simulate the sequences
-		size_t numLeaves = simulate( this->tau->getValue().getRoot(), taxa, birthNode, rateIndex );
+		size_t numLeaves = simulate( this->tau->getValue().getRoot(), siteData, birthNode, rateIndex );
 
 		if((this->type & NO_ABSENT_SITES) && numLeaves == 0){
 			i--;
@@ -602,11 +597,16 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 		// add the taxon data to the character data
 		for (size_t t = 0; t < this->tau->getValue().getNumberOfTips(); ++t)
 		{
-			this->value->getTaxonData(t).addCharacter(taxa[t]);
+			taxa[t].addCharacter(siteData[this->tau->getValue().getNode(t).getIndex()]);
 		}
     }
 
-    std::cerr << (double)cap/this->numSites << std::endl;
+    // add the taxon data to the character data
+	for (size_t i = 0; i < this->tau->getValue().getNumberOfTips(); ++i)
+	{
+		taxa[i].setTaxonName(this->tau->getValue().getNode(i).getName());
+		this->value->addTaxonData( taxa[i] );
+	}
 
     // compress the data and initialize internal variables
     this->compress();
