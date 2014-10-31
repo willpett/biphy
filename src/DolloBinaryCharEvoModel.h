@@ -506,13 +506,12 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestral( void ) {
 template<class treeType>
 bool RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestralMap(const TopologyNode& node, size_t site) {
 	if(node.isTip()){
-			AbstractTaxonData& taxon = this->getValue().getTaxonData( node.getName() );
-			std::string c = taxon.getCharacter(site).getStringValue();
-			if(c == "1"){
-				ancestralMap[node.getIndex()] = true;
-			}else{
-				ancestralMap[node.getIndex()] = false;
-			}
+		unsigned long c = this->charMatrix[node.getName()][site];
+		if(c == 1){
+			ancestralMap[node.getIndex()] = true;
+		}else{
+			ancestralMap[node.getIndex()] = false;
+		}
 	}else{
 		bool pleft = computeAncestralMap(node.getChild(0),site);
 		bool pright = computeAncestralMap(node.getChild(1),site);

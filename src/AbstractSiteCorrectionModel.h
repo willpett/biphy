@@ -71,6 +71,8 @@ namespace RevBayesCore {
 
         size_t																numCorrectionSites;
 
+        std::vector<double>													per_mixtureCorrections;
+
     private:
         
         
@@ -167,7 +169,8 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
 
     // create a vector for the per mixture likelihoods
     // we need this vector to sum over the different mixture likelihoods
-    std::vector<double> per_mixture_Likelihoods = std::vector<double>(numCorrectionSites,0.0);
+   per_mixtureCorrections.clear();
+   per_mixtureCorrections.resize(this->numSiteRates);
 
     // get pointers the likelihood for both subtrees
     std::vector<double>::const_iterator   p_mixture_left     = p_left;
@@ -199,7 +202,7 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
                 ++p_site_left_j; ++p_site_right_j;
             }
             // add the likelihood for this mixture category
-            per_mixture_Likelihoods[site] += tmp;
+            per_mixtureCorrections[mixture] += tmp;
 
             // increment the pointers to the next site
             p_site_mixture_left+=this->siteOffset; p_site_mixture_right+=this->siteOffset;
@@ -212,9 +215,9 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
     } // end-for over all mixtures (=rate categories)
 
     // sum the log-likelihoods for all sites together
-    for (size_t site = 0; site < this->numCorrectionSites; ++site)
+    for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
     {
-        lnCorrection += per_mixture_Likelihoods[site];
+        lnCorrection += per_mixtureCorrections[mixture];
     }
     // normalize the log-probability
     lnCorrection /= this->numSiteRates;

@@ -147,6 +147,8 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::setCorrectionPatterns(){
 template<class treeType>
 void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 
+	//this->computeLnProbability();
+
     // delete the old value first
     delete this->value;
 
@@ -165,23 +167,33 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 
     std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
-    // DON'T sample the rate categories unconditional of the unobservable site-patterns
-    /*
+    // sample the rate categories conditioned the likelihood of the unobservable site-patterns
+
     std::vector<size_t> perSiteRates;
-	for ( size_t i = 0; i < this->numSites; ++i )
+	double total = 0.0;
+	for ( size_t i = 0; i < this->numSiteRates; ++i ){
+		total += 1 - this->per_mixtureCorrections[i];
+	}
+
+    for ( size_t i = 0; i < this->numSites; ++i )
 	{
 		// draw the state
-		double u = rng->uniform01();
-		size_t rateIndex = (int)(u*this->numSiteRates);
+		double u = rng->uniform01()*total;
+		size_t rateIndex = 0;
+
+		double tmp = 0.0;
+		while(tmp < u){
+			tmp += 1 - this->per_mixtureCorrections[rateIndex];
+			if(tmp < u)
+				rateIndex++;
+		}
 		perSiteRates.push_back( rateIndex );
 	}
-	*/
+
+    // then sample the site-pattern, rejecting those that match the unobservable ones
     for ( size_t i = 0; i < this->numSites; i++ )
     {
-    	//size_t rateIndex = perSiteRates[i];
-
-        // DO sample the rate category conditional on the unobservable site-pattern
-        size_t rateIndex = (int)(rng->uniform01()*this->numSiteRates);
+    	size_t rateIndex = perSiteRates[i];
 
         std::vector<StandardState> siteData(numNodes, StandardState());
 
