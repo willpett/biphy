@@ -22,7 +22,7 @@ int main (int argc, const char * argv[])
 
 	int dgam = 4;
 
-	Biphy::RootPrior rootprior = Biphy::RIGID;
+	Biphy::RootPrior rootprior = Biphy::FREE;
 	double rootmin = 0.0;
 	double rootmax = 1.0;
 
@@ -95,8 +95,8 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					dgam = atoi(argv[i]);
-				}else if (s == "-rfree"){
-					rootprior = Biphy::FREE;
+				}else if (s == "-rigid"){
+					rootprior = Biphy::RIGID;
 				}
 				else if (s == "-nh")	{
 					modeltype = Biphy::HIERARCHICAL;
@@ -262,7 +262,7 @@ int main (int argc, const char * argv[])
 			}
 
 			if(name == ""){
-				cerr << "error: could determine run name\n\n";
+				cerr << "error: could not determine run name\n\n";
 				exit(1);
 			}
 
@@ -275,6 +275,9 @@ int main (int argc, const char * argv[])
 			}
 			if(rootprior == Biphy::RIGID && (modeltype < Biphy::HIERARCHICAL))
 				rootprior = Biphy::FREE;
+
+			if(modeltype == Biphy::DOLLO)
+				correction = (RevBayesCore::CorrectionType)(correction | RevBayesCore::NO_ABSENT_SITES);
 		}
 	}
 	catch(...)	{
@@ -283,7 +286,7 @@ int main (int argc, const char * argv[])
 		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n";
 
 		cerr << "\nBranch frequency prior:\n";
-		cerr << "\t-dollo\t\tstochastic dollo model\n";
+		cerr << "\t-dollo\t\tstochastic dollo model (enables -absent 1)\n";
 		cerr << "\t-h\t\ttime-homogeneous beta model (default)\n";
 		cerr << "\t-nh\t\thierarchical beta model\n";
 		cerr << "\t-m <int>\tmixture with <int> beta components\n";
@@ -299,8 +302,8 @@ int main (int argc, const char * argv[])
 
 		cerr << "\nCorrections for unobservable site patterns:\n";
 		cerr << "\t-absent <int>\twhere <int> is one of:\n";
-		cerr << "\t\t0 = no site patterns have been omitted\n";
-		cerr << "\t\t1 = constant absence sites have been removed (default)\n";
+		cerr << "\t\t0 = no site patterns have been omitted (default)\n";
+		cerr << "\t\t1 = constant absence sites have been removed\n";
 		cerr << "\t\t2 = constant presence sites have been removed\n";
 		cerr << "\t\t4 = singleton gains have been removed\n";
 		cerr << "\t\t8 = singleton losses have been removed\n";
@@ -312,7 +315,7 @@ int main (int argc, const char * argv[])
 		cerr << "\nOptional constraints:\n";
 		cerr << "\t-t <file>\tfixed tree filename\n";
 		cerr << "\t-o <file>\toutgroup clade file\n";
-		cerr << "\t-rfree\t\tfree root frequency for heterogeneous models (warning: non-identifiable)\n";
+		cerr << "\t-rigid\t\rigid root frequency for heterogeneous models\n";
 		cerr << "\t-rtrunc <min> <max>\ttruncate root frequency prior on (min,max) (-nh or -h only)\n";
 
 		cerr << "\nMCMCMC options:\n";

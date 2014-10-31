@@ -268,8 +268,8 @@ void Biphy::init( void ) {
     std::cout << "\n";
 
     if(modeltype != DOLLO){
-		if(rootprior == FREE && modeltype > HOMOGENEOUS)
-			std::cout << "free ";
+		if(rootprior == RIGID)
+			std::cout << "rigid ";
 		std::cout << "root frequency:\n";
 		if(modeltype > HOMOGENEOUS){
 			switch(modeltype){
