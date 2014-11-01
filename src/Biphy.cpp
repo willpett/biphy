@@ -250,13 +250,13 @@ void Biphy::init( void ) {
 				std::cout << "pi(i) ~ DPP(G,cp)\n";
 				std::cout << "cp ~ Gamma(1,1)\n";
 				//std::cout << "a = b = 1~ exponential of mean 1\n";
-				std::cout << "G = Beta(alpha,beta)\n";
+				std::cout << "G = Beta(beta1,beta2)\n";
 				break;
 			case MIXTURE:
-				std::cout << "pi(i) ~ Beta(alpha,beta) mixture with " << mixture << " components\n";
+				std::cout << "pi(i) ~ Beta(beta1,beta2) mixture with " << mixture << " components\n";
 				break;
 			default:
-				std::cout << "pi(i) ~ Beta(alpha,beta)\n";
+				std::cout << "pi(i) ~ Beta(beta1,beta2)\n";
 				break;
     	}
 	}else if(modeltype == DOLLO){
@@ -277,16 +277,16 @@ void Biphy::init( void ) {
 					std::cout << "phi ~ DPP(G,cp)\n";
 					break;
 				case MIXTURE:
-					std::cout << "phi ~ Beta(alpha,beta) mixture with " << mixture << " components\n";
+					std::cout << "phi ~ Beta(beta1,beta2) mixture with " << mixture << " components\n";
 					break;
 				default:
 					if(rootprior == TRUNCATED)
-						std::cout << "phi ~ Beta(alpha,beta) truncated on (" << rootmin << "," << rootmax << ")\n";
+						std::cout << "phi ~ Beta(beta1,beta2) truncated on (" << rootmin << "," << rootmax << ")\n";
 					else
-						std::cout << "phi ~ Beta(alpha,beta)\n";
+						std::cout << "phi ~ Beta(beta1,beta2)\n";
 					break;
 			}
-			std::cout << "\nalpha, beta ~ exponential of mean 1\n";
+			std::cout << "\nbeta1, beta2 ~ exponential of mean 1\n";
 		}else if(modeltype != DOLLO){
 			if(rootprior == TRUNCATED){
 				std::cout << "phi ~ Uniform(" << rootmin << "," << rootmax << ")\n";
@@ -310,8 +310,8 @@ void Biphy::init( void ) {
 		std::cout << "\n";
 
 		std::cout << "rates ~ discrete gamma with " << dgam << " rate categories\n";
-		std::cout << "\tmean 1 and variance 1/lambda^2\n";
-		std::cout << "lambda ~ exponential of mean 1\n";
+		std::cout << "\tmean 1 and variance 1/alpha^2\n";
+		std::cout << "alpha ~ exponential of mean 1\n";
 	}
 
     if(correction != NONE){
@@ -365,8 +365,8 @@ void Biphy::init( void ) {
     }
 
     // base frequencies hyperprior
-	StochasticNode<double> *alpha;
-	StochasticNode<double> *beta;
+	StochasticNode<double> *beta1;
+	StochasticNode<double> *beta2;
 
 	// base frequencies prior
 	TypedDagNode<double> *phi;
@@ -375,17 +375,17 @@ void Biphy::init( void ) {
 	}else{
 		if(rootprior == TRUNCATED){
 			if(modeltype > HOMOGENEOUS){
-				alpha = new StochasticNode<double>( "alpha", new ExponentialDistribution(one) );
-				beta = new StochasticNode<double>( "beta", new ExponentialDistribution(one) );
-				phi = new StochasticNode<double>( "phi", new TruncatedDistributionUnnormalized( new BetaDistribution( alpha, beta ), new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
+				beta1 = new StochasticNode<double>( "beta1", new ExponentialDistribution(one) );
+				beta2 = new StochasticNode<double>( "beta2", new ExponentialDistribution(one) );
+				phi = new StochasticNode<double>( "phi", new TruncatedDistributionUnnormalized( new BetaDistribution( beta1, beta2 ), new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
 			}else{
 				phi = new StochasticNode<double>( "phi", new UniformDistribution( new ConstantNode<double>("rootmin", new double(rootmin) ), new ConstantNode<double>("rootmax", new double(rootmax) ) ) );
 			}
 		}else{
 			if(modeltype > HOMOGENEOUS){
-				alpha = new StochasticNode<double>( "alpha", new ExponentialDistribution(one) );
-				beta = new StochasticNode<double>( "beta", new ExponentialDistribution(one) );
-				phi = new StochasticNode<double>( "phi", new BetaDistribution( alpha,beta ) );
+				beta1 = new StochasticNode<double>( "beta1", new ExponentialDistribution(one) );
+				beta2 = new StochasticNode<double>( "beta2", new ExponentialDistribution(one) );
+				phi = new StochasticNode<double>( "phi", new BetaDistribution( beta1,beta2 ) );
 			}else{
 				phi = new StochasticNode<double>( "phi", new BetaDistribution( one,one ) );
 			}
@@ -424,7 +424,7 @@ void Biphy::init( void ) {
 			if((i == left || i == right) && rootprior == RIGID)
 				pi_stat.push_back(new DeterministicNode<double>(pi_name.str(), new ConstantFunction<double>(phi)));
 			else
-				pi_stat.push_back(new StochasticNode<double>( pi_name.str(), new BetaDistribution(alpha,beta) ) );
+				pi_stat.push_back(new StochasticNode<double>( pi_name.str(), new BetaDistribution(beta1,beta2) ) );
 			qs.push_back(new DeterministicNode<RateMatrix>( q_name.str(), new FreeBinaryRateMatrixFunction(pi_stat[i]) ));
 		}
 		pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
@@ -440,7 +440,7 @@ void Biphy::init( void ) {
 		cp = new StochasticNode<double>("dpp.cp", new GammaDistribution(dpA, dpB) );
 
 		// G_0 is an Beta distribution
-		TypedDistribution<double> *g = new BetaDistribution(alpha,beta);
+		TypedDistribution<double> *g = new BetaDistribution(beta1,beta2);
 
 		// branchRates ~ DPP(g, cp, numBranches)
 		dpp_vector = new StochasticNode<std::vector<double> >("dpp_vector", new DirichletProcessPriorDistribution<double>(g, cp, numBranches + 1 - 2*(rootprior == RIGID)) );
@@ -478,7 +478,7 @@ void Biphy::init( void ) {
 		for(size_t i = 0; i < mixture; i++){
 			std::ostringstream pi_name;
 			pi_name << "pi(" << setfill('0') << setw(w) << i << ")";
-			pi_cats.push_back(new StochasticNode<double >( pi_name.str(), new BetaDistribution(alpha,beta) ) );
+			pi_cats.push_back(new StochasticNode<double >( pi_name.str(), new BetaDistribution(beta1,beta2) ) );
 		}
 		pi_mix = new DeterministicNode< std::vector< double > >( "pi_mix", new VectorFunction< double >( pi_cats ) );
 
@@ -509,7 +509,6 @@ void Biphy::init( void ) {
 	TypedDagNode< std::vector< double > >* br_vector;
 
 	StochasticNode< std::vector< double > >* br_times;
-	DeterministicNode<double>* tree_length_alpha;
 	TypedDagNode<double>* tree_length;
 
 	// declaring a vector of clock rates
@@ -537,19 +536,19 @@ void Biphy::init( void ) {
 	}
 
 	// RAS prior
-    ContinuousStochasticNode *lambda;
+    ContinuousStochasticNode *alpha;
     std::vector<const TypedDagNode<double>* > gamma_rates = std::vector<const TypedDagNode<double>* >();
     DeterministicNode<std::vector<double> > *site_rates;
     DeterministicNode<std::vector<double> > *site_rates_norm;
     if(dgam > 1){
-		lambda = new ContinuousStochasticNode("lambda", new ExponentialDistribution(one) );
+		alpha = new ContinuousStochasticNode("alpha", new ExponentialDistribution(one) );
 		for(size_t cat = 0; cat < dgam; cat++){
 			std::stringstream name;
 			std::stringstream value_name;
 			name << "q";
 			name << cat+1;
 			value_name << name << "_value";
-			gamma_rates.push_back( new DeterministicNode<double>(value_name.str(), new QuantileFunction(new ConstantNode<double>(name.str(), new double((cat+1/2.0)/dgam) ), new GammaDistribution(lambda, lambda) ) ));
+			gamma_rates.push_back( new DeterministicNode<double>(value_name.str(), new QuantileFunction(new ConstantNode<double>(name.str(), new double((cat+1/2.0)/dgam) ), new GammaDistribution(alpha, alpha) ) ));
 		}
 		site_rates = new DeterministicNode<std::vector<double> >( "site_rates", new VectorFunction<double>(gamma_rates) );
 		site_rates_norm = new DeterministicNode<std::vector<double> >( "site_rates_norm", new NormalizeVectorFunction(site_rates) );
@@ -644,17 +643,17 @@ void Biphy::init( void ) {
 	}
 
 	if(dgam > 1){
-		moves.push_back( new ScaleMove(lambda, 1.0, true, 1.0) );
-		monitoredNodes.push_back( lambda );
+		moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
+		monitoredNodes.push_back( alpha );
 		//monitoredNodes.push_back(site_rates_norm);
 	}
 
 	if(modeltype > HOMOGENEOUS){
-		moves.push_back( new ScaleMove(alpha, 1.0, true, 1.0) );
-		monitoredNodes.push_back( alpha );
+		moves.push_back( new ScaleMove(beta1, 1.0, true, 1.0) );
+		monitoredNodes.push_back( beta1 );
 
-		moves.push_back( new ScaleMove(beta, 1.0, true, 1.0) );
-		monitoredNodes.push_back( beta );
+		moves.push_back( new ScaleMove(beta2, 1.0, true, 1.0) );
+		monitoredNodes.push_back( beta2 );
 
 		if(modeltype == DPP){
 			monitoredNodes.push_back(numCats);
