@@ -610,14 +610,14 @@ void Biphy::init( void ) {
 				moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 2.0 ) );
 			}
 		if(branchprior == EXPONENTIAL)
-			moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0/(1.0+ 4.0*(modeltype == DOLLO)), true, 1.0 ) );
+			moves.push_back( new ScaleMove(branchRates_nonConst[i], 1.0, true, 1.0 ) );
 	}
 
 	if(branchprior == EXPONENTIAL){
 		tree_length = new DeterministicNode<double >("length", new TreeLengthStatistic<BranchLengthTree>(psi) );
 	}else if(branchprior == DIRICHLET){
-		moves.push_back(new ScaleMove((StochasticNode<double>*)tree_length, 1.0/(1.0 + 4.0*(modeltype == DOLLO)), true, 1.0));
-		moves.push_back(new SimplexSingleElementScale(br_times, 2.0 + 10.0*(modeltype == DOLLO), true, (int)numBranches/3));
+		moves.push_back(new ScaleMove((StochasticNode<double>*)tree_length, 1.0, true, 1.0));
+		moves.push_back(new SimplexSingleElementScale(br_times, 2.0, true, (int)numBranches/3));
 	}
 	monitoredNodes.push_back( tree_length );
 
