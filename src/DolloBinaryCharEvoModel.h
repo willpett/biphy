@@ -48,7 +48,7 @@ namespace RevBayesCore {
         std::map<size_t,bool>								ancestralMap;
 
         const TypedDagNode<Topology>*						topology;
-        std::vector<double>									totalmass;
+        std::vector<std::vector<double> >					totalmass;
         double												omega;
     };
     
@@ -77,6 +77,9 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const T
 	this->numCorrectionSites = 2*(type > 0);
 
 	totalmass.resize(this->tau->getValue().getNumberOfNodes());
+	for(size_t node = 0; node < this->tau->getValue().getNumberOfNodes(); node++){
+		totalmass[node].resize(this->numSiteRates);
+	}
 
 	this->resizeLikelihoodVectors();
 }
@@ -226,7 +229,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeTipCorrection(const
 		//Probability of presence in all but one leaves descending from this node
 		u[3] = 0.0;
 
-		totalmass[nodeIndex] = 0;
+		totalmass[nodeIndex][mixture] = 0;
 
 	}
 }
@@ -248,7 +251,6 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 
 	// iterate over all mixture categories
 
-	totalmass[nodeIndex] = 0.0;
 	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 	{
 		//get the 1->1 transition probabilities for each branch
@@ -303,7 +305,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 			r = this->siteRates->getValue()[mixture];
 
 		//Nicholls and Gray 2003
-		totalmass[nodeIndex] += prob*(1-pr)/r;
+		totalmass[nodeIndex][mixture] = prob*(1-pr)/r;
 	}
 
 }
@@ -319,8 +321,6 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 
 		omega = this->tau->getValue().getTreeLength();
 	}else{
-		totalmass[root] = 0;
-
 		// get the pointers to the partial likelihoods for this node and the two descendant subtrees
 		std::vector<double>::const_iterator   p_left  = this->partialLikelihoods.begin() + this->activeLikelihood[left]*this->activeLikelihoodOffset + left*this->nodeOffset;
 		std::vector<double>::const_iterator   p_right = this->partialLikelihoods.begin() + this->activeLikelihood[right]*this->activeLikelihoodOffset + right*this->nodeOffset;
@@ -383,11 +383,12 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 				prob = 0;
 
 			//Nicholls and Gray
-			totalmass[root] += prob/r;
+			totalmass[root][mixture] = prob/r;
 		}
 
 		for(size_t i = 0; i < this->tau->getValue().getNumberOfNodes(); i++){
-			omega += totalmass[i];
+			for(size_t mixture = 0; mixture < this->numSiteRates; mixture++)
+				omega += totalmass[i][mixture];
 		}
 	}
 
@@ -556,29 +557,53 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 
     std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
-    // first, simulate a birth for each character
-    // by sampling a node in proportion to its totalmass
     RandomNumberGenerator* rng = GLOBAL_RNG;
 
+    std::vector<size_t> birthNodes;
+    std::vector<size_t> perSiteRates;
+    for(size_t site = 0; site < this->numSites; site++){
+		double u = rng->uniform01();
+		double total = 0.0;
+
+		// first, simulate a birth for each character
+		// by sampling nodes in proportion to their share of totalmass
+		size_t birthNode = 0;
+		while(total < u*omega){
+			for(size_t mixture = 0; mixture < this->numSiteRates; mixture++)
+				total += totalmass[birthNode][mixture];
+			if(total < u*omega)
+				birthNode++;
+		}
+
+		// then sample a rate category conditional on survival from this node
+		// by sampling in proportion to the per mixture surivival probs
+		u = rng->uniform01()*this->numSiteRates;
+		total = 0.0;
+
+		size_t rateIndex = 0;
+		while(total < u){
+			total += totalmass[birthNode][rateIndex];
+			if(total < u)
+				rateIndex++;
+		}
+
+		birthNodes.push_back(birthNode);
+		perSiteRates.push_back(rateIndex);
+    }
+
+    // then simulate the data conditional on these birth nodes and site rates
     for ( size_t i = 0; i < this->numSites; ++i )
     {
-    	double u = rng->uniform01();
-    	double total = 0;
-    	size_t birthNode = 0;
-    	while(total < u*omega){
-    		total += totalmass[birthNode++];
-    	}
-    	birthNode--;
-
         // draw the state
-        u = rng->uniform01();
-        size_t rateIndex = (int)(u*this->numSiteRates);
+        size_t rateIndex = perSiteRates[i];
+        size_t birthNode = birthNodes[i];
 
         std::vector<StandardState> siteData(numNodes, StandardState());
 
 		// recursively simulate the sequences
 		size_t numLeaves = simulate( this->tau->getValue().getRoot(), siteData, birthNode, rateIndex );
 
+		// reject any site-patterns that are forbidden by our data acquisition settings
 		if((this->type & NO_ABSENT_SITES) && numLeaves == 0){
 			i--;
 			continue;
