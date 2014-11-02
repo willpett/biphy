@@ -47,6 +47,8 @@ namespace RevBayesCore {
         std::vector<std::vector<size_t> >                   ancestralNodes;
         std::map<size_t,bool>								ancestralMap;
 
+        bool												ancestralNeedsRecomputing;
+
         const TypedDagNode<Topology>*						topology;
         std::vector<std::vector<double> >					totalmass;
         double												omega;
@@ -69,7 +71,7 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const T
 	BinaryCharEvoModel<treeType>(p, c , nSites, type),
 	AbstractCharEvoModel<StandardState, treeType>(p, 2, c , nSites),
 	topology(t),
-	totalmass(this->topology->getValue().getNumberOfNodes(),std::vector<double>(this->numSiteRates,0.0)),
+	totalmass(this->tau->getValue().getNumberOfNodes(),std::vector<double>(this->numSiteRates,0.0)),
 	ancestralNodes(this->numPatterns, std::vector<size_t>()),
 	omega(0.0)
 {
@@ -80,6 +82,8 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const T
 	this->numCorrectionSites = 2*(type > 0);
 
 	this->resizeLikelihoodVectors();
+
+	ancestralNeedsRecomputing = true;
 }
 
 
@@ -89,6 +93,7 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const D
 	AbstractCharEvoModel<StandardState, treeType>(d),
 	ancestralNodes(d.ancestralNodes), topology(d.topology), totalmass(d.totalmass), omega(d.omega)
 {
+	ancestralNeedsRecomputing = true;
 }
 
 
@@ -117,15 +122,17 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
     std::vector<double>::const_iterator f_begin     = f.begin();
 
     // create a vector for the per mixture likelihoods
-    // we need this vector to sum over the different mixture likelihoods
-    std::vector<double> per_mixture_Likelihoods;
-    per_mixture_Likelihoods.resize(this->numPatterns);
+	// we need this vector to sum over the different mixture likelihoods
+	std::vector<double> per_mixture_Likelihoods = std::vector<double>(this->numPatterns,0.0);
+
+    if(ancestralNeedsRecomputing)
+    	computeAncestral();
 
 	for (size_t site = 0; site < this->numPatterns; site++){
 		// iterate over all nodes in the ancestral set for this site pattern
 		for (size_t anc = 0; anc < ancestralNodes[site].size(); anc++){
 			size_t idx = ancestralNodes[site][anc];
-			const TopologyNode &node = this->topology->getValue().getNode(idx);
+			const TopologyNode &node = this->tau->getValue().getNode(idx);
 
 			size_t nleft = node.getChild(0).getIndex();
 			size_t nright = node.getChild(1).getIndex();
@@ -137,41 +144,36 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 			// iterate over all mixture categories
 			for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 			{
-					size_t offset = mixture*this->mixtureOffset;
+				size_t offset = mixture*this->mixtureOffset;
 
-					std::vector<double>::const_iterator   p_site_left_j = p_site_left + offset;
-					std::vector<double>::const_iterator   p_site_right_j = p_site_right + offset;
+				std::vector<double>::const_iterator   p_site_left_j = p_site_left + offset;
+				std::vector<double>::const_iterator   p_site_right_j = p_site_right + offset;
 
+				double prob_birth = 1.0;
+				if(this->rateVariationAcrossSites == true){
+					double r = this->siteRates->getValue()[mixture];
+					prob_birth /= r;
+					if(!node.isRoot())
+						prob_birth *= 1-exp(-r*node.getBranchLength());
+				}
 
-					double prob_birth = 1.0;
-					if(this->rateVariationAcrossSites == true){
-						double r = this->siteRates->getValue()[mixture];
-						prob_birth /= r;
-						if(!node.isRoot())
-							prob_birth *= 1-exp(-r*node.getBranchLength());
-					}
+				// temporary variable storing the likelihood
+				double tmp = 0.0;
 
+				// get the pointer to the stationary frequencies
+				std::vector<double>::const_iterator f_j             = f_begin;
 
-					//if(prob_birth > 1.0)
-					//	std::cerr << prob_birth << std::endl;
+				// iterate over all starting states
+				for (; f_j != f_end; ++f_j)
+				{
+					// add the probability of starting from this state
+					tmp += *p_site_left_j * *p_site_right_j * *f_j;
+					// increment pointers
+					++p_site_left_j; ++p_site_right_j;
+				}
 
-				    // temporary variable storing the likelihood
-					double tmp = 0.0;
-
-					// get the pointer to the stationary frequencies
-					std::vector<double>::const_iterator f_j             = f_begin;
-
-					// iterate over all starting states
-					for (; f_j != f_end; ++f_j)
-					{
-						// add the probability of starting from this state
-						tmp += *p_site_left_j * *p_site_right_j * *f_j;
-						// increment pointers
-						++p_site_left_j; ++p_site_right_j;
-					}
-
-					// add the likelihood for this mixture category
-					per_mixture_Likelihoods[site] += tmp*prob_birth;
+				// add the likelihood for this mixture category
+				per_mixture_Likelihoods[site] += tmp*prob_birth;
 			}
 		}
     }
@@ -244,8 +246,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 	std::vector<double>::const_iterator   p_right = this->partialLikelihoods.begin() + this->activeLikelihood[right]*this->activeLikelihoodOffset + right*this->nodeOffset;
 	std::vector<double>::iterator         p_node  = this->partialLikelihoods.begin() + this->activeLikelihood[nodeIndex]*this->activeLikelihoodOffset + nodeIndex*this->nodeOffset;
 
-	const TopologyNode &left_node = this->topology->getValue().getNode(left);
-	const TopologyNode &right_node = this->topology->getValue().getNode(right);
+	const TopologyNode &left_node = this->tau->getValue().getNode(left);
+	const TopologyNode &right_node = this->tau->getValue().getNode(right);
 
 	// iterate over all mixture categories
 
@@ -324,18 +326,17 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 		std::vector<double>::const_iterator   p_right = this->partialLikelihoods.begin() + this->activeLikelihood[right]*this->activeLikelihoodOffset + right*this->nodeOffset;
 		std::vector<double>::iterator         p_node  = this->partialLikelihoods.begin() + this->activeLikelihood[root]*this->activeLikelihoodOffset + root*this->nodeOffset;
 
-		const TopologyNode &node = this->topology->getValue().getNode(root);
-		const TopologyNode &left_node = this->topology->getValue().getNode(left);
-		const TopologyNode &right_node = this->topology->getValue().getNode(right);
+		const TopologyNode &left_node = this->tau->getValue().getNode(left);
+		const TopologyNode &right_node = this->tau->getValue().getNode(right);
 
 		// iterate over all mixture categories
 		for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 		{
 			//get the 1->1 transition probabilities for each branch
-			this->updateTransitionProbabilities( left, this->topology->getValue().getNode(left).getBranchLength() );
+			this->updateTransitionProbabilities( left, left_node.getBranchLength() );
 			double pij    		= this->transitionProbMatrices[mixture][1][1];
 
-			this->updateTransitionProbabilities( right, this->topology->getValue().getNode(right).getBranchLength() );
+			this->updateTransitionProbabilities( right, right_node.getBranchLength() );
 			double pik    		= this->transitionProbMatrices[mixture][1][1];
 
 			//get the rate modifier for this mixture category
@@ -385,7 +386,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 			totalmass[root][mixture] = prob/r;
 		}
 
-		for(size_t i = 0; i < this->topology->getValue().getNumberOfNodes(); i++){
+		for(size_t i = 0; i < this->tau->getValue().getNumberOfNodes(); i++){
 			for(size_t mixture = 0; mixture < this->numSiteRates; mixture++){
 				omega += totalmass[i][mixture];
 			}
@@ -395,67 +396,6 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 	this->lnCorrection = log(this->numSites) + this->numSites*log(omega);
 }
 
-/*
-template<class treeType>
-void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( size_t root, size_t left, size_t right)
-{
-	omega = 0.0;
-
-	if(this->numCorrectionSites == 0){
-		//If all site-patterns can, in principle, be observed
-		//then omega is just the tree length
-
-		omega = this->topology->getValue().getTreeLength();
-	}else{
-		for(size_t nodeIndex = 0; nodeIndex < this->topology->getValue().getNumberOfNodes(); nodeIndex++){
-			totalmass[nodeIndex] = 0;
-
-			const TopologyNode &node = this->topology->getValue().getNode(nodeIndex);
-			if(node.isTip())
-				continue;
-
-			size_t nleft = node.getChild(0).getIndex();
-			size_t nright = node.getChild(1).getIndex();
-
-			const TopologyNode &right_node = this->topology->getValue().getNode(right);
-			std::vector<double>::const_iterator   p_left  = this->partialLikelihoods.begin() + this->activeLikelihood[nleft]*this->activeLikelihoodOffset + nleft*this->nodeOffset + this->numPatterns*this->siteOffset;
-			std::vector<double>::const_iterator   p_right = this->partialLikelihoods.begin() + this->activeLikelihood[nright]*this->activeLikelihoodOffset + nright*this->nodeOffset + this->numPatterns*this->siteOffset;
-
-			// iterate over all mixture categories
-			for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
-			{
-				double pmix = 1.0;
-
-				for(size_t site = 0; site < this->numCorrectionSites; site++){
-					size_t offset = mixture*this->mixtureOffset + site*this->siteOffset;
-
-					std::vector<double>::const_iterator     	u_j  	= p_left + offset;
-					std::vector<double>::const_iterator     	u_k 	= p_right + offset;
-
-					pmix -= p_left[1]*p_right[1];
-				}
-
-				double pr = 1.0;
-				if(!node.isRoot()){
-					this->updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
-					pr    		-= this->transitionProbMatrices[mixture][1][1];
-				}
-
-				//get the rate modifier for this mixture category
-				double r = 1.0;
-				if(this->rateVariationAcrossSites == true)
-					r = this->siteRates->getValue()[mixture];
-
-				totalmass[nodeIndex] += pmix*pr/r;
-			}
-
-			omega += totalmass[nodeIndex];
-		}
-	}
-
-	this->lnCorrection = log(this->numSites) + this->numSites*log(omega);
-}
-*/
 template<class treeType>
 void RevBayesCore::DolloBinaryCharEvoModel<treeType>::swapParameter(const DagNode *oldP, const DagNode *newP) {
     
@@ -476,20 +416,16 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::touchSpecialization( DagNo
     // if the topology wasn't the culprit for the touch, then we just flag everything as dirty
     if ( affecter == topology || affecter == this->dagNode )
     {
-    	computeAncestral();
+    	ancestralNeedsRecomputing = true;
 
-	}
-    else if(affecter == this->siteRates){
-
-    	for(size_t node = 0; node < this->topology->getValue().getNumberOfNodes(); node++){
-			totalmass[node].clear();
-			totalmass[node].resize(this->numSiteRates);
-    	}
-
-    }else
+	}else
 	{
+		if(affecter == this->siteRates){
+			for(size_t node = 0; node < this->tau->getValue().getNumberOfNodes(); node++)
+				totalmass[node] = std::vector<double>(this->numSiteRates,0.0);
+		}
 
-    	BinaryCharEvoModel<treeType>::touchSpecialization(affecter);
+		AbstractSiteCorrectionModel<StandardState,treeType>::touchSpecialization(affecter);
     }
     
 }
@@ -497,10 +433,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::touchSpecialization( DagNo
 template<class treeType>
 void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestral( void ) {
 
-	ancestralNodes.clear();
-	ancestralNodes.resize(this->numPatterns);
+	ancestralNodes = std::vector<std::vector<size_t> >(this->numPatterns,std::vector<size_t>());
 
-	const TopologyNode &root = this->topology->getValue().getRoot();
+	const TopologyNode &root = this->tau->getValue().getRoot();
 
 	for (size_t site = 0; site < this->numPatterns; ++site)
 	{
@@ -508,6 +443,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestral( void ) {
 		computeAncestralMap(root,site);
 		computeAncestralNodes(root,site);
 	}
+
+	ancestralNeedsRecomputing = false;
 }
 
 template<class treeType>
@@ -550,7 +487,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestralNodes(cons
 template<class treeType>
 void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 
-	this->computeLnProbability();
+	//this->computeLnProbability();
 
     // delete the old value first
     delete this->value;
@@ -558,8 +495,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
     // create a new character data object
     this->value = new DiscreteCharacterData<StandardState>();
 
-    size_t numTips = this->topology->getValue().getNumberOfTips();
-    size_t numNodes = this->topology->getValue().getNumberOfNodes();
+    size_t numTips = this->tau->getValue().getNumberOfTips();
+    size_t numNodes = this->tau->getValue().getNumberOfNodes();
 
     std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
@@ -613,7 +550,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
         std::vector<StandardState> siteData(numNodes, StandardState());
 
 		// recursively simulate the sequences
-		size_t numLeaves = simulate( this->topology->getValue().getRoot(), siteData, birthNode, rateIndex );
+		size_t numLeaves = simulate( this->tau->getValue().getRoot(), siteData, birthNode, rateIndex );
 
 
 		// reject any site-patterns that are forbidden by our data acquisition settings
@@ -632,16 +569,16 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 		}
 
 		// add the taxon data to the character data
-		for (size_t t = 0; t < this->topology->getValue().getNumberOfTips(); ++t)
+		for (size_t t = 0; t < this->tau->getValue().getNumberOfTips(); ++t)
 		{
-			taxa[t].addCharacter(siteData[this->topology->getValue().getNode(t).getIndex()]);
+			taxa[t].addCharacter(siteData[t]);
 		}
     }
 
     // add the taxon data to the character data
-	for (size_t i = 0; i < this->topology->getValue().getNumberOfTips(); ++i)
+	for (size_t i = 0; i < this->tau->getValue().getNumberOfTips(); ++i)
 	{
-		taxa[i].setTaxonName(this->topology->getValue().getNode(i).getName());
+		taxa[i].setTaxonName(this->tau->getValue().getNode(i).getName());
 		this->value->addTaxonData( taxa[i] );
 	}
 

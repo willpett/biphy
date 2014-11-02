@@ -281,13 +281,14 @@ void Topology::setRoot( TopologyNode* r) {
     // bootstrap all nodes from the root and add the in a pre-order traversal
     // fillNodesByPreorderTraversal(r);
     fillNodesByPhylogeneticTraversal(r);
+    std::vector<TopologyNode*> newnodes(nodes.size());
     for (unsigned int i = 0; i < nodes.size(); ++i) {
-    	if(nodes[i]->getIndex() == -1)
+    	if(nodes[i]->getIndex() == -1){
     		nodes[i]->setIndex(i);
+    	}
+    	newnodes[nodes[i]->getIndex()] = nodes[i];
     }
-    
-//    if (nodesByIndex.size() == 0)
-//        fillNodesByIndex();
+    nodes = newnodes;
     
     numNodes = nodes.size();
     

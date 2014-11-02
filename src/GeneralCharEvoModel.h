@@ -359,6 +359,7 @@ void RevBayesCore::GeneralCharEvoModel<charType, treeType>::swapParameter(const 
 template<class charType, class treeType>
 void RevBayesCore::GeneralCharEvoModel<charType, treeType>::touchSpecialization( DagNode* affecter ) {
     
+	//AbstractSiteHomogeneousMixtureModel<charType, treeType>::touchSpecialization(affecter);
     AbstractBranchHeterogeneousModel<charType, treeType>::touchSpecialization(affecter);
     
 }

@@ -147,7 +147,7 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::setCorrectionPatterns(){
 template<class treeType>
 void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 
-	this->computeLnProbability();
+	//this->computeLnProbability();
 
     // delete the old value first
     delete this->value;
@@ -220,7 +220,7 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 		// add the taxon data to the character data
 		for (size_t t = 0; t < numTips; ++t)
 		{
-			taxa[t].addCharacter(siteData[this->tau->getValue().getNode(t).getIndex()]);
+			taxa[t].addCharacter(siteData[t]);
 		}
     }
 

@@ -768,6 +768,9 @@ void Mcmc::fromStream(std::istream& is, bool keep){
 		if(!it->second->isClamped()){
 			if(keep){
 				if(is >> it->second){
+					std::cerr.precision(std::numeric_limits<double>::digits10+2);
+					//it->second->printValue(std::cerr,"\t");
+					//std::cerr << "\n";
 					it->second->keep();
 				}else{
 					throw(RbException("premature end of stream"));
@@ -782,6 +785,8 @@ void Mcmc::fromStream(std::istream& is, bool keep){
 		}
 	}
 
+	if(keep)
+		is.ignore();
 	is.peek();
 }
 

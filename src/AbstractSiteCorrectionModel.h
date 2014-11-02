@@ -391,17 +391,10 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeTipCo
 template<class charType, class treeType>
 void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::touchSpecialization( DagNode* affecter ) {
 
-    // if the topology wasn't the culprit for the touch, then we just flag everything as dirty
-    if(affecter == this->siteRates){
+	if(affecter == this->siteRates)
+		per_mixtureCorrections = std::vector<double>(this->numSiteRates,0.0);
 
-    	per_mixtureCorrections.clear();
-    	per_mixtureCorrections.resize(this->numSiteRates);
-
-    }else
-	{
-
-    	GeneralCharEvoModel<charType, treeType>::touchSpecialization(affecter);
-    }
+	GeneralCharEvoModel<charType, treeType>::touchSpecialization(affecter);
 
 }
 

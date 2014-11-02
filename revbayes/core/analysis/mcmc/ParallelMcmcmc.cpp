@@ -218,13 +218,15 @@ void ParallelMcmcmc::run(size_t generations)
 		chains[chainIdxByHeat[0]]->monitor(currentGeneration);
 
 		if(currentGeneration % every*swapInterval == 0){
+			std::stringstream output;
+			output << currentGeneration << "\n";
+			toStream(output);
+
 			if(!saveall){
 				stream.close();
 				stream.open( filename.c_str(), std::fstream::trunc | std::fstream::out);
 			}
-
-			stream << currentGeneration << "\n";
-			toStream(stream);
+			stream << output.str();
 		}
 
         swapChains();
