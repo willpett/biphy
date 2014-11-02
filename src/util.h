@@ -66,6 +66,7 @@ void our_terminate (void) { // try 1
     catch (RbException& e) {
     	cerr << "RbException:\t" << e.getMessage() << '\n';
     }
+    exit(1);
 }
 
 

@@ -280,7 +280,10 @@ int main (int argc, const char * argv[])
 				correction = (RevBayesCore::CorrectionType)(correction | RevBayesCore::NO_ABSENT_SITES);
 		}
 	}
-	catch(...)	{
+	catch(RbException &e){
+		throw(e);
+	}catch(...){
+
 		cerr << "biphy version 1.0\n";
 		cerr << '\n';
 		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n";
@@ -315,7 +318,7 @@ int main (int argc, const char * argv[])
 		cerr << "\nOptional constraints:\n";
 		cerr << "\t-t <file>\tfixed tree filename\n";
 		cerr << "\t-o <file>\toutgroup clade file\n";
-		cerr << "\t-rigid\t\rigid root frequency for heterogeneous models\n";
+		cerr << "\t-rigid\trigid root frequency for heterogeneous models\n";
 		cerr << "\t-rtrunc <min> <max>\ttruncate root frequency prior on (min,max) (-nh or -h only)\n";
 
 		cerr << "\nMCMCMC options:\n";
