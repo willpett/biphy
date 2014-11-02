@@ -54,8 +54,8 @@ Mcmc::Mcmc(const Model& m, const std::vector<Move*> &mvs, const std::vector<Moni
 {
     
     // create an independent copy of the model, monitors and moves
-    replaceDag(mvs,mons);
-    
+
+	replaceDag(mvs,mons);
     initializeChain();
     initializeMonitors();
             
@@ -277,7 +277,7 @@ void Mcmc::initializeChain( void ) {
     std::vector<DagNode *> orderedStochNodes;
     std::set< const DagNode *> visited;
     getOrderedStochasticNodes(dagNodes[0],orderedStochNodes, visited );
-    
+
     /* Get rid of previous move schedule, if any */
     if ( schedule )
         delete schedule;
@@ -290,7 +290,6 @@ void Mcmc::initializeChain( void ) {
     {
         (*i)->touch();
     }
-    
     
     // redraw parameters for inactive chains in pMC^3 team
     if (chainActive == false)
@@ -334,13 +333,13 @@ void Mcmc::initializeChain( void ) {
             lnProbability += lnProb;
 
         }
-        
+
         // now we keep all nodes so that the likelihood is stored
         for (std::vector<DagNode *>::iterator i=dagNodes.begin(); i!=dagNodes.end(); i++) 
         {
             (*i)->keep();
         }
-        
+
         if ( !RbMath::isAComputableNumber( lnProbability ) )
         {
             std::cerr << "Drawing new initial states ... " << std::endl;
@@ -364,7 +363,7 @@ void Mcmc::initializeChain( void ) {
         else
             break;
     }
-    
+
     if ( numTries == maxNumTries )
     {
         std::stringstream msg;
@@ -774,15 +773,15 @@ void Mcmc::fromStream(std::istream& is, bool keep){
 					throw(RbException("premature end of stream"));
 				}
 			}else{
-				std::string line;
-				is >> line;
+				if(is.peek() == '\n')
+					is.ignore();
+				is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 				if(!is)
 					throw(RbException("premature end of stream"));
 			}
 		}
 	}
 
-	is.ignore();
 	is.peek();
 }
 

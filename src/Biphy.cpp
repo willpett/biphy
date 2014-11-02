@@ -506,9 +506,9 @@ void Biphy::init( void ) {
 
 	ContinuousStochasticNode *mu;
 	DeterministicNode<double> *rec_mu;
-	TypedDagNode< std::vector< double > >* br_vector;
+	TypedDagNode< std::vector<double> >* br_vector;
 
-	StochasticNode< std::vector< double > >* br_times;
+	StochasticNode< std::vector<double> >* br_times;
 	TypedDagNode<double>* tree_length;
 
 	// declaring a vector of clock rates
@@ -541,14 +541,14 @@ void Biphy::init( void ) {
     DeterministicNode<std::vector<double> > *site_rates;
     DeterministicNode<std::vector<double> > *site_rates_norm;
     if(dgam > 1){
-		alpha = new ContinuousStochasticNode("alpha", new ExponentialDistribution(one) );
+		alpha = new ContinuousStochasticNode("lambda", new ExponentialDistribution(one) );
 		for(size_t cat = 0; cat < dgam; cat++){
 			std::stringstream name;
 			std::stringstream value_name;
 			name << "q";
 			name << cat+1;
 			value_name << name << "_value";
-			gamma_rates.push_back( new DeterministicNode<double>(value_name.str(), new QuantileFunction(new ConstantNode<double>(name.str(), new double((cat+1/2.0)/dgam) ), new GammaDistribution(alpha, alpha) ) ));
+			gamma_rates.push_back( new DeterministicNode<double>(value_name.str(), new QuantileFunction(new ConstantNode<double>(name.str(), new double((cat+1.0/2.0)/dgam) ), new GammaDistribution(alpha, alpha) ) ));
 		}
 		site_rates = new DeterministicNode<std::vector<double> >( "site_rates", new VectorFunction<double>(gamma_rates) );
 		site_rates_norm = new DeterministicNode<std::vector<double> >( "site_rates_norm", new NormalizeVectorFunction(site_rates) );
@@ -584,7 +584,6 @@ void Biphy::init( void ) {
 		charModel->setRateMatrix( q );
 		charModel->setRootFrequencies( rf );
 	}
-    charModel->setClockRate( one );
 
 	if(dgam > 1)
 		charModel->setSiteRates( site_rates_norm );

@@ -57,6 +57,8 @@ namespace RevBayesCore {
 		virtual void                                        				computeTipLikelihood(const TopologyNode &node, size_t nIdx);
 		virtual void                                        				resizeLikelihoodVectors(void);
         
+		virtual void                                        				touchSpecialization(DagNode *toucher);
+
         virtual void                                                        computeRootCorrection(size_t root, size_t l, size_t r);
         virtual void                                                        computeInternalNodeCorrection(const TopologyNode &n, size_t nIdx, size_t l, size_t r);
         virtual void                                                        computeTipCorrection(const TopologyNode &node, size_t nIdx);
@@ -95,7 +97,7 @@ template<class charType, class treeType>
 RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::AbstractSiteCorrectionModel(const TypedDagNode<treeType> *t, size_t nChars, bool c, size_t nSites) :
 	GeneralCharEvoModel<charType, treeType>(t, nChars, c, nSites),
 	AbstractCharEvoModel<charType, treeType>(t, nChars, c, nSites),
-	lnCorrection(0.0), numCorrectionSites(0)
+	lnCorrection(0.0), numCorrectionSites(0), per_mixtureCorrections(this->numSiteRates,0.0)
 {
 }
 
@@ -107,7 +109,8 @@ RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::AbstractSiteCorre
 	lnCorrection(n.lnCorrection),
 	numCorrectionSites(n.numCorrectionSites),
 	correctionCharMatrix(n.correctionCharMatrix),
-	correctionGapMatrix(n.correctionGapMatrix)
+	correctionGapMatrix(n.correctionGapMatrix),
+	per_mixtureCorrections(n.per_mixtureCorrections)
 {
 }
 
@@ -167,18 +170,13 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
     std::vector<double>::const_iterator p_left   = this->partialLikelihoods.begin() + this->activeLikelihood[left]*this->activeLikelihoodOffset + left*this->nodeOffset;
     std::vector<double>::const_iterator p_right  = this->partialLikelihoods.begin() + this->activeLikelihood[right]*this->activeLikelihoodOffset + right*this->nodeOffset;
 
-    // create a vector for the per mixture likelihoods
-    // we need this vector to sum over the different mixture likelihoods
-   per_mixtureCorrections.clear();
-   per_mixtureCorrections.resize(this->numSiteRates);
-
     // get pointers the likelihood for both subtrees
     std::vector<double>::const_iterator   p_mixture_left     = p_left;
     std::vector<double>::const_iterator   p_mixture_right    = p_right;
     // iterate over all mixture categories
     for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
     {
-
+    	per_mixtureCorrections[mixture] = 0.0;
         // get pointers to the likelihood for this mixture category
     	std::vector<double>::const_iterator   p_site_mixture_left     = p_mixture_left+this->numPatterns*this->siteOffset;
     	std::vector<double>::const_iterator   p_site_mixture_right    = p_mixture_right+this->numPatterns*this->siteOffset;
@@ -388,6 +386,23 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeTipCo
         }
 
     }
+}
+
+template<class charType, class treeType>
+void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::touchSpecialization( DagNode* affecter ) {
+
+    // if the topology wasn't the culprit for the touch, then we just flag everything as dirty
+    if(affecter == this->siteRates){
+
+    	per_mixtureCorrections.clear();
+    	per_mixtureCorrections.resize(this->numSiteRates);
+
+    }else
+	{
+
+    	GeneralCharEvoModel<charType, treeType>::touchSpecialization(affecter);
+    }
+
 }
 
 

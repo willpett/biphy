@@ -544,7 +544,7 @@ void RevBayesCore::GeneralCharEvoModel<charType, treeType>::redrawMapping(void)
 	size_t rightIndex = right.getIndex();
 	simulateMapping( right, rightIndex , perSiteRates);
 
-	const std::vector<double> &f                    = this->getRootFrequencies();
+	const std::vector<double> &f = this->getRootFrequencies();
 
 	DiscreteTaxonData< charType > &rootData = mapping[ rootIndex ];
 	for ( size_t i = 0; i < this->numSites; ++i )

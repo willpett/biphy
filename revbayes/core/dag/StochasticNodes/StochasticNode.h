@@ -92,10 +92,20 @@ namespace RevBayesCore {
 
 template<class valueType>
 void RevBayesCore::StochasticNode<valueType>::extractValue(std::istream &is) {
-	valueType value;
-	is >> value;
+	if ( RbUtils::is_vector<valueType>::value )
+	{
+		size_t numElements = RbUtils::sub_vector<valueType>::size( getValue() );
 
-	setValue(value);
+		valueType tmp(getValue());
+		is >> tmp;
+		setValue(tmp);
+	}
+	else
+	{
+		valueType val;
+		is >> val;
+		setValue(val);
+	}
 }
 
 template<class valueType>

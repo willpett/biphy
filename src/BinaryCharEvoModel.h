@@ -147,7 +147,7 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::setCorrectionPatterns(){
 template<class treeType>
 void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 
-	//this->computeLnProbability();
+	this->computeLnProbability();
 
     // delete the old value first
     delete this->value;

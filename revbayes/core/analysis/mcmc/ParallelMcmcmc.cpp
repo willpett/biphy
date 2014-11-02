@@ -7,6 +7,7 @@
 #include <cmath>
 #include <sstream>
 #include <limits>
+#include <stdlib.h>
 
 #if defined (USE_LIB_OPENMP)
     #include <omp.h>
@@ -39,7 +40,7 @@ ParallelMcmcmc::ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, 
         // create chains
         bool a = (i == 0 ? true : false);
         Mcmc* oneChain = new Mcmc(m, moves, mons, scheduleType, a, b, i);
-        oneChain->setChainIndex(i);
+    	oneChain->setChainIndex(i);
         oneChain->startMonitors();
         
         // add chain to team

@@ -160,15 +160,8 @@ std::istream& RevBayesCore::operator>>(std::istream& is, std::vector<bool>& x) {
 }
 
 std::istream& RevBayesCore::operator>>(std::istream& is, std::vector<double>& x) {
-	std::string tmp;
-	is >> tmp;
-    for (std::vector<double>::iterator it = x.begin(); it != x.end(); ++it) {
-        if ( it != x.begin() ) {
-            is >> tmp;
-        }
-        is >> *it;
-    }
-    is >> tmp;
+    for (std::vector<double>::iterator it = x.begin(); it != x.end(); ++it)
+    	is >> *it;
 
     return is;
 }
