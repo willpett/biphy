@@ -127,20 +127,20 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					numChains = atoi(argv[i]);
-				}else if (s == "-absent")	{
+				}else if (s == "-u")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -absent <int>\n\n";
+						cerr << "error in command: -u <int>\n\n";
 						exit(1);
 					}
 					s = argv[i];
 					if (! IsInt(s))	{
-						cerr << "error in command: -absent <int>\n\n";
+						cerr << "error in command: -u <int>\n\n";
 						exit(1);
 					}
 					correction = static_cast<RevBayesCore::CorrectionType>(atoi(argv[i]));
 					if(correction < 0 || correction > 15)	{
-						cerr << "error in command: -absent <int>\n\n";
+						cerr << "error in command: -u <int>\n\n";
 						exit(1);
 					}
 				}else if (s == "-m")	{
@@ -289,7 +289,7 @@ int main (int argc, const char * argv[])
 		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n";
 
 		cerr << "\nBranch frequency prior:\n";
-		cerr << "\t-dollo\t\tstochastic dollo model (enables -absent 1)\n";
+		cerr << "\t-dollo\t\tstochastic dollo model (enables -u 1)\n";
 		cerr << "\t-h\t\ttime-homogeneous beta model (default)\n";
 		cerr << "\t-nh\t\thierarchical beta model\n";
 		cerr << "\t-m <int>\tmixture with <int> beta components\n";
@@ -304,7 +304,7 @@ int main (int argc, const char * argv[])
 		cerr << "\t\t\t0 or 1 = constant rates model\n";
 
 		cerr << "\nCorrections for unobservable site patterns:\n";
-		cerr << "\t-absent <int>\twhere <int> is one of:\n";
+		cerr << "\t-u <int>\twhere <int> is one of:\n";
 		cerr << "\t\t0 = no site patterns have been omitted (default)\n";
 		cerr << "\t\t1 = constant absence sites have been removed\n";
 		cerr << "\t\t2 = constant presence sites have been removed\n";
