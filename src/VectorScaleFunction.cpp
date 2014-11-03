@@ -50,8 +50,6 @@ void VectorScaleFunction::update( void ) {
     }
 }
 
-
-
 void VectorScaleFunction::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
     
 	if (oldP == vector) {

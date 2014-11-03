@@ -50,7 +50,7 @@ namespace RevBayesCore {
         const TypedDagNode<double> *scalar;
         
     };
-    
+
 }
 
 

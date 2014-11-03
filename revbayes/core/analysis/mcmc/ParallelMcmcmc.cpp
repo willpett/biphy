@@ -345,6 +345,8 @@ bool ParallelMcmcmc::restore(void){
 	stream >> currentGeneration;
 	fromStream(stream);
 
+	//exit(1);
+
 	return true;
 }
 
