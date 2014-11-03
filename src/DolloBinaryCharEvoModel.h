@@ -50,7 +50,7 @@ namespace RevBayesCore {
         bool												ancestralNeedsRecomputing;
 
         const TypedDagNode<Topology>*						topology;
-        std::vector<std::vector<double> >					totalmass;
+        std::vector<std::vector<std::vector<double> > >					totalmass;
         double												omega;
     };
     
@@ -71,7 +71,7 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const T
 	BinaryCharEvoModel<treeType>(p, c , nSites, type),
 	AbstractCharEvoModel<StandardState, treeType>(p, 2, c , nSites),
 	topology(t),
-	totalmass(this->tau->getValue().getNumberOfNodes(),std::vector<double>(this->numSiteRates,0.0)),
+	totalmass(this->tau->getValue().getNumberOfNodes(),std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0))),
 	ancestralNodes(this->numPatterns, std::vector<size_t>()),
 	omega(0.0)
 {
@@ -229,7 +229,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeTipCorrection(const
 		//Probability of presence in all but one leaves descending from this node
 		u[3] = 0.0;
 
-		totalmass[nodeIndex][mixture] = 0;
+		totalmass[nodeIndex][mixture][0] = 0;
+		totalmass[nodeIndex][mixture][1] = 0;
 
 	}
 }
@@ -305,7 +306,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 			r = this->siteRates->getValue()[mixture];
 
 		//Nicholls and Gray 2003
-		totalmass[nodeIndex][mixture] = prob*(1-pr)/r;
+		totalmass[nodeIndex][mixture][0] = prob;
+		totalmass[nodeIndex][mixture][1] = (1-pr)/r;
 	}
 
 }
@@ -383,12 +385,13 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 
 			//Nicholls and Gray
 
-			totalmass[root][mixture] = prob/r;
+			totalmass[root][mixture][0] = prob;
+			totalmass[root][mixture][1] = 1.0/r;
 		}
 
 		for(size_t i = 0; i < this->tau->getValue().getNumberOfNodes(); i++){
 			for(size_t mixture = 0; mixture < this->numSiteRates; mixture++){
-				omega += totalmass[i][mixture];
+				omega += totalmass[i][mixture][0]*totalmass[root][mixture][1];
 			}
 		}
 	}
@@ -422,7 +425,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::touchSpecialization( DagNo
 	{
 		if(affecter == this->siteRates){
 			for(size_t node = 0; node < this->tau->getValue().getNumberOfNodes(); node++)
-				totalmass[node] = std::vector<double>(this->numSiteRates,0.0);
+				totalmass[node] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 		}
 
 		AbstractSiteCorrectionModel<StandardState,treeType>::touchSpecialization(affecter);
@@ -513,7 +516,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 		size_t birthNode = 0;
 		while(total < u*omega){
 			for(size_t mixture = 0; mixture < this->numSiteRates; mixture++)
-				total += totalmass[birthNode][mixture];
+				total += totalmass[birthNode][mixture][0]*totalmass[birthNode][mixture][1];
 			if(total < u*omega)
 				birthNode++;
 		}
@@ -523,7 +526,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 
 		total = 0.0;
 		for(size_t mixture = 0; mixture < this->numSiteRates; mixture++)
-			total += totalmass[birthNode][mixture];
+			total += totalmass[birthNode][mixture][0];
 
 
 		u = rng->uniform01()*total;
@@ -531,7 +534,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 
 		double tmp = 0.0;
 		while(tmp < u){
-			tmp += totalmass[birthNode][rateIndex];
+			tmp += totalmass[birthNode][rateIndex][0];
 			if(tmp < u)
 				rateIndex++;
 		}
