@@ -391,7 +391,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 
 		for(size_t i = 0; i < this->tau->getValue().getNumberOfNodes(); i++){
 			for(size_t mixture = 0; mixture < this->numSiteRates; mixture++){
-				omega += totalmass[i][mixture][0]*totalmass[root][mixture][1];
+				omega += totalmass[i][mixture][0]*totalmass[i][mixture][1];
 			}
 		}
 	}
