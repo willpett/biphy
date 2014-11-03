@@ -45,7 +45,7 @@ namespace RevBayesCore {
         double                                              getChainHeat(void);
         size_t                                              getChainIndex(void);
         size_t                                              getNumNodes(void);
-        double                                              getLnPosterior(void);
+        double                                              getLnPosterior(bool recompute = false);
         double                                              getModelLnProbability(void);
         std::vector<Monitor*>&                              getMonitors(void);
         bool                                                isChainActive(void);

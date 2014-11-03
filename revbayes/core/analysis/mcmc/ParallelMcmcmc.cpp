@@ -215,6 +215,8 @@ void ParallelMcmcmc::run(size_t generations)
 
         currentGeneration += swapInterval;
 
+        swapChains();
+
 		chains[chainIdxByHeat[0]]->monitor(currentGeneration);
 
 		if(currentGeneration % every*swapInterval == 0){
@@ -228,8 +230,6 @@ void ParallelMcmcmc::run(size_t generations)
 			}
 			stream << output.str();
 		}
-
-        swapChains();
     }
 }
 
@@ -360,11 +360,16 @@ void ParallelMcmcmc::fromStream(std::istream& is, bool keep, bool keepCold){
 		}
 
 		chains[index]->fromStream(is, keep || (keepCold && i == 0));
+
 		chains[index]->setChainActive(i == 0);
+		chains[index]->setChainHeat(computeBeta(delta,sigma,i));
 
 		chainIdxByHeat[i] = index;
 		if(i == 0)
 			activeIndex = index;
+
+		//if(keep)
+		//	std::cerr << index << "\t" << chains[index]->getChainHeat() << " * " << chains[index]->getModelLnProbability() << "\t= " << chains[index]->getChainHeat()*chains[index]->getModelLnProbability() << std::endl;
 	}
 }
 

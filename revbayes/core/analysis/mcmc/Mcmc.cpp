@@ -194,7 +194,7 @@ size_t Mcmc::getChainIndex(void)
 }
 
 
-double Mcmc::getLnPosterior(void)
+double Mcmc::getLnPosterior(bool recompute)
 {
     return lnProbability;
 }
@@ -768,7 +768,6 @@ void Mcmc::fromStream(std::istream& is, bool keep){
 		if(!it->second->isClamped()){
 			if(keep){
 				if(is >> it->second){
-					std::cerr.precision(std::numeric_limits<double>::digits10+2);
 					it->second->keep();
 				}else{
 					throw(RbException("premature end of stream"));
@@ -783,8 +782,10 @@ void Mcmc::fromStream(std::istream& is, bool keep){
 		}
 	}
 
-	if(keep)
+	if(keep){
+		lnProbability = getModelLnProbability();
 		is.ignore();
+	}
 	is.peek();
 }
 
