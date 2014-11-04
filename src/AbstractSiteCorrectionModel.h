@@ -66,6 +66,7 @@ namespace RevBayesCore {
         virtual void                                                        setCorrectionPatterns() = 0;
 
 
+        size_t																N;
         double																lnCorrection;
 
         std::map<std::string,std::vector<unsigned long> >                   correctionCharMatrix;
@@ -97,7 +98,7 @@ template<class charType, class treeType>
 RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::AbstractSiteCorrectionModel(const TypedDagNode<treeType> *t, size_t nChars, bool c, size_t nSites) :
 	GeneralCharEvoModel<charType, treeType>(t, nChars, c, nSites),
 	AbstractCharEvoModel<charType, treeType>(t, nChars, c, nSites),
-	lnCorrection(0.0), numCorrectionSites(0), per_mixtureCorrections(this->numSiteRates,0.0)
+	lnCorrection(0.0), numCorrectionSites(0), per_mixtureCorrections(this->numSiteRates,0.0), N(nSites)
 {
 }
 
@@ -110,7 +111,8 @@ RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::AbstractSiteCorre
 	numCorrectionSites(n.numCorrectionSites),
 	correctionCharMatrix(n.correctionCharMatrix),
 	correctionGapMatrix(n.correctionGapMatrix),
-	per_mixtureCorrections(n.per_mixtureCorrections)
+	per_mixtureCorrections(n.per_mixtureCorrections),
+	N(n.N)
 {
 }
 
@@ -128,7 +130,7 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootL
 
     computeRootCorrection(root, left, right);
 
-    this->lnProb -= lnCorrection;
+    this->lnProb -= this->numSites*lnCorrection;
 
 }
 
@@ -219,7 +221,7 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
     }
     // normalize the log-probability
     lnCorrection /= this->numSiteRates;
-    lnCorrection = this->numSites*log(1-lnCorrection);
+    lnCorrection = log(1-lnCorrection);
 
 }
 

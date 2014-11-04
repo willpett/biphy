@@ -5,6 +5,9 @@
 #include "StandardState.h"
 #include "RateMatrix.h"
 #include "RbVector.h"
+#include "RbStatisticsHelper.h"
+#include "DistributionPoisson.h"
+#include "DistributionGamma.h"
 #include "TopologyNode.h"
 #include "TransitionProbabilityMatrix.h"
 #include "TreeChangeEventListener.h"
@@ -167,8 +170,16 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 
     std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
-    // sample the rate categories conditioned the likelihood of the unobservable site-patterns
+    // first sample a mean number of characters (gamma)
+    // from the marginal posterior gamma ~ Gamma(N, exp(lnCorrection) )
+    double gamma = RbStatistics::Gamma::rv(this->N,exp(this->lnCorrection), *rng);
 
+    // then resample numSites from Poisson( exp(lnCorrection)*gamma )
+    this->numSites = RbStatistics::Poisson::rv( exp(this->lnCorrection)*gamma, *rng);
+
+    std::cerr << this->numSites << std::endl;
+
+    // sample the rate categories conditioned the likelihood of the unobservable site-patterns
     std::vector<size_t> perSiteRates;
 	double total = 0.0;
 	for ( size_t i = 0; i < this->numSiteRates; ++i ){

@@ -67,6 +67,8 @@ ${REVBAYES_DIR}/core/math/distributions/DistributionNormal.h
 ${REVBAYES_DIR}/core/math/distributions/DistributionExponential.h
 ${REVBAYES_DIR}/core/math/distributions/DistributionNormal.cpp
 ${REVBAYES_DIR}/core/math/distributions/DistributionGamma.h
+${REVBAYES_DIR}/core/math/distributions/DistributionPoisson.cpp
+${REVBAYES_DIR}/core/math/distributions/DistributionPoisson.h
 ${REVBAYES_DIR}/core/math/distributions/DistributionExponential.cpp
 ${REVBAYES_DIR}/core/math/RbMathLogic.h
 ${REVBAYES_DIR}/core/monitors

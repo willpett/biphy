@@ -222,31 +222,31 @@ int main (int argc, const char * argv[])
 							i--;
 						}
 					}
-				}else if (s == "-rtrunc")	{
+				}else if (s == "-rp")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -rtrunc <min> <max>\n\n";
+						cerr << "error in command: -rp <min> <max>\n\n";
 						exit(1);
 					}
 					s = argv[i];
 					if (! IsFloat(s))	{
-						cerr << "error in command: -rtrunc <min> <max>\n\n";
+						cerr << "error in command: -rp <min> <max>\n\n";
 						exit(1);
 					}
 					rootmin = atof(argv[i]);
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -rtrunc <min> <max>\n\n";
+						cerr << "error in command: -rp <min> <max>\n\n";
 						exit(1);
 					}
 					s = argv[i];
 					if (! IsFloat(s))	{
-						cerr << "error in command: -rtrunc <min> <max>\n\n";
+						cerr << "error in command: -rp <min> <max>\n\n";
 						exit(1);
 					}
 					rootmax = atof(argv[i]);
 					if(rootmin < 0 || rootmax > 1.0 || rootmin > rootmax){
-						cerr << "error in command: -rtrunc <min> <max>\n\n";
+						cerr << "error in command: -rp <min> <max>\n\n";
 						exit(1);
 					}
 					rootprior = Biphy::TRUNCATED;
@@ -319,7 +319,7 @@ int main (int argc, const char * argv[])
 		cerr << "\t-t <file>\tfixed tree filename\n";
 		cerr << "\t-o <file>\toutgroup clade file\n";
 		cerr << "\t-rigid\trigid root frequency for heterogeneous models\n";
-		cerr << "\t-rtrunc <min> <max>\ttruncate root frequency prior on (min,max) (-nh or -h only)\n";
+		cerr << "\t-rp <min> <max>\ttruncate root frequency prior on (min,max) (-nh or -h only)\n";
 
 		cerr << "\nMCMCMC options:\n";
 		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";

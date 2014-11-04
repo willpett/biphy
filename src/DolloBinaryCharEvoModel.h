@@ -5,6 +5,9 @@
 #include "DnaState.h"
 #include "RateMatrix.h"
 #include "RbVector.h"
+#include "DistributionPoisson.h"
+#include "DistributionGamma.h"
+#include "RbStatisticsHelper.h"
 #include "TopologyNode.h"
 #include "TransitionProbabilityMatrix.h"
 #include "TreeChangeEventListener.h"
@@ -505,13 +508,22 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 
     RandomNumberGenerator* rng = GLOBAL_RNG;
 
+    if(this->numCorrectionSites > 0){
+		// first sample a birth rate (lambda)
+		// from the marginal posterior lambda ~ Gamma(N, omega )
+		double lambda = RbStatistics::Gamma::rv(this->N,omega, *rng);
+
+		// then resample numSites from Poisson( exp(lnCorrection)*gamma )
+		this->numSites = RbStatistics::Poisson::rv( lambda*omega, *rng);
+    }
+
     std::vector<size_t> birthNodes;
     std::vector<size_t> perSiteRates;
     for(size_t site = 0; site < this->numSites; site++){
 		double u = rng->uniform01();
 		double total = 0.0;
 
-		// first, simulate a birth for each character
+		// simulate a birth for each character
 		// by sampling nodes in proportion to their share of totalmass
 		size_t birthNode = 0;
 		while(total < u*omega){
