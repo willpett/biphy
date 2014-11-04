@@ -171,11 +171,14 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
     std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
     // first sample a mean number of characters (gamma)
-    // from the marginal posterior gamma ~ Gamma(N, exp(lnCorrection) )
-    double gamma = RbStatistics::Gamma::rv(this->N,exp(this->lnCorrection), *rng);
+    // from the marginal posterior gamma | N ~ Gamma(N, exp(lnCorrection) )
+    // given gamma ~ 1/lambda
+    if(this->numCorrectionSites > 0){
+		double gamma = RbStatistics::Gamma::rv(this->N,exp(this->lnCorrection), *rng);
 
-    // then resample numSites from Poisson( exp(lnCorrection)*gamma )
-    this->numSites = RbStatistics::Poisson::rv( exp(this->lnCorrection)*gamma, *rng);
+		// then resample numSites from Poisson( exp(lnCorrection)*gamma )
+		this->numSites = RbStatistics::Poisson::rv( exp(this->lnCorrection)*gamma, *rng);
+    }
 
     std::cerr << this->numSites << std::endl;
 
