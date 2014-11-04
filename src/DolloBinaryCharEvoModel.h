@@ -510,11 +510,14 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 
     if(this->numCorrectionSites > 0){
 		// first sample a birth rate (lambda)
-		// from the marginal posterior lambda ~ Gamma(N, omega )
+		// from the marginal posterior lambda | N ~ Gamma(N, omega )
+    	// given lambda ~ 1/lambda
 		double lambda = RbStatistics::Gamma::rv(this->N,omega, *rng);
 
 		// then resample numSites from Poisson( exp(lnCorrection)*gamma )
 		this->numSites = RbStatistics::Poisson::rv( lambda*omega, *rng);
+
+		//std::cerr << "lambda: " << lambda << "\tN: " << this->numSites << std::endl;
     }
 
     std::vector<size_t> birthNodes;

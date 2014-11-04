@@ -62,11 +62,13 @@ namespace {
 }
 
 void our_terminate (void) { // try 1
-    try { throw; }
+	static bool tried_throw = false;
+    try {
+    	if(!tried_throw++) throw;
+    }
     catch (RbException& e) {
     	cerr << "RbException:\t" << e.getMessage() << '\n';
     }
-    exit(1);
 }
 
 
