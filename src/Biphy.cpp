@@ -541,7 +541,7 @@ void Biphy::init( void ) {
     DeterministicNode<std::vector<double> > *site_rates;
     DeterministicNode<std::vector<double> > *site_rates_norm;
     if(dgam > 1){
-		alpha = new ContinuousStochasticNode("lambda", new ExponentialDistribution(one) );
+		alpha = new ContinuousStochasticNode("alpha", new ExponentialDistribution(one) );
 		for(size_t cat = 0; cat < dgam; cat++){
 			std::stringstream name;
 			std::stringstream value_name;
