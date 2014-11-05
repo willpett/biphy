@@ -40,6 +40,7 @@ namespace RevBayesCore {
 
     protected:
         
+        void                                        		touchSpecialization(DagNode *toucher);
         virtual void                                        setCorrectionPatterns();
         size_t 												simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t rateIndex);
         
@@ -47,6 +48,9 @@ namespace RevBayesCore {
 
         int													type;
         DiscreteTaxonData<StandardState> *					dolloCompatible;
+
+        std::string										presentState;
+        std::string										absentState;
 
     };
     
@@ -76,6 +80,10 @@ RevBayesCore::BinaryCharEvoModel<treeType>::BinaryCharEvoModel(const TypedDagNod
 							 + numTips*(bool)(type & NO_SINGLETON_LOSSES);
 
 	this->resizeLikelihoodVectors();
+
+	presentState = "1";
+	absentState = "0";
+
 }
 
 
@@ -110,6 +118,9 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::setCorrectionPatterns(){
 	this->correctionCharMatrix.clear();
 	this->correctionGapMatrix.clear();
 
+	size_t present = 1 + this->usingAmbiguousCharacters;
+	size_t absent = this->usingAmbiguousCharacters;
+
 	size_t nonSingletons = (bool)(type & NO_ABSENT_SITES) + (bool)(type & NO_PRESENT_SITES);
 	size_t i = 0;
 	for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it)
@@ -126,19 +137,22 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::setCorrectionPatterns(){
 			{
 				this->correctionGapMatrix[name][site] = false;
 				if(site < nonSingletons){
-					this->correctionCharMatrix[name][site] = site + !(type & NO_ABSENT_SITES);
+					if(site == 0)
+						this->correctionCharMatrix[name][site] = (type & NO_ABSENT_SITES) ? absent : present;
+					else
+						this->correctionCharMatrix[name][site] = present;
 				}else{
 					if(site - nonSingletons < numTips)
 						if(site - nonSingletons == i){
-							this->correctionCharMatrix[name][site] = !(type & NO_SINGLETON_LOSSES);
+							this->correctionCharMatrix[name][site] = (type & NO_SINGLETON_LOSSES) ? absent : present;
 						}else{
-							this->correctionCharMatrix[name][site] = (bool)(type & NO_SINGLETON_LOSSES);
+							this->correctionCharMatrix[name][site] = (type & NO_SINGLETON_LOSSES) ? present : absent;
 						}
 					else
 						if(site - nonSingletons == numTips + i){
-							this->correctionCharMatrix[name][site] = 1;
+							this->correctionCharMatrix[name][site] = present;
 						}else{
-							this->correctionCharMatrix[name][site] = 0;
+							this->correctionCharMatrix[name][site] = absent;
 						}
 				}
 			}
@@ -174,19 +188,17 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
     // from the marginal posterior gamma | N ~ Gamma(N, exp(lnCorrection) )
     // given gamma ~ 1/lambda
     if(this->numCorrectionSites > 0){
-		double gamma = RbStatistics::Gamma::rv(this->N,exp(this->lnCorrection), *rng);
+		double gamma = RbStatistics::Gamma::rv(this->N,exp(this->perSiteCorrection), *rng);
 
 		// then resample numSites from Poisson( exp(lnCorrection)*gamma )
-		this->numSites = RbStatistics::Poisson::rv( exp(this->lnCorrection)*gamma, *rng);
+		this->numSites = RbStatistics::Poisson::rv( exp(this->perSiteCorrection)*gamma, *rng);
     }
-
-    std::cerr << this->numSites << std::endl;
 
     // sample the rate categories conditioned the likelihood of the unobservable site-patterns
     std::vector<size_t> perSiteRates;
 	double total = 0.0;
 	for ( size_t i = 0; i < this->numSiteRates; ++i ){
-		total += 1 - this->per_mixtureCorrections[i];
+		total += 1 - this->perMixtureCorrections[i];
 	}
 
     for ( size_t i = 0; i < this->numSites; ++i )
@@ -197,7 +209,7 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 
 		double tmp = 0.0;
 		while(tmp < u){
-			tmp += 1 - this->per_mixtureCorrections[rateIndex];
+			tmp += 1 - this->perMixtureCorrections[rateIndex];
 			if(tmp < u)
 				rateIndex++;
 		}
@@ -212,7 +224,9 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
         std::vector<StandardState> siteData(numNodes, StandardState());
 
         if(rng->uniform01() < pi[1])
-        	siteData[rootIndex]++;
+        	siteData[rootIndex].setState(presentState);
+        else
+        	siteData[rootIndex].setState(absentState);
 
 		// recursively simulate the sequences
 		size_t numLeaves = simulate( root, siteData, rateIndex );
@@ -277,10 +291,12 @@ size_t RevBayesCore::BinaryCharEvoModel<treeType>::simulate( const TopologyNode 
 		double *pij = this->transitionProbMatrices[ rateIndex ][cp-1];
 
 		if(rng->uniform01() < pij[1])
-			childState++;
+			childState.setState(presentState);
+		else
+			childState.setState(absentState);
 
 		if(child.isTip())
-		    numLeaves += childState.getState() == 2;
+		    numLeaves += childState.getStringValue() == this->presentState;
 		else
 			numLeaves += simulate( child, data, rateIndex );
 	}
@@ -308,9 +324,9 @@ RevBayesCore::DiscreteTaxonData<RevBayesCore::StandardState>* RevBayesCore::Bina
     	StandardState rightState = mapping[right.getIndex()].getCharacter(i);
 
     	size_t births = 0;
-    	if(rootState.getState() == 1 && leftState.getState() == 2)
+		if(rootState.getStringValue() == this->absentState && leftState.getStringValue() == this->presentState)
 			births++;
-		if(rootState.getState() == 1 && rightState.getState() == 2)
+		if(rootState.getStringValue() == this->absentState && rightState.getStringValue() == this->presentState)
 			births++;
 
     	if(!left.isTip())
@@ -319,14 +335,35 @@ RevBayesCore::DiscreteTaxonData<RevBayesCore::StandardState>* RevBayesCore::Bina
     		births += numBirths(i,mapping,right);
 
     	StandardState c;
-    	c.setToFirstState();
     	if(births <= 1)
-    		c++;
+    		c.setState("1");
+    	else
+    		c.setState("0");
 
     	dolloCompatible->addCharacter(c);
     }
 
     return dolloCompatible;
+}
+
+template<class treeType>
+void RevBayesCore::BinaryCharEvoModel<treeType>::touchSpecialization( DagNode* affecter ) {
+
+    // if the topology wasn't the culprit for the touch, then we just flag everything as dirty
+    if ( affecter == this->dagNode )
+    {
+    	if(((DiscreteCharacterData<StandardState> *)this->value)->getNumberOfCharacters() > 0){
+			std::string symbols = ((DiscreteCharacterData<StandardState> *)this->value)->getCharacter(0,0).getStateLabels();
+
+			presentState = symbols[1];
+			absentState = symbols[0];
+    	}
+
+	}else
+	{
+		AbstractSiteCorrectionModel<StandardState,treeType>::touchSpecialization(affecter);
+    }
+
 }
 
 template<class treeType>
@@ -340,9 +377,9 @@ size_t RevBayesCore::BinaryCharEvoModel<treeType>::numBirths(size_t site, const 
 	StandardState rightState = mapping[right.getIndex()].getCharacter(site);
 
 	size_t births = 0;
-	if(nodeState.getState() == 1 && leftState.getState() == 2)
+	if(nodeState.getStringValue() == this->absentState && leftState.getStringValue() == this->presentState)
 		births++;
-	if(nodeState.getState() == 1 && rightState.getState() == 2)
+	if(nodeState.getStringValue() == this->absentState && rightState.getStringValue() == this->presentState)
 		births++;
 
 	if(!left.isTip())

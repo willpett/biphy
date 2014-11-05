@@ -44,7 +44,7 @@ namespace RevBayesCore {
         bool                                                computeAncestralMap(const TopologyNode& node, size_t site);
         void                                                computeAncestralNodes(const TopologyNode& node, size_t site);
 
-        size_t 												simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t birthNode, size_t rateIndex);
+        size_t 												simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t rateIndex);
 
 
         std::vector<std::vector<size_t> >                   ancestralNodes;
@@ -53,8 +53,10 @@ namespace RevBayesCore {
         bool												ancestralNeedsRecomputing;
 
         const TypedDagNode<Topology>*						topology;
-        std::vector<std::vector<std::vector<double> > >					totalmass;
+        std::vector<std::vector<std::vector<double> > >		totalmass;
         double												omega;
+
+        double												probAbsence;
     };
     
 }
@@ -76,7 +78,8 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const T
 	topology(t),
 	totalmass(this->tau->getValue().getNumberOfNodes(),std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0))),
 	ancestralNodes(this->numPatterns, std::vector<size_t>()),
-	omega(0.0)
+	omega(0.0),
+	probAbsence(0.0)
 {
 
 	// initialize with default parameters
@@ -94,7 +97,7 @@ template<class treeType>
 RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const DolloBinaryCharEvoModel &d) :
 	BinaryCharEvoModel<treeType>(d),
 	AbstractCharEvoModel<StandardState, treeType>(d),
-	ancestralNodes(d.ancestralNodes), topology(d.topology), totalmass(d.totalmass), omega(d.omega)
+	ancestralNodes(d.ancestralNodes), topology(d.topology), totalmass(d.totalmass), omega(d.omega), probAbsence(d.probAbsence)
 {
 	ancestralNeedsRecomputing = true;
 }
@@ -160,6 +163,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 						prob_birth *= 1-exp(-r*node.getBranchLength());
 				}
 
+
 				// temporary variable storing the likelihood
 				double tmp = 0.0;
 
@@ -188,10 +192,18 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 
 	for (size_t site = 0; site < this->numPatterns; ++site, ++patterns)
 	{
+		// if a site likelihood is zero, it means it is a constant absence site
+		// therefore, the likelihood is equal to probAbsence
+		if(per_mixture_Likelihoods[site] == 0.0)
+			per_mixture_Likelihoods[site] = probAbsence;
+
 		this->lnProb += log(per_mixture_Likelihoods[site])* *patterns;
 	}
 
-    this->lnProb -= this->lnCorrection;
+    this->lnProb -= log(this->numSites) + this->numSites*this->perSiteCorrection;
+
+    //reset probAbsence
+    probAbsence = 0.0;
 }
 
 
@@ -311,6 +323,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 		//Nicholls and Gray 2003
 		totalmass[nodeIndex][mixture][0] = prob;
 		totalmass[nodeIndex][mixture][1] = (1-pr)/r;
+
+		// just probability of absence site
+		probAbsence += u[0]*(1-pr)/r;
 	}
 
 }
@@ -390,6 +405,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 
 			totalmass[root][mixture][0] = prob;
 			totalmass[root][mixture][1] = 1.0/r;
+
+			// just probability of absence site
+			probAbsence += u[0]/r;
 		}
 
 		for(size_t i = 0; i < this->tau->getValue().getNumberOfNodes(); i++){
@@ -399,7 +417,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 		}
 	}
 
-	this->lnCorrection = log(this->numSites) + this->numSites*log(omega);
+	this->perSiteCorrection = log(omega);
 }
 
 template<class treeType>
@@ -421,18 +439,14 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::touchSpecialization( DagNo
     
     // if the topology wasn't the culprit for the touch, then we just flag everything as dirty
     if ( affecter == topology || affecter == this->dagNode )
-    {
     	ancestralNeedsRecomputing = true;
 
-	}else
-	{
-		if(affecter == this->siteRates){
-			for(size_t node = 0; node < this->tau->getValue().getNumberOfNodes(); node++)
-				totalmass[node] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
-		}
+	if(affecter == this->siteRates){
+		for(size_t node = 0; node < this->tau->getValue().getNumberOfNodes(); node++)
+			totalmass[node] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
+	}
 
-		AbstractSiteCorrectionModel<StandardState,treeType>::touchSpecialization(affecter);
-    }
+	BinaryCharEvoModel<treeType>::touchSpecialization(affecter);
     
 }
 
@@ -457,7 +471,8 @@ template<class treeType>
 bool RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestralMap(const TopologyNode& node, size_t site) {
 	if(node.isTip()){
 		unsigned long c = this->charMatrix[node.getName()][site];
-		if(c == 1){
+
+		if(c == 1 + this->usingAmbiguousCharacters){
 			ancestralMap[node.getIndex()] = true;
 		}else{
 			ancestralMap[node.getIndex()] = false;
@@ -563,14 +578,17 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
     {
         // draw the state
         size_t rateIndex = perSiteRates[i];
-        size_t birthNode = birthNodes[i];
+        const TopologyNode &birthNode = this->tau->getValue().getNode(birthNodes[i]);
 
-        std::vector<StandardState> siteData(numNodes, StandardState());
+        std::vector<StandardState> siteData(numNodes, StandardState(this->absentState,this->absentState+this->presentState));
+
+        siteData[birthNodes[i]].setState(this->presentState);
 
 		// recursively simulate the sequences
-		size_t numLeaves = simulate( this->tau->getValue().getRoot(), siteData, birthNode, rateIndex );
+		size_t numLeaves = simulate( birthNode, siteData, rateIndex );
 
-
+		//if(numLeaves > 0)
+		//std::cerr << numLeaves << std::endl;
 		// reject any site-patterns that are forbidden by our data acquisition settings
 		if((this->type & NO_ABSENT_SITES) && numLeaves == 0){
 			i--;
@@ -606,40 +624,33 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 }
 
 template<class treeType>
-size_t RevBayesCore::DolloBinaryCharEvoModel<treeType>::simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t birthNode, size_t rateIndex) {
+size_t RevBayesCore::DolloBinaryCharEvoModel<treeType>::simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t rateIndex) {
 
 	size_t numLeaves = 0;
     // get the children of the node
     const std::vector<TopologyNode*>& children = node.getChildren();
 
-    // get the sequence of this node
-    size_t nodeIndex = node.getIndex();
-    StandardState &parentState = taxa[ nodeIndex ];
+	// simulate the sequence for each child
+	RandomNumberGenerator* rng = GLOBAL_RNG;
+	for (std::vector< TopologyNode* >::const_iterator it = children.begin(); it != children.end(); ++it)
+	{
+		const TopologyNode &child = *(*it);
 
-    if(node.getIndex() == birthNode)
-    	parentState++;
+		// update the transition probability matrix
+		this->updateTransitionProbabilities( child.getIndex(), child.getBranchLength() );
 
-    // simulate the sequence for each child
-    RandomNumberGenerator* rng = GLOBAL_RNG;
-    for (std::vector< TopologyNode* >::const_iterator it = children.begin(); it != children.end(); ++it)
-    {
-        const TopologyNode &child = *(*it);
+		StandardState &childState = taxa[ child.getIndex() ];
 
-        // update the transition probability matrix
-        this->updateTransitionProbabilities( child.getIndex(), child.getBranchLength() );
+		double pij = this->transitionProbMatrices[ rateIndex ][1][1];
 
-        StandardState &childState = taxa[ child.getIndex() ];
+		if(rng->uniform01() < pij){
+			childState.setState(this->presentState);
 
-		double *pij = this->transitionProbMatrices[ rateIndex ][ 1 ];
-
-		if(parentState.getState() == 2)
-			if(rng->uniform01() < pij[1])
-				childState++;
-
-		if(child.isTip())
-			numLeaves += childState.getState() == 2;
-		else
-			numLeaves += simulate( child, taxa, birthNode, rateIndex );
+			if(child.isTip())
+				numLeaves++;
+			else
+				numLeaves += simulate( child, taxa, rateIndex );
+		}
 	}
 
     return numLeaves;

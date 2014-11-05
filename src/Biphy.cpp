@@ -210,13 +210,43 @@ void Biphy::init( void ) {
 		throw(RbException("Error: simulation of Dollo incompatible mappings under Dollo model doesn't make sense"));
 
     std::vector<AbstractCharacterData*> data = NclReader::getInstance().readMatrices(dataFile);
-    std::cout << "Read " << data.size() << " matrices." << std::endl;
+
+    // data checks
+    if(data[0]->getDatatype() != "Standard"){
+    	std::cerr << "Error: incompatible datatype '" << data[0]->getDatatype() << "'" << std::endl;
+    	exit(1);
+    }
+
+    std::string symbols = ((DiscreteCharacterData<StandardState> *)data[0])->getCharacter(0,0).getStateLabels();
+	std::stringstream states;
+	states << "character states:\t";
+	for(size_t c = 0; c < symbols.size(); c++){
+		if(c == 0)
+			states << symbols[c] << " = absent";
+		if(c == 1)
+			states << symbols[c] << " = present" ;
+		if(c != symbols.size() - 1)
+			states << ", ";
+	}
+	std::cout << states.str() << std::endl;
 
     std::vector<AbstractCharacterData*> cvdata;
-    if(cvfile != "None"){
+	if(cvfile != "None"){
 		cvdata = NclReader::getInstance().readMatrices(cvfile);
-		std::cout << "Cross-validating " << cvdata.size() << " matrices." << std::endl;
-    }
+		std::cout << "computing cross-validation scores for " << cvfile << std::endl;
+
+		// data checks
+		if(cvdata[0]->getDatatype() != "Standard"){
+			std::cerr << "Error: incompatible datatype '" << data[0]->getDatatype() << "'" << std::endl;
+			exit(1);
+		}
+
+		std::string cvsymbols = ((DiscreteCharacterData<StandardState> *)cvdata[0])->getCharacter(0,0).getStateLabels();
+		if(cvsymbols != symbols){
+			std::cerr << "Error: character states in test alignment don't match the original dataset" << std::endl;
+			exit(1);
+		}
+	}
 
     std::vector<TimeTree*> trees;
     Topology fixedTree;

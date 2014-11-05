@@ -1,1 +1,1 @@
-biphy -x 10 -1 -d metazoa.nex -o outgroup.txt -nh meta1
+biphy -x 10 -d metazoa.nex -o outgroup.txt -u 5 meta1

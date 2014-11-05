@@ -331,7 +331,7 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
         {
             std::string name = (*it)->getName();
             AbstractTaxonData& taxon = value->getTaxonData( name );
-            
+
             // resize the column
             charMatrix[name].resize(numPatterns);
             gapMatrix[name].resize(numPatterns);
@@ -375,7 +375,7 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
             }
         }
     }
-    
+
     // finally we resize the partial likelihood vectors to the new pattern counts
     this->resizeLikelihoodVectors();
     

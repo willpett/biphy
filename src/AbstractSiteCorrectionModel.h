@@ -67,14 +67,14 @@ namespace RevBayesCore {
 
 
         size_t																N;
-        double																lnCorrection;
+        double																perSiteCorrection;
 
         std::map<std::string,std::vector<unsigned long> >                   correctionCharMatrix;
         std::map<std::string,std::vector<bool> >                   			correctionGapMatrix;
 
         size_t																numCorrectionSites;
 
-        std::vector<double>													per_mixtureCorrections;
+        std::vector<double>													perMixtureCorrections;
 
     private:
         
@@ -98,7 +98,7 @@ template<class charType, class treeType>
 RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::AbstractSiteCorrectionModel(const TypedDagNode<treeType> *t, size_t nChars, bool c, size_t nSites) :
 	GeneralCharEvoModel<charType, treeType>(t, nChars, c, nSites),
 	AbstractCharEvoModel<charType, treeType>(t, nChars, c, nSites),
-	lnCorrection(0.0), numCorrectionSites(0), per_mixtureCorrections(this->numSiteRates,0.0), N(nSites)
+	perSiteCorrection(0.0), numCorrectionSites(0), perMixtureCorrections(this->numSiteRates,0.0), N(nSites)
 {
 }
 
@@ -107,11 +107,11 @@ template<class charType, class treeType>
 RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::AbstractSiteCorrectionModel(const AbstractSiteCorrectionModel &n) :
 	GeneralCharEvoModel<charType, treeType>( n ),
 	AbstractCharEvoModel<charType, treeType>( n ),
-	lnCorrection(n.lnCorrection),
+	perSiteCorrection(n.perSiteCorrection),
 	numCorrectionSites(n.numCorrectionSites),
 	correctionCharMatrix(n.correctionCharMatrix),
 	correctionGapMatrix(n.correctionGapMatrix),
-	per_mixtureCorrections(n.per_mixtureCorrections),
+	perMixtureCorrections(n.perMixtureCorrections),
 	N(n.N)
 {
 }
@@ -130,7 +130,7 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootL
 
     computeRootCorrection(root, left, right);
 
-    this->lnProb -= this->numSites*lnCorrection;
+    this->lnProb -= log(this->numSites) + this->numSites*perSiteCorrection;
 
 }
 
@@ -158,7 +158,7 @@ template<class charType, class treeType>
 void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootCorrection( size_t root, size_t left, size_t right)
 {
     // reset the likelihood
-    lnCorrection = 0.0;
+    perSiteCorrection = 0.0;
 
     if(numCorrectionSites == 0)
     	return;
@@ -178,7 +178,7 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
     // iterate over all mixture categories
     for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
     {
-    	per_mixtureCorrections[mixture] = 0.0;
+    	perMixtureCorrections[mixture] = 0.0;
         // get pointers to the likelihood for this mixture category
     	std::vector<double>::const_iterator   p_site_mixture_left     = p_mixture_left+this->numPatterns*this->siteOffset;
     	std::vector<double>::const_iterator   p_site_mixture_right    = p_mixture_right+this->numPatterns*this->siteOffset;
@@ -202,7 +202,7 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
                 ++p_site_left_j; ++p_site_right_j;
             }
             // add the likelihood for this mixture category
-            per_mixtureCorrections[mixture] += tmp;
+            perMixtureCorrections[mixture] += tmp;
 
             // increment the pointers to the next site
             p_site_mixture_left+=this->siteOffset; p_site_mixture_right+=this->siteOffset;
@@ -217,11 +217,11 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
     // sum the log-likelihoods for all sites together
     for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
     {
-        lnCorrection += per_mixtureCorrections[mixture];
+        perSiteCorrection += perMixtureCorrections[mixture];
     }
     // normalize the log-probability
-    lnCorrection /= this->numSiteRates;
-    lnCorrection = log(1-lnCorrection);
+    perSiteCorrection /= this->numSiteRates;
+    perSiteCorrection = log(1-perSiteCorrection);
 
 }
 
@@ -394,7 +394,7 @@ template<class charType, class treeType>
 void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::touchSpecialization( DagNode* affecter ) {
 
 	if(affecter == this->siteRates)
-		per_mixtureCorrections = std::vector<double>(this->numSiteRates,0.0);
+		perMixtureCorrections = std::vector<double>(this->numSiteRates,0.0);
 
 	GeneralCharEvoModel<charType, treeType>::touchSpecialization(affecter);
 
