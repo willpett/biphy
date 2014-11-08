@@ -45,8 +45,6 @@ namespace RevBayesCore {
         void                                                simulate(const TopologyNode& node, std::vector< DiscreteTaxonData< charType > > &t, const std::vector<size_t> &perSiteRates);
         std::vector< DiscreteTaxonData<charType> > 			mapping;
 
-        std::vector<std::vector<double> > 					per_node_Likelihoods;
-
     };
     
 }
@@ -110,7 +108,7 @@ void RevBayesCore::GeneralCharEvoModel<charType, treeType>::computeRootLikelihoo
     // create a vector for the per mixture likelihoods
     // we need this vector to sum over the different mixture likelihoods
     std::vector<double> per_mixture_Likelihoods = std::vector<double>(this->numPatterns,0.0);
-    
+
     // iterate over all mixture categories
     for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture) 
     {

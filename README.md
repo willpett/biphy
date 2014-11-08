@@ -5,13 +5,17 @@ biphy is a tool for conducting Bayesian phylogenetic analysis of binary characte
 
 Several time- homogeneous and heterogeneous models are available, as well as functions for conducting posterior predictive simulations and for computing cross-validation scores.
 
-### Requirements
+### Build Requirements
 
+CMake
 OpenMP-enabled g++
 
 ### Install
 
+To build biphy, simply type
 
-To install biphy, simply type
+```sh build.sh```
+
+then to install, type
 
 ```sudo sh build.sh install```

@@ -217,11 +217,10 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
     // sum the log-likelihoods for all sites together
     for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
     {
-        perSiteCorrection += perMixtureCorrections[mixture];
+        perSiteCorrection += 1 - perMixtureCorrections[mixture];
     }
     // normalize the log-probability
-    perSiteCorrection /= this->numSiteRates;
-    perSiteCorrection = log(1-perSiteCorrection);
+    perSiteCorrection = log(perSiteCorrection) - log(this->numSiteRates);
 
 }
 
