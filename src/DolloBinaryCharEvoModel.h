@@ -200,7 +200,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 		this->lnProb += log(per_mixture_Likelihoods[site])* *patterns;
 	}
 
-    this->lnProb -= log(this->numSites) + this->numSites*this->perSiteCorrection;
+    this->lnProb -= log(this->numSites) + this->numSites*this->perSiteCorrection + this->numSites*log( this->numSiteRates );
 
     //reset probAbsence
     probAbsence = 0.0;
@@ -417,7 +417,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 		}
 	}
 
-	this->perSiteCorrection = log(omega);
+	this->perSiteCorrection = log(omega) - log(this->numSiteRates);
 }
 
 template<class treeType>
