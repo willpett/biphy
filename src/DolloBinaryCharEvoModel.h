@@ -343,7 +343,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 		//If all site-patterns can, in principle, be observed
 		//then omega is just the tree length
 
-		omega = this->tau->getValue().getTreeLength()*this->numSiteRates;
+		omega = this->tau->getValue().getTreeLength()*this->numSiteRates	;
 	}else{
 		// get the pointers to the partial likelihoods for this node and the two descendant subtrees
 		std::vector<double>::const_iterator   p_left  = this->partialLikelihoods.begin() + this->activeLikelihood[left]*this->activeLikelihoodOffset + left*this->nodeOffset;
