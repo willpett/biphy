@@ -180,7 +180,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 				}
 
 				// add the likelihood for this mixture category
-				per_mixture_Likelihoods[site] += tmp*prob_birth;
+				per_mixture_Likelihoods[site] += tmp*prob_birth/this->numSiteRates;
 			}
 		}
     }
@@ -200,7 +200,11 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 		this->lnProb += log(per_mixture_Likelihoods[site])* *patterns;
 	}
 
-    this->lnProb -= log(this->numSites) + this->numSites*this->perSiteCorrection + this->numSites*log( this->numSiteRates );
+	// normalize mixtures
+	//this->lnProb -= this->numSites*log( this->numSiteRates );
+
+	//apply correction
+    this->lnProb -= log(this->numSites) + this->numSites*this->perSiteCorrection;
 
     //reset probAbsence
     probAbsence = 0.0;
