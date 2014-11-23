@@ -475,8 +475,9 @@ template<class treeType>
 bool RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestralMap(const TopologyNode& node, size_t site) {
 	if(node.isTip()){
 		unsigned long c = this->charMatrix[node.getName()][site];
+		bool gap = this->gapMatrix[node.getName()][site];
 
-		if(c == 1 + this->usingAmbiguousCharacters){
+		if(gap || c == 1 + this->usingAmbiguousCharacters){
 			ancestralMap[node.getIndex()] = true;
 		}else{
 			ancestralMap[node.getIndex()] = false;
