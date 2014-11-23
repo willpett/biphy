@@ -260,7 +260,6 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
             break;
         }
     }
-    
     // set the global variable if we use ambiguous characters
     usingAmbiguousCharacters = ambiguousCharacters;
 

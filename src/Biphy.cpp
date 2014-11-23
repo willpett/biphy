@@ -209,9 +209,15 @@ void Biphy::init( void ) {
 	if(dolloMapping && modeltype == DOLLO)
 		throw(RbException("Error: simulation of Dollo incompatible mappings under Dollo model doesn't make sense"));
 
+	//const string format("phylip|standard|sequential");
     std::vector<AbstractCharacterData*> data = NclReader::getInstance().readMatrices(dataFile);
 
     // data checks
+    if(data.empty()){
+		//std::cerr << "Error: failed to read datafile" << std::endl;
+		exit(1);
+	}
+
     if(data[0]->getDatatype() != "Standard"){
     	std::cerr << "Error: incompatible datatype '" << data[0]->getDatatype() << "'" << std::endl;
     	exit(1);

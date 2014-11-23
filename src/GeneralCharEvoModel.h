@@ -241,7 +241,6 @@ void RevBayesCore::GeneralCharEvoModel<charType, treeType>::computeTipLikelihood
             if ( gap_node[site] ) 
             {
                 // since this is a gap we need to assume that the actual state could have been any state
-                
                 // iterate over all initial states for the transitions
                 for (size_t c1 = 0; c1 < this->numChars; ++c1) 
                 {
