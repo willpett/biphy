@@ -22,7 +22,7 @@
 
 #include <string>
 #include <vector>
-#include "BinaryCharEvoModel.h"
+#include "BinaryPartitionModel.h"
 #include "ParallelMcmcmc.h"
     
 class Biphy {
@@ -41,7 +41,7 @@ class Biphy {
     										ModelType modeltype,
 											BranchPrior branchprior,
 											RootPrior rootprior,
-											RevBayesCore::CorrectionType correction,
+											int correction,
     										int dgam,
     										int mixture,
     										double rootmin,
@@ -76,7 +76,7 @@ class Biphy {
         ModelType 								modeltype;
 		BranchPrior 							branchprior;
 		RootPrior 								rootprior;
-		RevBayesCore::CorrectionType 			correction;
+		int 									correction;
 
         int										dgam;
         int 									mixture;

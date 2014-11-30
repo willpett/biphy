@@ -26,7 +26,7 @@ int main (int argc, const char * argv[])
 	double rootmin = 0.0;
 	double rootmax = 1.0;
 
-	RevBayesCore::CorrectionType correction = RevBayesCore::NONE;
+	int correction = RevBayesCore::NONE;
 
 	int every = 1;
 	int until = -1;

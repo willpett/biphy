@@ -475,9 +475,8 @@ template<class treeType>
 bool RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeAncestralMap(const TopologyNode& node, size_t site) {
 	if(node.isTip()){
 		unsigned long c = this->charMatrix[node.getName()][site];
-		bool gap = this->gapMatrix[node.getName()][site];
 
-		if(gap || c == 1 + this->usingAmbiguousCharacters){
+		if(c == 1 + this->usingAmbiguousCharacters){
 			ancestralMap[node.getIndex()] = true;
 		}else{
 			ancestralMap[node.getIndex()] = false;
@@ -534,7 +533,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
     	// given lambda ~ 1/lambda
 		double lambda = RbStatistics::Gamma::rv(this->N,omega, *rng);
 
-		// then resample numSites from Poisson( exp(lnCorrection)*gamma )
+		// then resample numSites from Poisson( lambda*omega )
 		this->numSites = RbStatistics::Poisson::rv( lambda*omega, *rng);
 
 		//std::cerr << "lambda: " << lambda << "\tN: " << this->numSites << std::endl;

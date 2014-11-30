@@ -26,7 +26,7 @@ namespace RevBayesCore {
      * specific instance of the per site parameter is integrated over. The per site parameter could be a rate scaler (e.g. the + gamma models)
      * or different rate matrices or anything else.
      *
-     * The pruning algorithm is implemented in this base class and calles some few pure virtual methods. 
+     * The pruning algorithm is implemented in this base class and calles some few pure virtual methods.
      * The important functions you have to override are:
      * - getRootFrequencies()
      * - updateTransitionProbabilities()
@@ -214,7 +214,7 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootC
 
     } // end-for over all mixtures (=rate categories)
 
-    // sum the log-likelihoods for all sites together
+    // sum the likelihoods for all mixtures together
     for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
     {
         perSiteCorrection += 1 - perMixtureCorrections[mixture];

@@ -14,15 +14,15 @@
 #include "TypedDistribution.h"
 
 namespace RevBayesCore {
-    
-	enum CorrectionType { NONE 					= 0x00,
+
+	enum BinaryCorrectionType { //NONE 					= 0x00,
 						  NO_ABSENT_SITES		= 0x01,
 						  NO_PRESENT_SITES		= 0x02,
-						  NO_CONSTANT_SITES		= 0x03,
+						  //NO_CONSTANT_SITES		= 0x03,
 						  NO_SINGLETON_GAINS 	= 0x04,
 						  NO_SINGLETON_LOSSES	= 0x08,
 						  NO_SINGLETONS			= 0x0C,
-						  NO_UNINFORMATIVE		= 0x0F
+						  //NO_UNINFORMATIVE		= 0x0F
 						};
 
     template<class treeType>

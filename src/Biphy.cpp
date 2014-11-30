@@ -1,9 +1,9 @@
 #include "AbstractCharacterData.h"
 #include "Biphy.h"
-#include "BinaryCharEvoModel.h"
 #include "BinaryDivision.h"
-#include "BinaryDolloCompatibleMonitor.h"
+//#include "BinaryDolloCompatibleMonitor.h"
 #include "BinaryMultiplication.h"
+#include "BinaryPartitionModel.h"
 #include "BinarySubtraction.h"
 #include "BetaDistribution.h"
 #include "BetaSimplexMove.h"
@@ -15,7 +15,7 @@
 #include "DeterministicNode.h"
 #include "DirichletDistribution.h"
 #include "DirichletProcessPriorDistribution.h"
-#include "DolloBinaryCharEvoModel.h"
+#include "DolloBinaryPartitionModel.h"
 #include "DPPAllocateAuxGibbsMove.h"
 #include "DPPGibbsConcentrationMove.h"
 #include "DppNumTablesStatistic.h"
@@ -39,6 +39,7 @@
 #include "NewickTreeMonitor.h"
 #include "NexusTreeMonitor.h"
 #include "ParallelMcmcmc.h"
+#include "PartitionedSiteCorrectionModel.h"
 #include "PosteriorPredictiveStateFrequencyMonitor.h"
 #include "QuantileFunction.h"
 #include "RbSettings.h"
@@ -68,7 +69,7 @@ Biphy::Biphy(const std::string &datafile,
 									ModelType modeltype,
 									BranchPrior branchprior,
 									RootPrior rootprior,
-									CorrectionType correction,
+									int correction,
 									int dgam,
 									int mixture,
 									double rootmin,
@@ -153,8 +154,7 @@ void Biphy::open( void ) {
 	branchprior = static_cast<BranchPrior>(i);
 	is >> i;
 	rootprior = static_cast<RootPrior>(i);
-	is >> i;
-	correction = static_cast<CorrectionType>(i);
+	is >> correction;
 	is >> mixture;
 	is >> dgam;
 	is >> rootmin;
@@ -593,12 +593,12 @@ void Biphy::init( void ) {
     DeterministicNode<BranchLengthTree> *psi = new DeterministicNode<BranchLengthTree>( "psi", new TreeAssemblyFunction(tau, br_vector) );
     std::cout << "tree okay\n";
 
-    BinaryCharEvoModel<BranchLengthTree> *charModel;
+    BinaryPartitionModel<BranchLengthTree> *charModel;
     StochasticNode<double> *birthrate;
     if(modeltype == DOLLO){
-		charModel = new DolloBinaryCharEvoModel<BranchLengthTree>(psi, tau, true, data[0]->getNumberOfCharacters(), correction);
+		charModel = new DolloBinaryPartitionModel<BranchLengthTree>(psi, tau, true, data[0]->getNumberOfCharacters(), correction);
 	}else{
-		charModel = new BinaryCharEvoModel<BranchLengthTree>(psi, true, data[0]->getNumberOfCharacters(), correction);
+		charModel = new BinaryPartitionModel<BranchLengthTree>(psi, true, data[0]->getNumberOfCharacters(), correction);
     }
 
     std::vector<const TypedDagNode<double> *> rf_vec(2);
@@ -724,8 +724,8 @@ void Biphy::init( void ) {
 			monitors.push_back( new PosteriorPredictiveStateFrequencyMonitor( charactermodel, every, name+".ppred",useParallelMcmcmc) );
 		if(cvdata.size() > 0)
 			monitors.push_back( new CrossValidationScoreMonitor( charactermodel, cvdata[0], every, name+".cv",useParallelMcmcmc) );
-		if(dolloMapping)
-			monitors.push_back( new BinaryDolloCompatibleMonitor<BranchLengthTree>( charactermodel, every, name+".dollo.fa") );
+		//if(dolloMapping)
+		//	monitors.push_back( new BinaryDolloCompatibleMonitor<BranchLengthTree>( charactermodel, every, name+".dollo.fa") );
 	}else{
 		monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc || restart, useParallelMcmcmc, false ) );
 		if(!treeFixed){
