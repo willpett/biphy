@@ -139,6 +139,7 @@ void RevBayesCore::PartitionedSiteCorrectionModel<charType, treeType>::computeRo
     computeRootCorrections(root, left, right);
 
     for(size_t partition = 0; partition < numCorrectionPartitions; partition++){
+    	//std::cerr << numSitesPerPartition[partition] << "\t" << perPartitionLnCorrections[partition] << std::endl;
     	this->lnProb -= numSitesPerPartition[partition]*perPartitionLnCorrections[partition];
     }
 }

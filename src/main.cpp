@@ -284,7 +284,7 @@ int main (int argc, const char * argv[])
 		throw(e);
 	}catch(...){
 
-		cerr << "biphy version 1.0\n";
+		cerr << "biphy " << VERSION << "\n";
 		cerr << '\n';
 		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n";
 
