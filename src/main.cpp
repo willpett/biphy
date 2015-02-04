@@ -339,7 +339,7 @@ int main (int argc, const char * argv[])
 		cerr << "\t-cv <file>\tcross-validation test alignment\n";
 
 		cerr << "\nOther options:\n";
-		cerr << "\t-i\t\tIID missing data proportions across taxa\n";
+		cerr << "\t-i\t\tIID missing data proportions across taxa (default: disabled)\n";
 		exit(1);
 	}
 
