@@ -41,6 +41,7 @@ int main (int argc, const char * argv[])
 	bool nexus = false;
 	bool ppred = false;
 	bool dolloMapping = false;
+	bool IIDmissing = false;
 
 	Biphy *chain = NULL;
 
@@ -103,6 +104,8 @@ int main (int argc, const char * argv[])
 				}
 				else if (s == "-e")	{
 					nexus = true;
+				}else if (s == "-i")	{
+					IIDmissing = true;
 				}else if (s == "-dollo"){
 					modeltype = Biphy::DOLLO;
 				}else if (s == "-map"){
@@ -334,6 +337,9 @@ int main (int argc, const char * argv[])
 		cerr << "\nModel-checking options:\n";
 		cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
 		cerr << "\t-cv <file>\tcross-validation test alignment\n";
+
+		cerr << "\nOther options:\n";
+		cerr << "\t-i\t\tIID missing data proportions across taxa\n";
 		exit(1);
 	}
 
@@ -361,7 +367,7 @@ int main (int argc, const char * argv[])
 					remove((name+".treelist.nex").c_str());
 			}
 
-			chain = new Biphy(datafile,name,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
+			chain = new Biphy(datafile,name,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,mixture,IIDmissing,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
 		}else{
 			if(!fexists(name+".stream")){
 				cerr << "run '" << name << "' does not exist\n";

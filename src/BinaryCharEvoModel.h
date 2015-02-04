@@ -15,14 +15,14 @@
 
 namespace RevBayesCore {
 
-	enum BinaryCorrectionType { //NONE 					= 0x00,
+	enum CorrectionType { NONE 					= 0x00,
 						  NO_ABSENT_SITES		= 0x01,
 						  NO_PRESENT_SITES		= 0x02,
-						  //NO_CONSTANT_SITES		= 0x03,
+						  NO_CONSTANT_SITES		= 0x03,
 						  NO_SINGLETON_GAINS 	= 0x04,
 						  NO_SINGLETON_LOSSES	= 0x08,
 						  NO_SINGLETONS			= 0x0C,
-						  //NO_UNINFORMATIVE		= 0x0F
+						  NO_UNINFORMATIVE		= 0x0F
 						};
 
     template<class treeType>
@@ -40,6 +40,10 @@ namespace RevBayesCore {
 
     protected:
         
+        virtual void                        				computeRootCorrection(size_t root, size_t l, size_t r);
+		virtual void                        				computeInternalNodeCorrection(const TopologyNode &n, size_t nIdx, size_t l, size_t r);
+		virtual void                        				computeTipCorrection(const TopologyNode &node, size_t nIdx);
+
         void                                        		touchSpecialization(DagNode *toucher);
         virtual void                                        setCorrectionPatterns();
         size_t 												simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t rateIndex);
@@ -49,8 +53,8 @@ namespace RevBayesCore {
         int													type;
         DiscreteTaxonData<StandardState> *					dolloCompatible;
 
-        std::string										presentState;
-        std::string										absentState;
+        std::string											presentState;
+        std::string											absentState;
 
     };
     
@@ -72,12 +76,7 @@ RevBayesCore::BinaryCharEvoModel<treeType>::BinaryCharEvoModel(const TypedDagNod
 	AbstractSiteCorrectionModel<StandardState, treeType>(t, 2, c , nSites), type(type),
 	dolloCompatible(new DiscreteTaxonData<StandardState>())
 {
-	size_t numTips = this->tau->getValue().getNumberOfTips();
-
-	this->numCorrectionSites = (bool)(type & NO_ABSENT_SITES)
-							 + (bool)(type & NO_PRESENT_SITES)
-							 + numTips*(bool)(type & NO_SINGLETON_GAINS)
-							 + numTips*(bool)(type & NO_SINGLETON_LOSSES);
+	this->numCorrectionSites = 4*(type > 0);
 
 	this->resizeLikelihoodVectors();
 
@@ -110,55 +109,8 @@ RevBayesCore::BinaryCharEvoModel<treeType>* RevBayesCore::BinaryCharEvoModel<tre
 
 template<class treeType>
 void RevBayesCore::BinaryCharEvoModel<treeType>::setCorrectionPatterns(){
-
-	size_t numTips = this->tau->getValue().getNumberOfTips();
-	std::vector<TopologyNode*> nodes = this->tau->getValue().getNodes();
-	// allocate and fill the cells of the matrices
-
 	this->correctionCharMatrix.clear();
 	this->correctionGapMatrix.clear();
-
-	size_t present = 1 + this->usingAmbiguousCharacters;
-	size_t absent = this->usingAmbiguousCharacters;
-
-	size_t nonSingletons = (bool)(type & NO_ABSENT_SITES) + (bool)(type & NO_PRESENT_SITES);
-	size_t i = 0;
-	for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it)
-	{
-		if ( (*it)->isTip() )
-		{
-			std::string name = (*it)->getName();
-
-			// resize the column
-			this->correctionCharMatrix[name].resize(this->numCorrectionSites);
-			this->correctionGapMatrix[name].resize(this->numCorrectionSites);
-
-			for (size_t site = 0; site < this->numCorrectionSites; ++site)
-			{
-				this->correctionGapMatrix[name][site] = false;
-				if(site < nonSingletons){
-					if(site == 0)
-						this->correctionCharMatrix[name][site] = (type & NO_ABSENT_SITES) ? absent : present;
-					else
-						this->correctionCharMatrix[name][site] = present;
-				}else{
-					if(site - nonSingletons < numTips)
-						if(site - nonSingletons == i){
-							this->correctionCharMatrix[name][site] = (type & NO_SINGLETON_LOSSES) ? absent : present;
-						}else{
-							this->correctionCharMatrix[name][site] = (type & NO_SINGLETON_LOSSES) ? present : absent;
-						}
-					else
-						if(site - nonSingletons == numTips + i){
-							this->correctionCharMatrix[name][site] = present;
-						}else{
-							this->correctionCharMatrix[name][site] = absent;
-						}
-				}
-			}
-			i++;
-		}
-	}
 }
 
 template<class treeType>
@@ -303,6 +255,178 @@ size_t RevBayesCore::BinaryCharEvoModel<treeType>::simulate( const TopologyNode 
 
     return numLeaves;
 
+}
+
+template<class treeType>
+void RevBayesCore::BinaryCharEvoModel<treeType>::computeTipCorrection(const TopologyNode &node, size_t nodeIndex)
+{
+	if(this->numCorrectionSites == 0)
+		return;
+
+	std::vector<double>::iterator p_node = this->partialLikelihoods.begin() + this->activeLikelihood[nodeIndex]*this->activeLikelihoodOffset + nodeIndex*this->nodeOffset;
+
+	// iterate over all mixture categories
+
+	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
+	{
+
+		size_t offset = mixture*this->mixtureOffset + this->numPatterns*this->siteOffset;
+
+		std::vector<double>::iterator     	u      = p_node + offset;
+
+		//Probability of no observed presence in all leaves descending from this node
+		u[0] = 1.0;
+		u[1] = 0.0;
+
+		//Probability of observed presence in only one leaf descending from this node
+		u[2] = 0.0;
+		u[3] = 1.0;
+
+		//Probability of observed presence in all leaves descending from this node
+		u[4] = 0.0;
+		u[5] = 1.0;
+
+		//Probability of observed presence in all but one leaves descending from this node
+		u[6] = 1.0;
+		u[7] = 0.0;
+
+	}
+}
+
+template<class treeType>
+void RevBayesCore::BinaryCharEvoModel<treeType>::computeInternalNodeCorrection(const TopologyNode &node, size_t nodeIndex, size_t left, size_t right)
+{
+
+	if(this->numCorrectionSites == 0)
+		return;
+
+	// get the pointers to the partial likelihoods for this node and the two descendant subtrees
+	std::vector<double>::const_iterator   p_left  = this->partialLikelihoods.begin() + this->activeLikelihood[left]*this->activeLikelihoodOffset + left*this->nodeOffset;
+	std::vector<double>::const_iterator   p_right = this->partialLikelihoods.begin() + this->activeLikelihood[right]*this->activeLikelihoodOffset + right*this->nodeOffset;
+	std::vector<double>::iterator         p_node  = this->partialLikelihoods.begin() + this->activeLikelihood[nodeIndex]*this->activeLikelihoodOffset + nodeIndex*this->nodeOffset;
+
+	const TopologyNode &left_node = this->tau->getValue().getNode(left);
+	const TopologyNode &right_node = this->tau->getValue().getNode(right);
+
+	// iterate over all mixture categories
+
+	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
+	{
+		this->updateTransitionProbabilities( left, left_node.getBranchLength() );
+		TransitionProbabilityMatrix	pij    		= this->transitionProbMatrices[mixture];
+
+		this->updateTransitionProbabilities( right, right_node.getBranchLength() );
+		TransitionProbabilityMatrix	pik    		= this->transitionProbMatrices[mixture];
+
+		size_t offset = mixture*this->mixtureOffset + this->numPatterns*this->siteOffset;
+
+		std::vector<double>::iterator     			u       = p_node + offset;
+		std::vector<double>::const_iterator     	u_j  	= p_left + offset;
+		std::vector<double>::const_iterator     	u_k 	= p_right + offset;
+
+		for(size_t site = 0; site < 8; site += 4){
+			u[site] = 0;
+			u[site + 1] = 0;
+			u[site + 2] = 0;
+			u[site + 3] = 0;
+			for(size_t cj = 0; cj < 2; cj++){
+				for(size_t ck = 0; ck < 2; ck++){
+					u[site] 	+= pij[0][cj]*u_j[site + cj]*pik[0][ck]*u_k[site + ck];
+					u[site + 1] += pij[1][cj]*u_j[site + cj]*pik[1][ck]*u_k[site + ck];
+
+					u[site + 2] += pij[0][cj]*u_j[site + cj]*pik[0][ck]*u_k[site + 2 + ck] + pij[0][cj]*u_j[site + 2 + cj]*pik[0][ck]*u_k[site + ck];
+					u[site + 3] += pij[1][cj]*u_j[site + cj]*pik[1][ck]*u_k[site + 2 + ck] + pij[1][cj]*u_j[site + 2 + cj]*pik[1][ck]*u_k[site + ck];
+				}
+			}
+		}
+	}
+
+}
+
+template<class treeType>
+void RevBayesCore::BinaryCharEvoModel<treeType>::computeRootCorrection( size_t root, size_t left, size_t right)
+{
+	this->perSiteCorrection = 0.0;
+
+	if(this->numCorrectionSites > 0){
+
+		const std::vector<double> &f                    = this->getRootFrequencies();
+
+		// get the pointers to the partial likelihoods for this node and the two descendant subtrees
+		std::vector<double>::const_iterator   p_left  = this->partialLikelihoods.begin() + this->activeLikelihood[left]*this->activeLikelihoodOffset + left*this->nodeOffset;
+		std::vector<double>::const_iterator   p_right = this->partialLikelihoods.begin() + this->activeLikelihood[right]*this->activeLikelihoodOffset + right*this->nodeOffset;
+		std::vector<double>::iterator         p_node  = this->partialLikelihoods.begin() + this->activeLikelihood[root]*this->activeLikelihoodOffset + root*this->nodeOffset;
+
+		const TopologyNode &left_node = this->tau->getValue().getNode(left);
+		const TopologyNode &right_node = this->tau->getValue().getNode(right);
+
+		// iterate over all mixture categories
+		for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
+		{
+			this->perMixtureCorrections[mixture] = 0.0;
+
+			//get the 1->1 transition probabilities for each branch
+			this->updateTransitionProbabilities( left, left_node.getBranchLength() );
+			TransitionProbabilityMatrix	pij    		= this->transitionProbMatrices[mixture];
+
+			this->updateTransitionProbabilities( right, right_node.getBranchLength() );
+			TransitionProbabilityMatrix	pik    		= this->transitionProbMatrices[mixture];
+
+			size_t offset = mixture*this->mixtureOffset + this->numPatterns*this->siteOffset;
+
+			std::vector<double>::iterator     			u       = p_node + offset;
+			std::vector<double>::const_iterator     	u_j  	= p_left + offset;
+			std::vector<double>::const_iterator     	u_k 	= p_right + offset;
+
+			for(size_t site = 0; site < 8; site += 4){
+				u[site] = 0;
+				u[site + 1] = 0;
+				u[site + 2] = 0;
+				u[site + 3] = 0;
+				for(size_t cj = 0; cj < 2; cj++){
+					for(size_t ck = 0; ck < 2; ck++){
+						u[site] 	+= pij[0][cj]*u_j[site + cj]*pik[0][ck]*u_k[site + ck];
+						u[site + 1] += pij[1][cj]*u_j[site + cj]*pik[1][ck]*u_k[site + ck];
+
+						u[site + 2] += pij[0][cj]*u_j[site + cj]*pik[0][ck]*u_k[site + 2 + ck] + pij[0][cj]*u_j[site + 2 + cj]*pik[0][ck]*u_k[site + ck];
+						u[site + 3] += pij[1][cj]*u_j[site + cj]*pik[1][ck]*u_k[site + 2 + ck] + pij[1][cj]*u_j[site + 2 + cj]*pik[1][ck]*u_k[site + ck];
+					}
+				}
+			}
+
+			bool jl = left_node.isTip();
+			bool kl = right_node.isTip();
+
+
+			//std::cerr << u[0] << "\t" << u[1] << std::endl;
+
+			double prob = 1.0;
+			if(this->type & NO_ABSENT_SITES)
+				prob -= u[0]*f[0] + u[1]*f[1];
+			if(this->type & NO_SINGLETON_GAINS)
+				prob -= u[2]*f[0] + u[3]*f[1];
+			if(this->type & NO_PRESENT_SITES)
+				prob -= u[4]*f[0] + u[5]*f[1];
+			//If both of this node's children are leaves, then u[1] = u[3]
+			if((this->type & NO_SINGLETON_LOSSES) && !(jl && kl))
+				prob -= u[6]*f[0] + u[7]*f[1];
+
+			// correct rounding errors
+			if(prob < 0)
+				prob = 0;
+
+			//std::cerr << prob << std::endl;
+
+			this->perMixtureCorrections[mixture] = prob;
+		}
+
+		// sum the likelihoods for all mixtures together
+		for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
+			this->perSiteCorrection += this->perMixtureCorrections[mixture];
+
+		// normalize the log-probability
+		this->perSiteCorrection = log(this->perSiteCorrection) - log(this->numSiteRates);
+	}
 }
 
 template<class treeType>

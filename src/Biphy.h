@@ -22,7 +22,7 @@
 
 #include <string>
 #include <vector>
-#include "BinaryPartitionModel.h"
+#include "BinaryCharEvoModel.h"
 #include "ParallelMcmcmc.h"
     
 class Biphy {
@@ -44,6 +44,7 @@ class Biphy {
 											int correction,
     										int dgam,
     										int mixture,
+											bool IIDmissing,
     										double rootmin,
     										double rootmax,
     										int every,
@@ -80,6 +81,7 @@ class Biphy {
 
         int										dgam;
         int 									mixture;
+        bool									IIDmissing;
         bool									ppred;
         double                                  rootmin;
         double                                  rootmax;

@@ -39,7 +39,7 @@ namespace RevBayesCore {
 	   void                                        			touchSpecialization(DagNode *toucher);
 	   void                                         		setCorrectionPatterns();
         
-    private:
+
         void                                                computeAncestral(void);
         bool                                                computeAncestralMap(const TopologyNode& node, size_t site);
         void                                                computeAncestralNodes(const TopologyNode& node, size_t site);
@@ -248,8 +248,20 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeTipCorrection(const
 		//Probability of presence in all but one leaves descending from this node
 		u[3] = 0.0;
 
-		totalmass[nodeIndex][mixture][0] = 0;
-		totalmass[nodeIndex][mixture][1] = 0;
+		//get the 1->1 transition probabilities for each branch
+		this->updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
+		double pr    		= this->transitionProbMatrices[mixture][1][1];
+
+		double r = 1.0;
+		if(this->rateVariationAcrossSites == true)
+			r = this->siteRates->getValue()[mixture];
+
+		if(this->type & NO_SINGLETON_GAINS)
+			totalmass[nodeIndex][mixture][0] = 0.0;
+		else
+			totalmass[nodeIndex][mixture][0] = 1.0;
+
+		totalmass[nodeIndex][mixture][1] = (1-pr)/r;
 
 	}
 }
@@ -310,11 +322,6 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 			prob -= u[0];
 		if(this->type & NO_SINGLETON_GAINS)
 			prob -= u[1];
-		if(this->type & NO_PRESENT_SITES)
-			prob -= u[2];
-		//If both of this node's children are leaves, then u[1] = u[3]
-		if((this->type & NO_SINGLETON_LOSSES) && !(jl && kl))
-			prob -= u[3];
 
 		// correct rounding errors
 		if(prob < 0)

@@ -3,7 +3,7 @@
 #include "BinaryDivision.h"
 //#include "BinaryDolloCompatibleMonitor.h"
 #include "BinaryMultiplication.h"
-#include "BinaryPartitionModel.h"
+#include "BinaryMissingCharEvoModel.h"
 #include "BinarySubtraction.h"
 #include "BetaDistribution.h"
 #include "BetaSimplexMove.h"
@@ -15,7 +15,7 @@
 #include "DeterministicNode.h"
 #include "DirichletDistribution.h"
 #include "DirichletProcessPriorDistribution.h"
-#include "DolloBinaryPartitionModel.h"
+#include "DolloBinaryMissingCharEvoModel.h"
 #include "DPPAllocateAuxGibbsMove.h"
 #include "DPPGibbsConcentrationMove.h"
 #include "DppNumTablesStatistic.h"
@@ -39,7 +39,6 @@
 #include "NewickTreeMonitor.h"
 #include "NexusTreeMonitor.h"
 #include "ParallelMcmcmc.h"
-#include "PartitionedSiteCorrectionModel.h"
 #include "PosteriorPredictiveStateFrequencyMonitor.h"
 #include "QuantileFunction.h"
 #include "RbSettings.h"
@@ -72,6 +71,7 @@ Biphy::Biphy(const std::string &datafile,
 									int correction,
 									int dgam,
 									int mixture,
+									bool IIDmissing,
 									double rootmin,
 									double rootmax,
 									int every,
@@ -93,6 +93,7 @@ Biphy::Biphy(const std::string &datafile,
 		correction(correction),
 		dgam( dgam),
 		mixture( mixture),
+		IIDmissing(IIDmissing),
 		ppred(false),
 		rootmin( rootmin),
 		rootmax( rootmax),
@@ -156,6 +157,7 @@ void Biphy::open( void ) {
 	rootprior = static_cast<RootPrior>(i);
 	is >> correction;
 	is >> mixture;
+	is >> IIDmissing;
 	is >> dgam;
 	is >> rootmin;
 	is >> rootmax;
@@ -183,6 +185,7 @@ void Biphy::save( void ) {
 	os << rootprior << "\n";
 	os << correction << "\n";
 	os << mixture << "\n";
+	os << IIDmissing << "\n";
 	os << dgam << "\n";
 	os << rootmin << "\n";
 	os << rootmax << "\n";
@@ -222,6 +225,11 @@ void Biphy::init( void ) {
     	std::cerr << "Error: incompatible datatype '" << data[0]->getDatatype() << "'" << std::endl;
     	exit(1);
     }
+
+    bool missing = false;
+    for(size_t c = 0; c < data[0]->getNumberOfCharacters(); c++)
+    	for(size_t t = 0; t < data[0]->getNumberOfTaxa(); t++)
+    		missing = missing || ((DiscreteCharacterData<StandardState> *)data[0])->getCharacter(t,c).isGapState();
 
     std::string symbols = ((DiscreteCharacterData<StandardState> *)data[0])->getCharacter(0,0).getStateLabels();
 	std::stringstream states;
@@ -345,7 +353,7 @@ void Biphy::init( void ) {
     if(dgam > 1){
 		std::cout << "\n";
 
-		std::cout << "rates ~ discrete gamma with " << dgam << " rate categories\n";
+		std::cout << "rates across sites ~ discrete gamma with " << dgam << " rate categories\n";
 		std::cout << "\tmean 1 and variance 1/alpha^2\n";
 		std::cout << "alpha ~ exponential of mean 1\n";
 	}
@@ -370,6 +378,14 @@ void Biphy::init( void ) {
 			else if(correction & NO_SINGLETON_LOSSES)
 				std::cout << "\tsingleton losses\n";
     	}
+    }
+
+    if(missing){
+    	std::cout << "\n";
+    	if(IIDmissing)
+    		std::cout << "proportion of missing data ~ IID Beta(1,1) across taxa\n";
+    	else
+    		std::cout << "proportion of missing data ~ Beta(1,1)\n";
     }
 
     std::cout << "\n";
@@ -593,12 +609,39 @@ void Biphy::init( void ) {
     DeterministicNode<BranchLengthTree> *psi = new DeterministicNode<BranchLengthTree>( "psi", new TreeAssemblyFunction(tau, br_vector) );
     std::cout << "tree okay\n";
 
-    BinaryPartitionModel<BranchLengthTree> *charModel;
+    //missing data rate prior
+    TypedDagNode<double> *xi;
+    std::vector<const TypedDagNode<double > *> xi_vector;
+    TypedDagNode< std::vector< double > >* xis;
+    if(missing){
+    	if(!IIDmissing)
+    		xi = new StochasticNode<double>( "xi", new BetaDistribution( one,one ) );
+
+		for(size_t i = 0; i < data[0]->getNumberOfTaxa(); i++){
+			std::ostringstream xi_name;
+			xi_name << "xi(" << setfill('0') << setw(w) << i << ")";
+			if(IIDmissing)
+				xi_vector.push_back(new StochasticNode<double >( xi_name.str(), new BetaDistribution(one,one) ) );
+			else
+				xi_vector.push_back(new DeterministicNode<double>( xi_name.str(), new ConstantFunction< double >( xi ) ));
+		}
+
+		xis = new DeterministicNode< std::vector< double > >( "xi", new VectorFunction<double>( xi_vector ) );
+    }
+
+    // Substitution model
+    BinaryCharEvoModel<BranchLengthTree> *charModel;
     StochasticNode<double> *birthrate;
     if(modeltype == DOLLO){
-		charModel = new DolloBinaryPartitionModel<BranchLengthTree>(psi, tau, true, data[0]->getNumberOfCharacters(), correction);
+    	if(missing)
+			charModel = new DolloBinaryMissingCharEvoModel<BranchLengthTree>(psi, tau, xis, true, data[0]->getNumberOfCharacters(), correction);
+		else
+			charModel = new DolloBinaryCharEvoModel<BranchLengthTree>(psi, tau, true, data[0]->getNumberOfCharacters(), correction);
 	}else{
-		charModel = new BinaryPartitionModel<BranchLengthTree>(psi, true, data[0]->getNumberOfCharacters(), correction);
+		if(missing)
+			charModel = new BinaryMissingCharEvoModel<BranchLengthTree>(psi, xis, true, data[0]->getNumberOfCharacters(), correction);
+		else
+			charModel = new BinaryCharEvoModel<BranchLengthTree>(psi, true, data[0]->getNumberOfCharacters(), correction);
     }
 
     std::vector<const TypedDagNode<double> *> rf_vec(2);
@@ -628,7 +671,7 @@ void Biphy::init( void ) {
     charactermodel->clamp( data[0] );
     std::cout << "data ok\n";
     
-    /* add the moves */
+    // add the moves
     std::vector<Move*> moves;
 	std::vector<Monitor*> monitors;
 	std::vector<DagNode*> monitoredNodes;
@@ -636,6 +679,9 @@ void Biphy::init( void ) {
 	//moves.push_back( new NearestNeighborInterchange( tau, 2.0 ) );
 	if(!treeFixed)
 		moves.push_back( new SubtreePruneRegraft( tau, 5.0, rootprior == RIGID) );
+
+	if(missing && !IIDmissing)
+		moves.push_back( new BetaSimplexMove((StochasticNode<double>*)xi, 1.0, true, 2.0 ) );
 
 	for (size_t i = 0 ; i < numBranches ; i ++ ) {
 		if(!(i == left || i == right) || rootprior == FREE)
@@ -646,6 +692,9 @@ void Biphy::init( void ) {
 			}
 		if(branchprior == EXPONENTIAL)
 			moves.push_back( new ScaleMove(branchRates_nonConst[i], 1.0, true, 1.0 ) );
+
+		if(i < data[0]->getNumberOfTaxa() && missing && IIDmissing)
+			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)xi_vector[i], 1.0, true, 2.0 ) );
 	}
 
 	if(branchprior == EXPONENTIAL){
@@ -712,6 +761,15 @@ void Biphy::init( void ) {
 			}
 			//moves.push_back(new MultiMove(mixmoves,one,2.0,true));
 		}
+	}
+
+	DeterministicNode<double>* mean_xi;
+	if(missing){
+		if(IIDmissing){
+			mean_xi = new DeterministicNode<double >( "mean_xi", new MeanFunction(xis) );
+			monitoredNodes.push_back( mean_xi );
+		}else
+			monitoredNodes.push_back( xi );
 	}
 
 	Model myModel = Model(charactermodel);
