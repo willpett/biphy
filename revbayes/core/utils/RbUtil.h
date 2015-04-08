@@ -19,6 +19,7 @@
 
 #include "Taxon.h"
 #include "TimeTree.h"
+#include "Topology.h"
 
 #include <ostream>
 #include <string>
@@ -85,6 +86,7 @@ namespace RevBayesCore {
     std::ostream&                       operator<<(std::ostream& o, const std::vector<Clade>& x);                        //!< Overloaded output operator
     std::ostream&                       operator<<(std::ostream& o, const std::vector<Taxon>& x);                        //!< Overloaded output operator
     std::ostream&                       operator<<(std::ostream& o, const std::vector<TimeTree>& x);                        //!< Overloaded output operator
+    std::ostream&                       operator<<(std::ostream& o, const std::vector<Topology>& x);
     //std::ostream&                       operator<<(std::ostream& o, const std::vector<Trace>& x);                        //!< Overloaded output operator
 //    std::ostream&                       operator<<(std::ostream& o, const std::vector<RateMatrix_GTR>& x);                      //!< Overloaded output operator
 //    std::ostream&                       operator<<(std::ostream& o, const std::vector<RateMatrix_JC>& x);                      //!< Overloaded output operator
@@ -95,6 +97,7 @@ namespace RevBayesCore {
 	std::istream&                       operator>>(std::istream& is, std::vector<unsigned int>& x);                    //!< Overloaded input operator
 	std::istream&                       operator>>(std::istream& is, std::vector<std::string>& x);
 	std::istream&                       operator>>(std::istream& is, std::vector<TimeTree>& x);                        //!< Overloaded input operator
+	std::istream&                       operator>>(std::istream& is, std::vector<Topology>& x);
 	//std::istream&                       operator>>(std::istream& o, const std::vector<Trace>& x);                        //!< Overloaded input operator
 
     std::vector<int>                    operator+(const std::vector<int>&    x, const std::vector<int>&    y);              //!< Overloaded addition operator

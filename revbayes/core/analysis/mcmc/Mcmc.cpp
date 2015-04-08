@@ -290,7 +290,7 @@ void Mcmc::initializeChain( void ) {
     {
         (*i)->touch();
     }
-    
+
     // redraw parameters for inactive chains in pMC^3 team
     if (chainActive == false)
     {
@@ -311,7 +311,7 @@ void Mcmc::initializeChain( void ) {
             
         }
     }
-    
+
     int numTries    = 0;
     int maxNumTries = 100;
     for ( ; numTries < maxNumTries; numTries ++ )
@@ -373,7 +373,7 @@ void Mcmc::initializeChain( void ) {
         throw RbException( msg.str() );
         
     }
-    
+
     /* Create the move scheduler */
     if ( scheduleType == "sequential" )
         schedule = new SequentialMoveSchedule( moves );

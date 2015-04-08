@@ -191,6 +191,49 @@ std::string Topology::getPlainNewickRepresentation( void ) const {
     return root->computePlainNewick();
 }
 
+size_t Topology::getMrca(size_t index1, size_t index2) const {
+
+	std::vector<size_t> chain1;
+	std::vector<size_t> chain2;
+
+	const TopologyNode& node1 = getNode(index1);
+	const TopologyNode& node2 = getNode(index2);
+
+	if(node1.isRoot())
+		return node1.getIndex();
+
+	if(node2.isRoot())
+		return node2.getIndex();
+
+	size_t parentIndex = node1.getParent().getIndex();
+
+	chain1.push_back(parentIndex);
+	while(!getNode(parentIndex).isRoot()){
+		parentIndex = getNode(parentIndex).getParent().getIndex();
+		chain1.insert(chain1.begin(),parentIndex);
+	}
+
+	parentIndex = node2.getParent().getIndex();
+
+	chain2.push_back(parentIndex);
+	while(!getNode(parentIndex).isRoot()){
+		parentIndex = getNode(parentIndex).getParent().getIndex();
+		chain2.insert(chain2.begin(),parentIndex);
+	}
+
+	size_t mrca = getRoot().getIndex();
+
+	for(size_t index = 0; index < std::min(chain1.size(), chain2.size()); index++){
+		if(chain1[index] == chain2[index]){
+			mrca = chain1[index];
+		}else{
+			break;
+		}
+	}
+
+	return mrca;
+}
+
 
 /** Calculate and return the number of tips on the BranchLengthTree by going through the vector
  of nodes, querying each about its tip status. */

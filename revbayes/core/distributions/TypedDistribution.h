@@ -35,6 +35,7 @@
 #include "Function.h"
 #include "ContinuousFunction.h"
 #include "TypedDagNode.h"
+#include "StochasticNode.h"
 
 #include <iostream>
 

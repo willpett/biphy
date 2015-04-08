@@ -72,6 +72,7 @@ namespace RevBayesCore {
         TopologyNode&                                       getTipNode(size_t indx);                                                //!< Get a pointer to tip node i
         const TopologyNode&                                 getTipNode(size_t indx) const;                                          //!< Get a pointer to tip node i
         double                                              getTmrca(const TopologyNode &n);
+        size_t												getMrca(size_t index1, size_t index2) const;
         TreeChangeEventHandler&                             getTreeChangeEventHandler(void) const;                                      //!< Get the change-event handler for this tree
         const Topology&                                     getTopology(void) const;                                                //!< Get the topology of this tree
         bool                                                hasSameTopology( const Tree &t ) const;                                 //!< Has this tree the same topology?

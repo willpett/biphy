@@ -209,6 +209,11 @@ double Tree::getTmrca(const TopologyNode &n) {
     return topology->getRoot().getTmrca( n );
 }
 
+size_t Tree::getMrca(size_t index1, size_t index2) const {
+
+	return topology->getMrca(index1, index2);
+}
+
 
 TreeChangeEventHandler& Tree::getTreeChangeEventHandler( void ) const {
     

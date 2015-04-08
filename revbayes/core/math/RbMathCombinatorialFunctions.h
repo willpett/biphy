@@ -30,6 +30,8 @@ namespace RevBayesCore {
         double                      lnChoose(double n, double k);                                                   //!< Calculate the log factorial
         double                      lnFactorial(int n);                                                             //!< Calculate the log factorial
 		int							stirlingFirst(int n, int k);											//!< Calculate the log Stirling number of the first kind
+		long long int				stirlingSecond(int n, int k);											//!< Calculate the log Stirling number of the first kind
+		long long int				restrictedMultinomial(int n, int k);
 
         // helper functions
         double                      lfastchoose(double n, double k);                                                //!< Calculate the log factorial

@@ -125,6 +125,19 @@ std::ostream& RevBayesCore::operator<<(std::ostream& o, const std::vector<TimeTr
     return o;
 }
 
+std::ostream& RevBayesCore::operator<<(std::ostream& o, const std::vector<Topology>& x) {
+    o << "( ";
+    for (std::vector<Topology>::const_iterator it = x.begin(); it != x.end(); ++it) {
+        if ( it != x.begin() ) {
+            o << " , ";
+        }
+        o << *it;
+    }
+    o << " )";
+
+    return o;
+}
+
 /*
 std::ostream& RevBayesCore::operator<<(std::ostream& o, const std::vector<Trace>& x) {
     o << "( ";
@@ -216,6 +229,20 @@ std::istream& RevBayesCore::operator>>(std::istream& is, std::vector<TimeTree>& 
 	std::string tmp;
 	is >> tmp;
     for (std::vector<TimeTree>::iterator it = x.begin(); it != x.end(); ++it) {
+        if ( it != x.begin() ) {
+            is >> tmp;
+        }
+        is >> *it;
+    }
+    is >> tmp;
+
+    return is;
+}
+
+std::istream& RevBayesCore::operator>>(std::istream& is, std::vector<Topology>& x) {
+	std::string tmp;
+	is >> tmp;
+    for (std::vector<Topology>::iterator it = x.begin(); it != x.end(); ++it) {
         if ( it != x.begin() ) {
             is >> tmp;
         }

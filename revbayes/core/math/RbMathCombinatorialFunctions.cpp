@@ -223,3 +223,47 @@ int RbMath::stirlingFirst(int n, int k) {
 	r = stirlingFirst(n-1, k-1) + ((n-1)*stirlingFirst(n-1, k));
 	return r;
 }
+
+long long int RbMath::stirlingSecond(int n, int k) {
+
+	long long int r = 0;
+	if(n == 0 && k == 0)
+		return 1;
+	if(n == 0 || k == 0)
+		return 0;
+	if(n == k)
+		return 1;
+	if(k == 1)
+		return 1;
+
+	int sign = k % 2 == 0 ? 1 : -1;
+	for(size_t j = 0; j <= k; j++){
+		r += pow(-1, k - j)*choose(k,j)*pow(j,n);
+		//sign *= -1;
+	}
+	r /= factorial(k);
+
+	return r;
+}
+
+long long int RbMath::restrictedMultinomial(int n, int k) {
+
+	long long int r = 0;
+	if(n == 0 && k == 0)
+		return 1;
+	if(n == 0 || k == 0)
+		return 0;
+	if(n == k)
+		return 1;
+	if(k == 1)
+		return 1;
+
+	int sign = 1;
+	for(size_t j = 0; j <= k; j++){
+		r += pow(-1, j)*choose(k,j)*pow(k - j,n);
+		sign *= -1;
+	}
+	std::cerr << n << "\t" << k << "\t" << r << std::endl;
+
+	return r;
+}
