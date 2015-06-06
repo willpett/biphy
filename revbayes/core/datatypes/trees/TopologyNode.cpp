@@ -96,7 +96,7 @@ TopologyNode::~TopologyNode(void)
 {
     
     // we do not own the parent so we do not delete it
-    
+
     // free memory of children
     removeAllChildren();
     
@@ -803,16 +803,11 @@ bool TopologyNode::isTip( void ) const {
 /** Remove all children. We need to call intelligently the destructor here. */
 void TopologyNode::removeAllChildren(void) {
     
-    size_t nChildren = children.size();
-    // empty the children vector
-    while (children.size() > 0) 
-    {
-        TopologyNode* theNode = children[0];
-        // free the memory
-        delete theNode;
-        nChildren = children.size();
-    }
+    for(size_t i = 0; i < children.size(); i++)
+    	delete children[i];
     
+    children.clear();
+
     name = "";
     
     // mark for newick recomputation
@@ -869,13 +864,13 @@ void TopologyNode::setName(std::string const &n) {
 
 
 void TopologyNode::setParent(TopologyNode* p, bool forceNewickRecomp) {
-    
+
     // we only do something if this isn't already our parent
     if (p != parent) 
     {
         // we do not own the parent so we do not have to delete it
         parent = p;
-        
+
         // mark for newick recomputation
         if (forceNewickRecomp)
             flagNewickRecomputation();
@@ -887,7 +882,7 @@ void TopologyNode::setParent(TopologyNode* p, bool forceNewickRecomp) {
         }
         
     }
-    
+
     rootNode = false;
 }
 

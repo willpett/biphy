@@ -584,7 +584,7 @@ void Biphy::init( void ) {
 		ConstantNode<std::vector<double> > *conc = new ConstantNode<std::vector<double> >("conc", new std::vector<double>(numBranches,1.0) );
 		tree_length = new StochasticNode<double>("length", new GammaDistribution(one,one));
 		br_times = new StochasticNode< std::vector< double > >( "br_times", new DirichletDistribution( conc));
-		br_vector = new DeterministicNode< std::vector< double > >( "br_vector", new VectorScaleFunction(br_times,tree_length) );
+		br_vector = new DeterministicNode< std::vector< double > >( "br_vector", new VectorScaleFunction<double>(br_times,tree_length) );
 	}
 
 	// RAS prior

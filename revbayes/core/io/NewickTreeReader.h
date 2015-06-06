@@ -24,8 +24,9 @@ namespace RevBayesCore {
     public:
         NewickTreeReader();                                                                                     //!< Default constructor.
         
-        std::vector<BranchLengthTree*>*         readBranchLengthTrees(const std::string &fn);                   //!< Read a set of trees with branch lengths in newick format from a file.
-                
+        std::vector<BranchLengthTree*>*     readBranchLengthTrees(const std::string &fn);                   //!< Read a set of trees with branch lengths in newick format from a file.
+        std::vector<Topology*>*         	readTopologies(const std::string &fn);
+
     };
     
 }

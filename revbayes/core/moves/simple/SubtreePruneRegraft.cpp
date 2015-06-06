@@ -89,17 +89,17 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
     TopologyNode &newGrandparent = newBrother->getParent();
     
     // now prune
-    grandparent.removeChild( &parent );
-    parent.removeChild( storedBrother );
-    grandparent.addChild( storedBrother );
-    storedBrother->setParent( &grandparent );
+    grandparent.removeChild( &parent, true );
+    parent.removeChild( storedBrother, true );
+    grandparent.addChild( storedBrother, true );
+    storedBrother->setParent( &grandparent, true );
     
     // re-attach
-    newGrandparent.removeChild( newBrother );
-    parent.addChild( newBrother );
-    newGrandparent.addChild( &parent );
-    parent.setParent( &newGrandparent );
-    newBrother->setParent( &parent );
+    newGrandparent.removeChild( newBrother, true );
+    parent.addChild( newBrother, true );
+    newGrandparent.addChild( &parent, true );
+    parent.setParent( &newGrandparent, true );
+    newBrother->setParent( &parent, true );
     
     return 0.0;
 }

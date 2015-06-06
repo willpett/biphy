@@ -58,9 +58,47 @@ BranchLengthTree* NewickConverter::convertFromNewick(std::string const &n) {
     for (size_t i = 0; i < nodes.size(); ++i) {
         t->setBranchLength(nodes[i]->getIndex(), brlens[i]);
     }
+
+    if(root->getNumberOfChildren() == 2)
+    	tau->setRooted(true);
     
     // return the tree, the caller is responsible for destruction
     return t;
+}
+
+Topology* NewickConverter::convertTopologyFromNewick(std::string const &n) {
+
+    // create and allocate the tree object
+    Topology *tau = new Topology();
+
+    std::vector<TopologyNode*> nodes;
+    std::vector<double> brlens;
+
+
+    // create a string-stream and throw the string into it
+    std::stringstream ss (std::stringstream::in | std::stringstream::out);
+    ss << n;
+
+    // ignore white spaces
+    std::string trimmed = "";
+    char c;
+    while ( ss.good() ) {
+        c = ss.get();
+        if ( c != ' ')
+            trimmed += c;
+    }
+
+    // construct the tree starting from the root
+    TopologyNode *root = createNode( trimmed, nodes, brlens);
+
+    // set up the tree
+    tau->setRoot( root );
+
+    if(root->getNumberOfChildren() == 2)
+    	tau->setRooted(true);
+
+    // return the tree, the caller is responsible for destruction
+    return tau;
 }
 
 

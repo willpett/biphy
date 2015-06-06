@@ -229,6 +229,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeTipCorrection(const
 
 	// iterate over all mixture categories
 
+	totalmass[nodeIndex] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
+
 	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 	{
 
@@ -282,6 +284,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 	const TopologyNode &right_node = this->tau->getValue().getNode(right);
 
 	// iterate over all mixture categories
+
+	totalmass[nodeIndex] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 
 	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 	{
@@ -359,6 +363,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 
 		const TopologyNode &left_node = this->tau->getValue().getNode(left);
 		const TopologyNode &right_node = this->tau->getValue().getNode(right);
+
+		totalmass[root] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 
 		// iterate over all mixture categories
 		for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
@@ -448,7 +454,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::swapParameter(const DagNod
 template<class treeType>
 void RevBayesCore::DolloBinaryCharEvoModel<treeType>::touchSpecialization( DagNode* affecter ) {
     
-    // if the topology wasn't the culprit for the touch, then we just flag everything as dirty
+    // if the topology was the culprit for the touch (not the branch lengths), then we update the ancestral mapping
     if ( affecter == topology || affecter == this->dagNode )
     	ancestralNeedsRecomputing = true;
 

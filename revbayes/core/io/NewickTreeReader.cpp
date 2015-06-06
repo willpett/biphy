@@ -52,9 +52,45 @@ std::vector<BranchLengthTree*>* NewickTreeReader::readBranchLengthTrees(std::str
         
         NewickConverter c;
         BranchLengthTree *blTree = c.convertFromNewick( line );
-        
+
         trees->push_back( blTree );
     }
     
+    return trees;
+}
+
+std::vector<Topology*>* NewickTreeReader::readTopologies(std::string const &fn)
+{
+    /* Open file */
+    std::ifstream inFile( fn.c_str() );
+
+    if ( !inFile )
+        throw RbException( "Could not open file \"" + fn + "\"" );
+
+    /* Initialize */
+    std::vector<Topology*>* trees = new std::vector<Topology*>();
+    std::string commandLine;
+
+    /* line-processing loop */
+    while ( inFile.good() )
+    {
+
+        // Read a line
+        std::string line;
+        getline( inFile, line );
+
+        // skip empty lines
+        if (line.length() == 0)
+        {
+            continue;
+        }
+
+
+        NewickConverter c;
+        Topology *blTree = c.convertTopologyFromNewick( line );
+
+        trees->push_back( blTree );
+    }
+
     return trees;
 }

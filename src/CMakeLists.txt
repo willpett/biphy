@@ -10,7 +10,6 @@ ${PROJECT_SRC_DIR}/NexusTreeMonitor.cpp
 ${PROJECT_SRC_DIR}/PosteriorPredictiveStateFrequencyMonitor.cpp
 ${PROJECT_SRC_DIR}/TruncatedDistributionUnnormalized.cpp
 ${PROJECT_SRC_DIR}/UniformRootedTopologyDistribution.cpp
-${PROJECT_SRC_DIR}/VectorScaleFunction.cpp
 )
 add_library(wp-lib ${SRC_FILES})
 target_link_libraries(wp-lib rb-core)

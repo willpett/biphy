@@ -67,7 +67,7 @@ ParallelMcmcmc::ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, 
             j = 0;
         chainsPerProcess[j].push_back(i);
     }
-    
+
     for (size_t i = 0; i < numChains; i++)
     {
         
@@ -220,6 +220,7 @@ void ParallelMcmcmc::run(size_t generations)
 		chains[chainIdxByHeat[0]]->monitor(currentGeneration);
 
 		if(currentGeneration % every*swapInterval == 0){
+			//std::cerr << "-----\n";
 			std::stringstream output;
 			output << currentGeneration << "\n";
 			toStream(output);

@@ -34,6 +34,7 @@ namespace RevBayesCore {
         virtual                 ~NewickConverter();
     
         BranchLengthTree*       convertFromNewick(const std::string &n);
+        Topology*       		convertTopologyFromNewick(const std::string &n);
         AdmixtureTree*          getAdmixtureTreeFromNewick(const std::string &n);
 
     private:

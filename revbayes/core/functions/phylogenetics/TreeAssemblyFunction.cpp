@@ -31,7 +31,7 @@ TreeAssemblyFunction* TreeAssemblyFunction::clone( void ) const {
 
 
 void TreeAssemblyFunction::keep(DagNode *affecter) {
-    
+
 //    touchedNodeIndices.clear();
 }
 
