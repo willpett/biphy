@@ -27,3 +27,8 @@ set(TARGET_NAME "biphy")
 add_executable(${TARGET_NAME} ${PROJECT_SRC_DIR}/main.cpp)
 set_target_properties(${TARGET_NAME} PROPERTIES PREFIX "../")
 target_link_libraries(${TARGET_NAME} rb-core wp-lib gomp)
+
+set(TARGET_NAME_MULTI "multibiphy")
+add_executable(${TARGET_NAME_MULTI} ${PROJECT_SRC_DIR}/main_multi.cpp)
+set_target_properties(${TARGET_NAME_MULTI} PROPERTIES PREFIX "../")
+target_link_libraries(${TARGET_NAME_MULTI} rb-core wp-lib gomp)

@@ -10,6 +10,15 @@ ${PROJECT_SRC_DIR}/NexusTreeMonitor.cpp
 ${PROJECT_SRC_DIR}/PosteriorPredictiveStateFrequencyMonitor.cpp
 ${PROJECT_SRC_DIR}/TruncatedDistributionUnnormalized.cpp
 ${PROJECT_SRC_DIR}/UniformRootedTopologyDistribution.cpp
+${PROJECT_SRC_DIR}/MultiBiphy.cpp
+${PROJECT_SRC_DIR}/MultiBiphyRhoPi.cpp
+${PROJECT_SRC_DIR}/MultiBiphyLambdaMu.cpp
+${PROJECT_SRC_DIR}/NegativeBinomialDistribution.cpp
+${PROJECT_SRC_DIR}/FreeBinaryRateMatrixVectorFunction.cpp
+${PROJECT_SRC_DIR}/NHXTreeReader.cpp
+${PROJECT_SRC_DIR}/NHXConverter.cpp
+${PROJECT_SRC_DIR}/NewickTreeMonitor.cpp
+${PROJECT_SRC_DIR}/NexusTreeMonitor.cpp
 )
 add_library(wp-lib ${SRC_FILES})
 target_link_libraries(wp-lib rb-core)

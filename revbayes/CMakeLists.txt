@@ -56,6 +56,10 @@ ${REVBAYES_DIR}/core/math/RbMathFunctions.cpp
 ${REVBAYES_DIR}/core/math/RandomNumberFactory.h
 ${REVBAYES_DIR}/core/math/RbStatisticsHelper.cpp
 ${REVBAYES_DIR}/core/math/distributions
+${REVBAYES_DIR}/core/math/distributions/DistributionBinomial.h
+${REVBAYES_DIR}/core/math/distributions/DistributionBinomial.cpp
+${REVBAYES_DIR}/core/math/distributions/DistributionNegativeBinomial.h
+${REVBAYES_DIR}/core/math/distributions/DistributionNegativeBinomial.cpp
 ${REVBAYES_DIR}/core/math/distributions/DistributionDirichlet.h
 ${REVBAYES_DIR}/core/math/distributions/DistributionBeta.h
 ${REVBAYES_DIR}/core/math/distributions/DistributionDirichlet.cpp

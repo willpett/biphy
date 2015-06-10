@@ -61,6 +61,7 @@ namespace RevBayesCore {
         void                                                                setValue(AbstractCharacterData *v);                                                   //!< Set the current value, e.g. attach an observation (clamp)
         virtual void                                                        redrawValue(void) = 0;
         void                                                                reInitialized(void);
+        const treeType*														getTree() const;
         
     protected:
         // helper method for this and derived classes
@@ -207,6 +208,13 @@ RevBayesCore::AbstractCharEvoModel<charType, treeType>* RevBayesCore::AbstractCh
     return new AbstractCharEvoModel<charType, treeType>( *this );
 }
 
+template<class charType, class treeType>
+const treeType* RevBayesCore::AbstractCharEvoModel<charType, treeType>::getTree( void ) const
+{
+
+    return &(tau->getValue());
+}
+
 
 template<class charType, class treeType>
 void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
@@ -220,45 +228,48 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
     patternMap.clear();
     numPatterns = 0;
     
-    numSites = value->getNumberOfCharacters();
+    size_t totalNumSites = value->getNumberOfCharacters();
+    numSites = value->getNumberOfIncludedCharacters();
 
     // check whether there are ambiguous characters (besides gaps)
     bool ambiguousCharacters = false;
     // find the unique site patterns and compute their respective frequencies
     std::vector<TopologyNode*> nodes = tau->getValue().getNodes();
-    for (size_t site = 0; site < numSites; ++site) 
+    for (size_t site = 0; site < totalNumSites; ++site)
     {
-        for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it) 
-        {
-            if ( (*it)->isTip() ) 
-            {
-                // \todo modify this so that the distribution is actually defined on discrete character data
-                AbstractTaxonData& taxon = value->getTaxonData( (*it)->getName() );
-                DiscreteCharacterState &c = static_cast<DiscreteCharacterState &>( taxon.getCharacter(site) );
-                
-                // if we treat unknown characters as gaps and this is an unknown character then we change it
-                // because we might then have a pattern more
-                if ( treatAmbiguousAsGaps && c.isAmbiguous() )
-                {
-                    c.setGapState( true );
-                }
-                else if ( treatUnknownAsGap && c.getNumberOfStates() == c.getNumberObservedStates() )
-                {
-                    c.setGapState( true );
-                }
-                else if ( !c.isGapState() && c.isAmbiguous() )
-                {
-                    ambiguousCharacters = true;
-                    break;
-                }
-            }
-        }
-        
-        // break the loop if there was an ambiguous character
-        if ( ambiguousCharacters ) 
-        {
-            break;
-        }
+    	if(!value->isCharacterExcluded(site)){
+			for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it)
+			{
+				if ( (*it)->isTip() )
+				{
+					// \todo modify this so that the distribution is actually defined on discrete character data
+					AbstractTaxonData& taxon = value->getTaxonData( (*it)->getName() );
+					DiscreteCharacterState &c = static_cast<DiscreteCharacterState &>( taxon.getCharacter(site) );
+
+					// if we treat unknown characters as gaps and this is an unknown character then we change it
+					// because we might then have a pattern more
+					if ( treatAmbiguousAsGaps && c.isAmbiguous() )
+					{
+						c.setGapState( true );
+					}
+					else if ( treatUnknownAsGap && c.getNumberOfStates() == c.getNumberObservedStates() )
+					{
+						c.setGapState( true );
+					}
+					else if ( !c.isGapState() && c.isAmbiguous() )
+					{
+						ambiguousCharacters = true;
+						break;
+					}
+				}
+			}
+
+			// break the loop if there was an ambiguous character
+			if ( ambiguousCharacters )
+			{
+				break;
+			}
+    	}
     }
     // set the global variable if we use ambiguous characters
     usingAmbiguousCharacters = ambiguousCharacters;
@@ -270,47 +281,51 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
     {
         // find the unique site patterns and compute their respective frequencies
         std::map<std::string,size_t> patterns;
-        for (size_t site = 0; site < numSites; ++site) 
+        size_t thisSite = 0;
+        for (size_t site = 0; site < totalNumSites; ++site)
         {
-            // create the site pattern
-            std::string pattern = "";
-            for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it) 
-            {
-                if ( (*it)->isTip() ) 
-                {
-                    AbstractTaxonData& taxon = value->getTaxonData( (*it)->getName() );
-                    CharacterState &c = taxon.getCharacter(site);
-                    pattern += c.getStringValue();
-                }
-            }
-            // check if we have already seen this site pattern
-            std::map<std::string, size_t>::const_iterator index = patterns.find( pattern );
-            if ( index != patterns.end() ) 
-            {
-                // we have already seen this pattern
-                // increase the frequency counter
-                patternCounts[ index->second ]++;
-                patternMap[site] = index->second;
-                
-                // obviously this site isn't unique nor the first encounter
-                unique[site] = false;
-            }
-            else 
-            {
-                // create a new pattern frequency counter for this pattern
-                patternCounts.push_back(1);
-                
-                patternMap[site] = patternCounts.size();
+        	if(!value->isCharacterExcluded(site)){
+				// create the site pattern
+				std::string pattern = "";
+				for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it)
+				{
+					if ( (*it)->isTip() )
+					{
+						AbstractTaxonData& taxon = value->getTaxonData( (*it)->getName() );
+						CharacterState &c = taxon.getCharacter(site);
+						pattern += c.getStringValue();
+					}
+				}
+				// check if we have already seen this site pattern
+				std::map<std::string, size_t>::const_iterator index = patterns.find( pattern );
+				if ( index != patterns.end() )
+				{
+					// we have already seen this pattern
+					// increase the frequency counter
+					patternCounts[ index->second ]++;
+					patternMap[thisSite] = index->second;
 
-                // insert this pattern with the corresponding index in the map
-                patterns.insert( std::pair<std::string,size_t>(pattern,numPatterns) );
-                
-                // increase the pattern counter
-                numPatterns++;
-                
-                // flag that this site is unique (or the first occurence of this pattern)
-                unique[site] = true;
-            }
+					// obviously this site isn't unique nor the first encounter
+					unique[site] = false;
+				}
+				else
+				{
+					patternMap[thisSite] = numPatterns;
+
+					// create a new pattern frequency counter for this pattern
+					patternCounts.push_back(1);
+
+					// insert this pattern with the corresponding index in the map
+					patterns.insert( std::pair<std::string,size_t>(pattern,numPatterns) );
+
+					// increase the pattern counter
+					numPatterns++;
+
+					// flag that this site is unique (or the first occurence of this pattern)
+					unique[site] = true;
+				}
+				thisSite++;
+        	}
         }
     } 
     else 
@@ -335,42 +350,44 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
             charMatrix[name].resize(numPatterns);
             gapMatrix[name].resize(numPatterns);
             size_t patternIndex = 0;
-            for (size_t site = 0; site < numSites; ++site) 
+            for (size_t site = 0; site < totalNumSites; ++site)
             {
-                // only add this site if it is unique
-                if ( unique[site] ) 
-                {
-                    charType &c = static_cast<charType &>( taxon.getCharacter(site) );
-                    gapMatrix[name][patternIndex] = c.isGapState();
+            	if(!value->isCharacterExcluded(site)){
+					// only add this site if it is unique
+					if ( unique[site] )
+					{
+						charType &c = static_cast<charType &>( taxon.getCharacter(site) );
+						gapMatrix[name][patternIndex] = c.isGapState();
 
-                    if ( ambiguousCharacters ) 
-                    {
-                        // we use the actual state
-                        charMatrix[name][patternIndex] = c.getState();
-                    }
-                    else
-                    {
-                        // we use the index of the state
-                        size_t index = 0;
-                        unsigned long state = c.getState();
-                        state >>= 1;
-                        
-                        while ( state != 0 ) // there are still observed states left
-                        {
-                            
-                            // remove this state from the observed states
-                            state >>= 1;
-                            
-                            // increment the index
-                            ++index;
-                        } // end-while over all observed states for this character
-                        
-                        charMatrix[name][patternIndex] = index;
-                    }
+						if ( ambiguousCharacters )
+						{
+							// we use the actual state
+							charMatrix[name][patternIndex] = c.getState();
+						}
+						else
+						{
+							// we use the index of the state
+							size_t index = 0;
+							unsigned long state = c.getState();
+							state >>= 1;
 
-                    // increase the pattern index
-                    patternIndex++;
-                }
+							while ( state != 0 ) // there are still observed states left
+							{
+
+								// remove this state from the observed states
+								state >>= 1;
+
+								// increment the index
+								++index;
+							} // end-while over all observed states for this character
+
+							charMatrix[name][patternIndex] = index;
+						}
+
+						// increase the pattern index
+						patternIndex++;
+					}
+            	}
             }
         }
     }
@@ -389,15 +406,15 @@ double RevBayesCore::AbstractCharEvoModel<charType, treeType>::computeLnProbabil
     
     // we start with the root and then traverse down the tree
     size_t rootIndex = root.getIndex();
-    
+
     // only necessary if the root is actually dirty
     if ( dirtyNodes[rootIndex] )
     {
                 
         // mark as computed
         dirtyNodes[rootIndex] = false;
-        
-        
+
+
         // start by filling the likelihood vector for the two children of the root
         const TopologyNode &left = root.getChild(0);
         size_t leftIndex = left.getIndex();

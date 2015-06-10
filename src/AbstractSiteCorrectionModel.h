@@ -50,6 +50,8 @@ namespace RevBayesCore {
         AbstractSiteCorrectionModel(const AbstractSiteCorrectionModel &n);                                                                                          //!< Copy constructor
         virtual                                                            ~AbstractSiteCorrectionModel(void);
         
+        double																getLnCorrection() const;
+
     protected:
         // helper method for this and derived classes
         virtual void                                        				computeRootLikelihood(size_t root, size_t l, size_t r);
@@ -123,6 +125,14 @@ RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::~AbstractSiteCorr
 }
 
 template<class charType, class treeType>
+double RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::getLnCorrection() const
+{
+
+    return perSiteCorrection;
+
+}
+
+template<class charType, class treeType>
 void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootLikelihood(size_t root, size_t left, size_t right)
 {
 
@@ -130,7 +140,7 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeRootL
 
     computeRootCorrection(root, left, right);
 
-    this->lnProb -= log(this->numSites) + this->numSites*perSiteCorrection;
+    this->lnProb -= (this->numSites)*perSiteCorrection;
 
 }
 
@@ -396,6 +406,9 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::touchSpecial
 		perMixtureCorrections = std::vector<double>(this->numSiteRates,0.0);
 
 	GeneralCharEvoModel<charType, treeType>::touchSpecialization(affecter);
+
+	if(this->dagNode != NULL)
+		this->dagNode->touchAffected();
 
 }
 

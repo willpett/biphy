@@ -6,12 +6,13 @@
 #include "RateMatrix.h"
 #include "RbVector.h"
 #include "RbStatisticsHelper.h"
-#include "DistributionPoisson.h"
-#include "DistributionGamma.h"
 #include "TopologyNode.h"
 #include "TransitionProbabilityMatrix.h"
 #include "TreeChangeEventListener.h"
 #include "TypedDistribution.h"
+
+#include "DistributionBinomial.h"
+#include "DistributionNegativeBinomial.h"
 
 namespace RevBayesCore {
 
@@ -136,14 +137,15 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::redrawValue( void ) {
 
     std::vector< DiscreteTaxonData<StandardState> > taxa = std::vector< DiscreteTaxonData<StandardState> >(numTips, DiscreteTaxonData<StandardState>() );
 
-    // first sample a mean number of characters (gamma)
-    // from the marginal posterior gamma | N ~ Gamma(N, exp(lnCorrection) )
-    // given gamma ~ 1/lambda
-    if(this->numCorrectionSites > 0){
-		double gamma = RbStatistics::Gamma::rv(this->N,exp(this->perSiteCorrection), *rng);
 
-		// then resample numSites from Poisson( exp(lnCorrection)*gamma )
-		this->numSites = RbStatistics::Poisson::rv( exp(this->perSiteCorrection)*gamma, *rng);
+    // first sample a total number of characters (M)
+    // from the marginal posterior M - N | N ~ NegBinomial(N+1, exp(lnCorrection) )
+    if(this->numCorrectionSites > 0){
+		//double gamma = RbStatistics::Gamma::rv(this->N,exp(this->perSiteCorrection), *rng);
+    	double M = RbStatistics::NegativeBinomial::rv(this->N + 1,exp(this->perSiteCorrection), *rng);
+
+		// resample numSites from Binomial( M + N, exp(lnCorrection) )
+		this->numSites = RbStatistics::Binomial::rv( M + this->N, exp(this->perSiteCorrection), *rng);
     }
 
     // sample the rate categories conditioned the likelihood of the unobservable site-patterns

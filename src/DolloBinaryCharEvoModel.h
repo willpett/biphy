@@ -28,8 +28,14 @@ namespace RevBayesCore {
 		void                                                swapParameter(const DagNode *oldP, const DagNode *newP);
 
 		virtual void                                        redrawValue(void);
+
+		// public member functions
+		void                                                setOriginationRate(const TypedDagNode< double > *r);
+		void                                                setOriginationRate(const TypedDagNode< std::vector< double > > *r);
         
     protected:
+
+	   double                                               getOriginationRate(size_t index);
 
 	   void                                                	computeRootLikelihood(size_t root, size_t l, size_t r);
 	   void                                                 computeRootCorrection(size_t root, size_t l, size_t r);
@@ -52,11 +58,18 @@ namespace RevBayesCore {
 
         bool												ancestralNeedsRecomputing;
 
+        const TypedDagNode< double >*                       homogeneousOriginationRate;
+        const TypedDagNode< std::vector< double > >*        heterogeneousOriginationRates;
+
+        bool                                                branchHeterogeneousOriginationRates;
+        bool												integratedOriginationRate;
+
         const TypedDagNode<Topology>*						topology;
         std::vector<std::vector<std::vector<double> > >		totalmass;
         double												omega;
 
         double												probAbsence;
+        double												lnNumSitesFactorial;
     };
     
 }
@@ -81,7 +94,6 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const T
 	omega(0.0),
 	probAbsence(0.0)
 {
-
 	// initialize with default parameters
 	this->addParameter( topology );
 
@@ -90,6 +102,16 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const T
 	this->resizeLikelihoodVectors();
 
 	ancestralNeedsRecomputing = true;
+
+	// initialize with default parameters
+	homogeneousOriginationRate        = NULL;
+	heterogeneousOriginationRates     = NULL;
+
+	branchHeterogeneousOriginationRates	 = false;
+	integratedOriginationRate = true;
+
+	for(size_t n = 2; n <= this->numSites; n++)
+		lnNumSitesFactorial += log(n);
 }
 
 
@@ -97,9 +119,15 @@ template<class treeType>
 RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const DolloBinaryCharEvoModel &d) :
 	BinaryCharEvoModel<treeType>(d),
 	AbstractCharEvoModel<StandardState, treeType>(d),
-	ancestralNodes(d.ancestralNodes), topology(d.topology), totalmass(d.totalmass), omega(d.omega), probAbsence(d.probAbsence)
+	ancestralNodes(d.ancestralNodes), topology(d.topology), totalmass(d.totalmass), omega(d.omega), probAbsence(d.probAbsence),
+	lnNumSitesFactorial(d.lnNumSitesFactorial)
 {
 	ancestralNeedsRecomputing = true;
+	homogeneousOriginationRate 			= d.homogeneousOriginationRate;
+	heterogeneousOriginationRates 		= d.heterogeneousOriginationRates;
+
+	branchHeterogeneousOriginationRates	= d.branchHeterogeneousOriginationRates;
+	integratedOriginationRate			= d.integratedOriginationRate;
 }
 
 
@@ -119,7 +147,7 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>* RevBayesCore::DolloBinaryCharEv
 template<class treeType>
 void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( size_t root, size_t left, size_t right)
 {
-    // reset the likelihood
+	// reset the likelihood
     this->lnProb = 0.0;
 
     // get the root frequencies
@@ -140,6 +168,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 			size_t idx = ancestralNodes[site][anc];
 			const TopologyNode &node = this->tau->getValue().getNode(idx);
 
+			double mu 		= this->getClockRate(idx);
+			double lambda 	= getOriginationRate(idx);
+
 			size_t nleft = node.getChild(0).getIndex();
 			size_t nright = node.getChild(1).getIndex();
 
@@ -155,9 +186,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 				std::vector<double>::const_iterator   p_site_left_j = p_site_left + offset;
 				std::vector<double>::const_iterator   p_site_right_j = p_site_right + offset;
 
-				double prob_birth = 1.0;
+				double prob_birth = lambda;
 				if(this->rateVariationAcrossSites == true){
-					double r = this->siteRates->getValue()[mixture];
+					double r = this->siteRates->getValue()[mixture]*mu;
 					prob_birth /= r;
 					if(!node.isRoot())
 						prob_birth *= 1-exp(-r*node.getBranchLength());
@@ -204,7 +235,10 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 	this->lnProb -= this->numSites*log( this->numSiteRates );
 
 	//apply correction
-    this->lnProb -= log(this->numSites) + this->numSites*this->perSiteCorrection;
+	if(integratedOriginationRate)
+		this->lnProb -= log(this->numSites) + this->numSites*this->perSiteCorrection;
+	else
+		this->lnProb -= this->perSiteCorrection;// + lnNumSitesFactorial;
 
     //reset probAbsence
     probAbsence = 0.0;
@@ -231,6 +265,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeTipCorrection(const
 
 	totalmass[nodeIndex] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 
+	double mu 		= this->getClockRate(nodeIndex);
+	double lambda 	= getOriginationRate(nodeIndex);
+
 	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 	{
 
@@ -254,16 +291,15 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeTipCorrection(const
 		this->updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
 		double pr    		= this->transitionProbMatrices[mixture][1][1];
 
-		double r = 1.0;
 		if(this->rateVariationAcrossSites == true)
-			r = this->siteRates->getValue()[mixture];
+			mu *= this->siteRates->getValue()[mixture];
 
 		if(this->type & NO_SINGLETON_GAINS)
 			totalmass[nodeIndex][mixture][0] = 0.0;
 		else
 			totalmass[nodeIndex][mixture][0] = 1.0;
 
-		totalmass[nodeIndex][mixture][1] = (1-pr)/r;
+		totalmass[nodeIndex][mixture][1] = lambda*(1-pr)/mu;
 
 	}
 }
@@ -284,6 +320,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 	const TopologyNode &right_node = this->tau->getValue().getNode(right);
 
 	// iterate over all mixture categories
+
+	double mu 		= this->getClockRate(nodeIndex);
+	double lambda 	= getOriginationRate(nodeIndex);
 
 	totalmass[nodeIndex] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 
@@ -331,16 +370,15 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 		if(prob < 0)
 			prob = 0;
 
-		double r = 1.0;
 		if(this->rateVariationAcrossSites == true)
-			r = this->siteRates->getValue()[mixture];
+			mu *= this->siteRates->getValue()[mixture];
 
 		//Nicholls and Gray 2003
 		totalmass[nodeIndex][mixture][0] = prob;
-		totalmass[nodeIndex][mixture][1] = (1-pr)/r;
+		totalmass[nodeIndex][mixture][1] = lambda*(1-pr)/mu;
 
 		// just probability of absence site
-		probAbsence += u[0]*(1-pr)/r;
+		probAbsence += lambda*u[0]*(1-pr)/mu;
 	}
 
 }
@@ -354,7 +392,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 		//If all site-patterns can, in principle, be observed
 		//then omega is just the tree length
 
-		omega = this->tau->getValue().getTreeLength()*this->numSiteRates	;
+		omega = this->tau->getValue().getTreeLength()*this->numSiteRates;
 	}else{
 		// get the pointers to the partial likelihoods for this node and the two descendant subtrees
 		std::vector<double>::const_iterator   p_left  = this->partialLikelihoods.begin() + this->activeLikelihood[left]*this->activeLikelihoodOffset + left*this->nodeOffset;
@@ -363,6 +401,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 
 		const TopologyNode &left_node = this->tau->getValue().getNode(left);
 		const TopologyNode &right_node = this->tau->getValue().getNode(right);
+
+		double mu 		= this->getClockRate(root);
+		double lambda 	= getOriginationRate(root);
 
 		totalmass[root] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 
@@ -377,9 +418,8 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 			double pik    		= this->transitionProbMatrices[mixture][1][1];
 
 			//get the rate modifier for this mixture category
-			double r = 1.0;
 			if(this->rateVariationAcrossSites == true)
-				r = this->siteRates->getValue()[mixture];
+				mu *= this->siteRates->getValue()[mixture];
 
 			size_t offset = mixture*this->mixtureOffset + this->numPatterns*this->siteOffset;
 
@@ -421,10 +461,10 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 			//Nicholls and Gray
 
 			totalmass[root][mixture][0] = prob;
-			totalmass[root][mixture][1] = 1.0/r;
+			totalmass[root][mixture][1] = lambda/mu;
 
 			// just probability of absence site
-			probAbsence += u[0]/r;
+			probAbsence += u[0]*lambda/mu;
 		}
 
 		for(size_t i = 0; i < this->tau->getValue().getNumberOfNodes(); i++){
@@ -443,6 +483,13 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::swapParameter(const DagNod
     if (oldP == topology)
     {
     	topology = static_cast<const TypedDagNode<Topology>* >( newP );
+    }else if (oldP == homogeneousOriginationRate)
+    {
+    	homogeneousOriginationRate = static_cast<const TypedDagNode< double >* >( newP );
+    }
+    else if (oldP == heterogeneousOriginationRates)
+    {
+    	heterogeneousOriginationRates = static_cast<const TypedDagNode< std::vector< double > >* >( newP );
     }
     else
     {
@@ -455,12 +502,34 @@ template<class treeType>
 void RevBayesCore::DolloBinaryCharEvoModel<treeType>::touchSpecialization( DagNode* affecter ) {
     
     // if the topology was the culprit for the touch (not the branch lengths), then we update the ancestral mapping
-    if ( affecter == topology || affecter == this->dagNode )
+    if ( affecter == topology || affecter == this->dagNode ){
     	ancestralNeedsRecomputing = true;
 
-	if(affecter == this->siteRates){
-		for(size_t node = 0; node < this->tau->getValue().getNumberOfNodes(); node++)
-			totalmass[node] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
+    // if the topology wasn't the culprit for the touch, then we just flag everything as dirty
+    }else if ( affecter == heterogeneousOriginationRates )
+	{
+		const std::set<size_t> &indices = heterogeneousOriginationRates->getTouchedElementIndices();
+
+		// maybe all of them have been touched or the flags haven't been set properly
+		if ( indices.size() == 0 )
+		{
+			// just delegate the call
+			BinaryCharEvoModel<treeType>::touchSpecialization( affecter );
+		}
+		else
+		{
+			const std::vector<TopologyNode *> &nodes = this->tau->getValue().getNodes();
+			// flag recomputation only for the nodes
+			for (std::set<size_t>::iterator it = indices.begin(); it != indices.end(); ++it)
+			{
+				this->recursivelyFlagNodeDirty( *nodes[*it] );
+			}
+		}
+	}else{
+		if(affecter == this->siteRates){
+			for(size_t node = 0; node < this->tau->getValue().getNumberOfNodes(); node++)
+				totalmass[node] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
+		}
 	}
 
 	BinaryCharEvoModel<treeType>::touchSpecialization(affecter);
@@ -544,10 +613,18 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::redrawValue( void ) {
 		// first sample a birth rate (lambda)
 		// from the marginal posterior lambda | N ~ Gamma(N, omega )
     	// given lambda ~ 1/lambda
-		double lambda = RbStatistics::Gamma::rv(this->N,omega, *rng);
+    	if(integratedOriginationRate){
+			double lambda = RbStatistics::Gamma::rv(this->N,omega, *rng);
 
-		// then resample numSites from Poisson( lambda*omega )
-		this->numSites = RbStatistics::Poisson::rv( lambda*omega, *rng);
+			// then resample numSites from Poisson( lambda*omega )
+			this->numSites = RbStatistics::Poisson::rv( lambda*omega, *rng);
+    	}else{
+    		this->numSites = RbStatistics::Poisson::rv( omega, *rng);
+    	}
+
+		lnNumSitesFactorial = 0;
+		for(size_t n = 2; n <= this->numSites; n++)
+			lnNumSitesFactorial += log(n);
 
 		//std::cerr << "lambda: " << lambda << "\tN: " << this->numSites << std::endl;
     }
@@ -671,6 +748,87 @@ size_t RevBayesCore::DolloBinaryCharEvoModel<treeType>::simulate( const Topology
 	}
 
     return numLeaves;
+
+}
+
+template<class treeType>
+void RevBayesCore::DolloBinaryCharEvoModel<treeType>::setOriginationRate(const TypedDagNode< double > *r) {
+
+    // remove the old parameter first
+    if ( homogeneousOriginationRate != NULL )
+    {
+        this->removeParameter( homogeneousOriginationRate );
+        homogeneousOriginationRate = NULL;
+    }
+    else // heterogeneousClockRate != NULL
+    {
+        this->removeParameter( heterogeneousOriginationRates );
+        heterogeneousOriginationRates = NULL;
+    }
+
+    // set the value
+    branchHeterogeneousOriginationRates = false;
+    integratedOriginationRate = false;
+    homogeneousOriginationRate = r;
+
+    // add the parameter
+    this->addParameter( homogeneousOriginationRate );
+
+    // redraw the current value
+    if ( this->dagNode != NULL && !this->dagNode->isClamped() )
+    {
+        this->redrawValue();
+    }
+
+}
+
+
+
+template<class treeType>
+void RevBayesCore::DolloBinaryCharEvoModel<treeType>::setOriginationRate(const TypedDagNode< std::vector< double > > *r) {
+
+    // remove the old parameter first
+    if ( homogeneousOriginationRate != NULL )
+    {
+        this->removeParameter( homogeneousOriginationRate );
+        homogeneousOriginationRate = NULL;
+    }
+    else // heterogeneousClockRate != NULL
+    {
+        this->removeParameter( heterogeneousOriginationRates );
+        heterogeneousOriginationRates = NULL;
+    }
+
+    // set the value
+    branchHeterogeneousOriginationRates = true;
+    integratedOriginationRate = false;
+    heterogeneousOriginationRates = r;
+
+    // add the parameter
+    this->addParameter( heterogeneousOriginationRates );
+
+    // redraw the current value
+    if ( this->dagNode != NULL && !this->dagNode->isClamped() )
+    {
+        this->redrawValue();
+    }
+
+}
+
+template<class treeType>
+double RevBayesCore::DolloBinaryCharEvoModel<treeType>::getOriginationRate(size_t nodeIdx) {
+
+	double branchTime = 1.0;
+    if ( this->branchHeterogeneousOriginationRates == true )
+    {
+        branchTime = this->heterogeneousOriginationRates->getValue()[nodeIdx];
+    }
+    else if(integratedOriginationRate == false)
+    {
+        branchTime = this->homogeneousOriginationRate->getValue();
+    }
+
+    return branchTime;
 
 }
 
