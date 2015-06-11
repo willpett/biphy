@@ -489,7 +489,6 @@ void RevBayesCore::BinaryCharEvoModel<treeType>::touchSpecialization( DagNode* a
 	{
 		AbstractSiteCorrectionModel<StandardState,treeType>::touchSpecialization(affecter);
     }
-
 }
 
 template<class treeType>

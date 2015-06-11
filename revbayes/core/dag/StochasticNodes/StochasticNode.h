@@ -151,7 +151,7 @@ void RevBayesCore::StochasticNode<valueType>::clamp(valueType *val) {
     setValue( val );
     
     clamped = true;
-    
+
 }
 
 
@@ -352,13 +352,13 @@ template<class valueType>
 void RevBayesCore::StochasticNode<valueType>::setValue(valueType *val, bool forceTouch) {
     // set the value
     distribution->setValue( val );
-    
+
     if ( forceTouch ) 
     {
         // touch this node for probability recalculation
         this->touch();
     }
-    
+
 }
 
 

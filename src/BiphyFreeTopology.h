@@ -51,8 +51,8 @@ class BiphyFreeTopology : public Biphy {
     										bool saveall,
     										bool nexus
 											);
-    	BiphyFreeTopology(const std::string &name, const std::string &cvfile, bool ppred, bool dolloMapping = false);
-    	BiphyFreeTopology(const std::string &name);
+    	BiphyFreeTopology(const std::string name, const std::string cvfile, bool ppred, bool dolloMapping = false);
+    	BiphyFreeTopology(const std::string name);
         
     	void									readInputFiles();
     	void									printConfiguration();

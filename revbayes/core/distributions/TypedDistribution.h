@@ -154,11 +154,10 @@ void RevBayesCore::TypedDistribution<valueType>::setStochasticNode( StochasticNo
 template <class valueType>
 void RevBayesCore::TypedDistribution<valueType>::setValue( valueType *v ) {
     
-    // free memory
+	// free memory
     delete value;
     
     value = v;
-    
 }
 
 template <class valueType>

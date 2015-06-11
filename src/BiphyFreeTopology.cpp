@@ -95,7 +95,7 @@ BiphyFreeTopology::BiphyFreeTopology(const std::string n,
     save();
 }
 
-BiphyFreeTopology::BiphyFreeTopology(const std::string &n, const std::string &cv, bool pp, bool dm) : Biphy(n),
+BiphyFreeTopology::BiphyFreeTopology(const std::string n, const std::string cv, bool pp, bool dm) : Biphy(n),
 		cvfile(cv),
 		ppred(pp),
 		dolloMapping(dm),
@@ -110,7 +110,7 @@ BiphyFreeTopology::BiphyFreeTopology(const std::string &n, const std::string &cv
 	every = 1;
 }
 
-BiphyFreeTopology::BiphyFreeTopology(const std::string &n) : Biphy(n),
+BiphyFreeTopology::BiphyFreeTopology(const std::string n) : Biphy(n),
 		cvfile("None"), ppred(false), outgroup(std::vector<std::string>(),0)
 {
 	open();
@@ -447,23 +447,22 @@ void BiphyFreeTopology::initModel( void ) {
 	}
     
     DeterministicNode<BranchLengthTree> *psi = new DeterministicNode<BranchLengthTree>( "psi", new TreeAssemblyFunction(tau, br_vector) );
-    std::cout << "tree okay\n";
 
     // Substitution model
-    BinaryCharEvoModel<BranchLengthTree> *charModel;
-    StochasticNode<double> *birthrate;
+    BinaryCharEvoModel<BranchLengthTree>* charModel;
+
     if(modeltype == DOLLO){
-    	charModel = new DolloBinaryMissingCharEvoModel<BranchLengthTree>(psi, tau, true, data[0]->getNumberOfCharacters(), correction);
+    	charModel = new DolloBinaryMissingCharEvoModel<BranchLengthTree>(psi, tau, true, data[0]->getNumberOfIncludedCharacters(), correction);
     	if(missing)
     		((DolloBinaryMissingCharEvoModel<BranchLengthTree>*)charModel)->setMissingRate(xi);
 	}else{
-		charModel = new BinaryMissingCharEvoModel<BranchLengthTree>(psi, true, data[0]->getNumberOfCharacters(), correction);
+		charModel = new BinaryMissingCharEvoModel<BranchLengthTree>(psi, true, data[0]->getNumberOfIncludedCharacters(), correction);
 		if(missing)
 			((BinaryMissingCharEvoModel<BranchLengthTree>*)charModel)->setMissingRate(xi);
     }
 
     std::vector<const TypedDagNode<double> *> rf_vec(2);
-	TypedDagNode<std::vector<double> > *rf;
+	TypedDagNode<std::vector<double> >* rf;
 
     if(modeltype == DOLLO){
     	rf_vec[1] = one;
@@ -485,14 +484,11 @@ void BiphyFreeTopology::initModel( void ) {
 	if(dgam > 1)
 		charModel->setSiteRates( site_rates );
 
-    StochasticNode< AbstractCharacterData > *charactermodel = new StochasticNode< AbstractCharacterData >("S", charModel );
-    charactermodel->clamp( data[0] );
-    std::cout << "data ok\n";
+	StochasticNode< AbstractCharacterData >* charactermodel = new StochasticNode< AbstractCharacterData >("S", charModel );
+	charactermodel->clamp( data[0] );
 
-    // add the moves
-	//moves.push_back( new NearestNeighborInterchange( tau, 2.0 ) );
 	if(trees.empty())
-		moves.push_back( new SubtreePruneRegraft( tau, 5.0, rootprior == RIGID) );
+		moves.push_back( new SubtreePruneRegraft(tau, 5.0 , rootprior == RIGID) );
 
 	if(missing)
 		moves.push_back( new BetaSimplexMove((StochasticNode<double>*)xi, 1.0, true, 2.0 ) );

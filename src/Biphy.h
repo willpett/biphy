@@ -50,7 +50,7 @@ class Biphy {
 			double sigma,
 			bool saveall
 			);
-    	Biphy(const std::string &name);
+    	Biphy(const std::string name);
         
         void									init();
         void                                    run();

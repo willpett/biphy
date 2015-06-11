@@ -50,7 +50,7 @@ Biphy::Biphy(const std::string n,
     save();
 }
 
-Biphy::Biphy(const std::string &name) :
+Biphy::Biphy(const std::string name) :
 		name( name ), readstream(false), restart(true)
 {
 	open();
@@ -175,6 +175,9 @@ void Biphy::readInputFiles( void ) {
 		numSites += data[i]->getNumberOfIncludedCharacters();
 	}
 
+    if(excluded > 0)
+    	std::cerr << "excluded " << excluded << " characters" << std::endl;
+
     symbols = ((DiscreteCharacterData<StandardState> *)data[0])->getCharacter(0,0).getStateLabels();
 	std::stringstream states;
 	states << "character states:\t";
@@ -247,7 +250,7 @@ void Biphy::initModel( void ) {
 
 	// RAS prior
 	std::vector<const TypedDagNode<double>* > gamma_rates = std::vector<const TypedDagNode<double>* >();
-	DeterministicNode<std::vector<double> > *site_rates_norm;
+	//DeterministicNode<std::vector<double> > *site_rates_norm;
 	if(dgam > 1){
 		shape = new ContinuousStochasticNode("shape", new ExponentialDistribution(one) );
 		for(size_t cat = 0; cat < dgam; cat++){

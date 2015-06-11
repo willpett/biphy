@@ -238,14 +238,10 @@ void RevBayesCore::BinaryMissingCharEvoModel<treeType>::setMissingRate(const Typ
 template<class treeType>
 double RevBayesCore::BinaryMissingCharEvoModel<treeType>::getMissingRate() {
 
-    double missingRate;
+    double missingRate = 0.0;
     if ( fracMissing != NULL )
     {
     	missingRate = fracMissing->getValue();
-    }
-    else
-    {
-    	missingRate = 0.0;
     }
 
     return missingRate;
