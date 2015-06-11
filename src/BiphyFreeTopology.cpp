@@ -487,10 +487,12 @@ void BiphyFreeTopology::initModel( void ) {
 	if(dgam > 1)
 		charModel->setSiteRates( site_rates );
 
-	std::cerr << "model okay" << std::endl;
+	std::cerr << "dist okay" << std::endl;
 
 	StochasticNode< AbstractCharacterData >* charactermodel = new StochasticNode< AbstractCharacterData >("S", charModel );
+	std::cerr << "clamping" << std::endl;
 	charactermodel->clamp( data[0] );
+	std::cerr << "clamped" << std::endl;
 
 	if(trees.empty())
 		moves.push_back( new SubtreePruneRegraft(tau, 5.0 , rootprior == RIGID) );
