@@ -275,6 +275,8 @@ void BiphyFreeTopology::initModel( void ) {
     	tau->setIgnoreRedraw(true);
     }
 
+    std::cerr << "topology okay" << std::endl;
+
     // base frequencies hyperprior
 	StochasticNode<double> *beta1;
 	StochasticNode<double> *beta2;
@@ -448,6 +450,7 @@ void BiphyFreeTopology::initModel( void ) {
     
     DeterministicNode<BranchLengthTree> *psi = new DeterministicNode<BranchLengthTree>( "psi", new TreeAssemblyFunction(tau, br_vector) );
 
+    std::cerr << "prior okay" << std::endl;
     // Substitution model
     BinaryCharEvoModel<BranchLengthTree>* charModel;
 
@@ -483,6 +486,8 @@ void BiphyFreeTopology::initModel( void ) {
 
 	if(dgam > 1)
 		charModel->setSiteRates( site_rates );
+
+	std::cerr << "model okay" << std::endl;
 
 	StochasticNode< AbstractCharacterData >* charactermodel = new StochasticNode< AbstractCharacterData >("S", charModel );
 	charactermodel->clamp( data[0] );
