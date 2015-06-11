@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include "util.h"
-#include "Biphy.h"
+#include "BiphyFreeTopology.h"
 
 using namespace std;
 
@@ -15,14 +15,14 @@ int main (int argc, const char * argv[])
 	string outgroupfile = "None";
 	string name = "";
 
-	Biphy::ModelType modeltype = Biphy::HOMOGENEOUS;
+	BiphyFreeTopology::ModelType modeltype = BiphyFreeTopology::HOMOGENEOUS;
 	int mixture = 0;
 
-	Biphy::BranchPrior branchprior = Biphy::EXPONENTIAL;
+	BiphyFreeTopology::BranchPrior branchprior = BiphyFreeTopology::EXPONENTIAL;
 
 	int dgam = 4;
 
-	Biphy::RootPrior rootprior = Biphy::FREE;
+	BiphyFreeTopology::RootPrior rootprior = BiphyFreeTopology::FREE;
 	double rootmin = 0.0;
 	double rootmax = 1.0;
 
@@ -56,7 +56,7 @@ int main (int argc, const char * argv[])
 				exit(1);
 			}
 
-			chain = new Biphy(name);
+			chain = new BiphyFreeTopology(name);
 		}else if (argc == 1){
 			throw(0);
 		}else{
@@ -97,27 +97,27 @@ int main (int argc, const char * argv[])
 					}
 					dgam = atoi(argv[i]);
 				}else if (s == "-rigid"){
-					rootprior = Biphy::RIGID;
+					rootprior = BiphyFreeTopology::RIGID;
 				}
 				else if (s == "-nh")	{
-					modeltype = Biphy::HIERARCHICAL;
+					modeltype = BiphyFreeTopology::HIERARCHICAL;
 				}
 				else if (s == "-e")	{
 					nexus = true;
 				}else if (s == "-i")	{
 					IIDmissing = true;
 				}else if (s == "-dollo"){
-					modeltype = Biphy::DOLLO;
+					modeltype = BiphyFreeTopology::DOLLO;
 				}else if (s == "-map"){
 					dolloMapping = true;
 				}else if (s == "-h")	{
-					modeltype = Biphy::HOMOGENEOUS;
+					modeltype = BiphyFreeTopology::HOMOGENEOUS;
 				}else if (s == "-dpp")	{
-					modeltype = Biphy::DPP;
+					modeltype = BiphyFreeTopology::DPP;
 				}else if (s == "-ldir")	{
-					branchprior = Biphy::DIRICHLET;
+					branchprior = BiphyFreeTopology::DIRICHLET;
 				}else if (s == "-lexp")	{
-					branchprior = Biphy::EXPONENTIAL;
+					branchprior = BiphyFreeTopology::EXPONENTIAL;
 				}else if (s == "-n")	{
 					i++;
 					if (i == argc)	{
@@ -159,9 +159,9 @@ int main (int argc, const char * argv[])
 					}
 					mixture = atoi(argv[i]);
 					if(mixture > 1){
-						modeltype = Biphy::MIXTURE;
+						modeltype = BiphyFreeTopology::MIXTURE;
 					}else{
-						modeltype = Biphy::HOMOGENEOUS;
+						modeltype = BiphyFreeTopology::HOMOGENEOUS;
 						mixture = 0;
 					}
 				}
@@ -252,7 +252,7 @@ int main (int argc, const char * argv[])
 						cerr << "error in command: -rp <min> <max>\n\n";
 						exit(1);
 					}
-					rootprior = Biphy::TRUNCATED;
+					rootprior = BiphyFreeTopology::TRUNCATED;
 				}else if (s == "-ppred")	{
 					ppred = true;
 				}else{
@@ -269,17 +269,17 @@ int main (int argc, const char * argv[])
 				exit(1);
 			}
 
-			if(mixture > 1 && modeltype != Biphy::MIXTURE)
+			if(mixture > 1 && modeltype != BiphyFreeTopology::MIXTURE)
 				throw(0);
 
-			if(rootprior == Biphy::TRUNCATED && (modeltype > Biphy::HIERARCHICAL || modeltype == Biphy::DOLLO)){
+			if(rootprior == BiphyFreeTopology::TRUNCATED && (modeltype > BiphyFreeTopology::HIERARCHICAL || modeltype == BiphyFreeTopology::DOLLO)){
 				cerr << "error: truncated root frequency only applies to -h or -nh\n\n";
 				exit(1);
 			}
-			if(rootprior == Biphy::RIGID && (modeltype < Biphy::HIERARCHICAL))
-				rootprior = Biphy::FREE;
+			if(rootprior == BiphyFreeTopology::RIGID && (modeltype < BiphyFreeTopology::HIERARCHICAL))
+				rootprior = BiphyFreeTopology::FREE;
 
-			if(modeltype == Biphy::DOLLO)
+			if(modeltype == BiphyFreeTopology::DOLLO)
 				correction = (RevBayesCore::CorrectionType)(correction | RevBayesCore::NO_ABSENT_SITES);
 		}
 	}
@@ -367,7 +367,7 @@ int main (int argc, const char * argv[])
 					remove((name+".treelist.nex").c_str());
 			}
 
-			chain = new Biphy(datafile,name,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,mixture,IIDmissing,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
+			chain = new BiphyFreeTopology(name,datafile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
 		}else{
 			if(!fexists(name+".stream")){
 				cerr << "run '" << name << "' does not exist\n";
@@ -382,12 +382,13 @@ int main (int argc, const char * argv[])
 				remove((name+".cv").c_str());
 			if(dolloMapping)
 				remove((name+".dollo.fa").c_str());
-			chain = new Biphy(name,cvfile,ppred,dolloMapping);
+			chain = new BiphyFreeTopology(name,cvfile,ppred,dolloMapping);
 		}
 
 	try
 	{
-    	chain->run();
+		chain->init();
+		chain->run();
 	}
 	catch (RbException& e)
 	{

@@ -1,5 +1,9 @@
 set(SRC_FILES
 ${PROJECT_SRC_DIR}/Biphy.cpp
+${PROJECT_SRC_DIR}/BiphyFreeTopology.cpp
+${PROJECT_SRC_DIR}/MultiBiphy.cpp
+${PROJECT_SRC_DIR}/MultiBiphyRhoPi.cpp
+${PROJECT_SRC_DIR}/MultiBiphyLambdaMu.cpp
 ${PROJECT_SRC_DIR}/CladeReader.cpp
 ${PROJECT_SRC_DIR}/CrossValidationScoreMonitor.cpp
 ${PROJECT_SRC_DIR}/DPPBetaSimplexMove.cpp
@@ -10,9 +14,6 @@ ${PROJECT_SRC_DIR}/NexusTreeMonitor.cpp
 ${PROJECT_SRC_DIR}/PosteriorPredictiveStateFrequencyMonitor.cpp
 ${PROJECT_SRC_DIR}/TruncatedDistributionUnnormalized.cpp
 ${PROJECT_SRC_DIR}/UniformRootedTopologyDistribution.cpp
-${PROJECT_SRC_DIR}/MultiBiphy.cpp
-${PROJECT_SRC_DIR}/MultiBiphyRhoPi.cpp
-${PROJECT_SRC_DIR}/MultiBiphyLambdaMu.cpp
 ${PROJECT_SRC_DIR}/NegativeBinomialDistribution.cpp
 ${PROJECT_SRC_DIR}/FreeBinaryRateMatrixVectorFunction.cpp
 ${PROJECT_SRC_DIR}/NHXTreeReader.cpp

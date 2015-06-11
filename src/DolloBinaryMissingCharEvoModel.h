@@ -10,20 +10,22 @@ namespace RevBayesCore {
     class DolloBinaryMissingCharEvoModel : public DolloBinaryCharEvoModel<treeType> {
         
     public:
-    	DolloBinaryMissingCharEvoModel(const TypedDagNode< treeType > *p, const TypedDagNode<Topology> *t, const TypedDagNode<std::vector<double> > *m, bool c, size_t nSites, int type = 0);
+    	DolloBinaryMissingCharEvoModel(const TypedDagNode< treeType > *p, const TypedDagNode<Topology> *t, bool c, size_t nSites, int type = 0);
         DolloBinaryMissingCharEvoModel(const DolloBinaryMissingCharEvoModel &n);                                                                                                //!< Copy constructor
         virtual                                            ~DolloBinaryMissingCharEvoModel(void);                                                                   //!< Virtual destructor
         
         // public member functions
-        DolloBinaryMissingCharEvoModel*         			clone(void) const;
-		void                                                swapParameter(const DagNode *oldP, const DagNode *newP);
+        DolloBinaryMissingCharEvoModel*     clone(void) const;
+		void                                swapParameter(const DagNode *oldP, const DagNode *newP);
+		double 								getMissingRate(void);
+		void								setMissingRate(const TypedDagNode< double > *r);
         
     protected:
 
 	   virtual void                        computeTipCorrection(const TopologyNode &node, size_t nodeIndex);
 	   virtual void                        computeTipLikelihood(const TopologyNode &node, size_t nodeIndex);
 
-	   const TypedDagNode< std::vector<double> >*		fracMissing;
+	   const TypedDagNode< double >*		fracMissing;
 
     };
     
@@ -33,14 +35,11 @@ namespace RevBayesCore {
 #include <cstring>
 
 template<class treeType>
-RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::DolloBinaryMissingCharEvoModel(const TypedDagNode< treeType > *p, const TypedDagNode<Topology> *t, const TypedDagNode<std::vector<double> > *m, bool c, size_t nSites, int type) :
+RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::DolloBinaryMissingCharEvoModel(const TypedDagNode< treeType > *p, const TypedDagNode<Topology> *t, bool c, size_t nSites, int type) :
 	DolloBinaryCharEvoModel<treeType>(p, t, c , nSites, type),
 	AbstractCharEvoModel<StandardState, treeType>(p, 2, c , nSites),
-	fracMissing(m)
+	fracMissing(NULL)
 {
-
-	// initialize with default parameters
-	this->addParameter( fracMissing );
 }
 
 
@@ -76,7 +75,7 @@ void RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::computeTipCorrectio
 
 	// iterate over all mixture categories
 
-	double miss = fracMissing->getValue()[nodeIndex];
+	double miss = getMissingRate();
 
 	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 	{
@@ -136,7 +135,7 @@ void RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::computeTipLikelihoo
 	const std::vector<bool> &gap_node = this->gapMatrix[name];
 	const std::vector<unsigned long> &char_node = this->charMatrix[name];
 
-	double miss = fracMissing->getValue()[nodeIndex];
+	double miss = getMissingRate();
 
 	// compute the transition probabilities
 	this->updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
@@ -232,11 +231,51 @@ void RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::computeTipLikelihoo
 }
 
 template<class treeType>
+void RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::setMissingRate(const TypedDagNode< double > *r) {
+
+    // remove the old parameter first
+    if ( fracMissing != NULL )
+    {
+        this->removeParameter( fracMissing );
+        fracMissing = NULL;
+    }
+
+    fracMissing = r;
+
+    // add the parameter
+    this->addParameter( fracMissing );
+
+    // redraw the current value
+    if ( this->dagNode != NULL && !this->dagNode->isClamped() )
+    {
+        this->redrawValue();
+    }
+
+}
+
+template<class treeType>
+double RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::getMissingRate() {
+
+    double missingRate;
+    if ( fracMissing != NULL )
+    {
+    	missingRate = fracMissing->getValue();
+    }
+    else
+    {
+    	missingRate = 0.0;
+    }
+
+    return missingRate;
+
+}
+
+template<class treeType>
 void RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::swapParameter(const DagNode *oldP, const DagNode *newP) {
     
     if (oldP == fracMissing)
     {
-    	fracMissing = static_cast<const TypedDagNode<std::vector<double> >* >( newP );
+    	fracMissing = static_cast<const TypedDagNode<double >* >( newP );
     }
     else
     {

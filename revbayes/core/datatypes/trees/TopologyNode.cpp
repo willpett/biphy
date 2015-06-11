@@ -174,9 +174,9 @@ void TopologyNode::addBranchParameter(std::string const &n, const double &p) {
 
 double TopologyNode::getBranchParameter(std::string const &n) {
 
-	std::stringstream o;
 	std::string value;
 	for(size_t i = 0; i < branchComments.size(); i++){
+		std::stringstream o;
 		o << branchComments[i];
 		std::string name = "";
 		while(o.good() && o.peek() != '=')

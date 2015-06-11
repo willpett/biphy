@@ -20,27 +20,25 @@
 #ifndef MultiBiphy_H
 #define MultiBiphy_H
 
-#include <string>
-#include <vector>
-#include <cstdlib>
-#include <iostream>
-#include "ParallelMcmcmc.h"
+#include <iomanip>
+#include "Biphy.h"
     
-class MultiBiphy {
+class MultiBiphy : public Biphy {
         
     public:
 
     	enum ModelType {DOLLO, REVERSIBLE};
 		enum RatePrior {HOMOGENEOUS, HIERARCHICAL};
 
-    	MultiBiphy(const std::string datafile,
+		MultiBiphy(const std::string name,
+					const std::string datafile,
 					const std::string treefile,
-					const std::string name,
 					ModelType modeltype,
 					RatePrior A_prior,
 					RatePrior B_prior,
 					RatePrior A_species,
 					RatePrior B_species,
+					bool ancestral,
 					int correction,
 					int dgam,
 					int every,
@@ -49,23 +47,24 @@ class MultiBiphy {
 					int swapInterval,
 					double delta,
 					double sigma,
-					bool saveall,
-					bool ancestral
+					bool saveall
 					);
     	MultiBiphy(const std::string name, bool ancestral);
     	MultiBiphy(const std::string name);
         
-        virtual void							init() = 0;
-        void                                    open();
-        void                                    save();
-        void                            		run();
+    	virtual void		readInputFiles();
+		virtual void		printConfiguration();
+		virtual void		initModel();
+		virtual void		initMCMC();
+
+		virtual RevBayesCore::BinaryCharEvoModel<RevBayesCore::BranchLengthTree>*		initSubModel(size_t index) = 0;
+
+		void                openParams(std::ifstream&);
+		void                saveParams(std::ofstream&);
         
     protected:
-        
-        // members
-        std::string                             dataFile;
-        std::string								name;
-        std::string                             treeFile;
+
+		std::vector<RevBayesCore::StochasticNode<RevBayesCore::AbstractCharacterData>* > dataNodes;
 
         ModelType 								modeltype;
 		RatePrior 								A_prior;
@@ -73,21 +72,17 @@ class MultiBiphy {
 		RatePrior 								A_species;
 		RatePrior 								B_species;
 
-		int 									correction;
-
-        int										dgam;
-        int                                     every;
-        int                                     until;
-        int                                     numChains;
-        int                                     swapInterval;
-        double                                  delta;
-        double                                  sigma;
-        bool									saveall;
-        bool									readstream;
-        bool									restart;
         bool									ancestral;
-        
-        RevBayesCore::ParallelMcmcmc* 			mcmc;
+
+        std::vector<std::map<size_t, size_t> >	node2speciesMaps;
+        std::map<size_t, size_t>				speciesIndex;
+        std::vector<size_t>						rootSpecies;
+
+		std::stringstream 						tmp_name;
+		size_t numSpecies;
+		size_t numTrees;
+		size_t wt;
+		size_t ws;
 
 };
 

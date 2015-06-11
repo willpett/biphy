@@ -10,20 +10,22 @@ namespace RevBayesCore {
     class BinaryMissingCharEvoModel : public BinaryCharEvoModel<treeType> {
 
     public:
-    	BinaryMissingCharEvoModel(const TypedDagNode< treeType > *p, const TypedDagNode< std::vector<double> > *m, bool c, size_t nSites, int type = 0);
+    	BinaryMissingCharEvoModel(const TypedDagNode< treeType > *p, bool c, size_t nSites, int type = 0);
         BinaryMissingCharEvoModel(const BinaryMissingCharEvoModel &n);
         virtual                             ~BinaryMissingCharEvoModel(void);
         
         // public member functions
         BinaryMissingCharEvoModel*         	clone(void) const;
         void                                swapParameter(const DagNode *oldP, const DagNode *newP);
+        double 								getMissingRate(void);
+        void 								setMissingRate(const TypedDagNode< double > *r);
 
     protected:
         
         virtual void                        computeTipLikelihood(const TopologyNode &node, size_t nIdx);
 		virtual void                        computeTipCorrection(const TopologyNode &node, size_t nIdx);
 
-        const TypedDagNode< std::vector<double> >*		fracMissing;
+        const TypedDagNode< double >*		fracMissing;
     };
     
 }
@@ -32,13 +34,11 @@ namespace RevBayesCore {
 #include <cstring>
 
 template<class treeType>
-RevBayesCore::BinaryMissingCharEvoModel<treeType>::BinaryMissingCharEvoModel(const TypedDagNode< treeType > *t, const TypedDagNode< std::vector<double> > *m, bool c, size_t nSites, int type) :
+RevBayesCore::BinaryMissingCharEvoModel<treeType>::BinaryMissingCharEvoModel(const TypedDagNode< treeType > *t, bool c, size_t nSites, int type) :
 	BinaryCharEvoModel<treeType>(t, c , nSites, type),
 	AbstractCharEvoModel<StandardState, treeType>(t, 2, c , nSites),
-	fracMissing(m)
+	fracMissing(NULL)
 {
-	this->addParameter( fracMissing );
-
 	this->numCorrectionSites = 4*(type > 0);
 
 	this->resizeLikelihoodVectors();
@@ -77,7 +77,7 @@ void RevBayesCore::BinaryMissingCharEvoModel<treeType>::computeTipCorrection(con
 
 	// iterate over all mixture categories
 
-	double miss = fracMissing->getValue()[nodeIndex];
+	double miss = getMissingRate();
 
 	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 	{
@@ -115,7 +115,7 @@ void RevBayesCore::BinaryMissingCharEvoModel<treeType>::computeTipLikelihood(con
 	const std::vector<bool> &gap_node = this->gapMatrix[name];
 	const std::vector<unsigned long> &char_node = this->charMatrix[name];
 
-	double miss = fracMissing->getValue()[nodeIndex];
+	double miss = getMissingRate();
 
 	// compute the transition probabilities
 	this->updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
@@ -210,12 +210,54 @@ void RevBayesCore::BinaryMissingCharEvoModel<treeType>::computeTipLikelihood(con
 
 }
 
+
+
+template<class treeType>
+void RevBayesCore::BinaryMissingCharEvoModel<treeType>::setMissingRate(const TypedDagNode< double > *r) {
+
+    // remove the old parameter first
+    if ( fracMissing != NULL )
+    {
+        this->removeParameter( fracMissing );
+        fracMissing = NULL;
+    }
+
+    fracMissing = r;
+
+    // add the parameter
+    this->addParameter( fracMissing );
+
+    // redraw the current value
+    if ( this->dagNode != NULL && !this->dagNode->isClamped() )
+    {
+        this->redrawValue();
+    }
+
+}
+
+template<class treeType>
+double RevBayesCore::BinaryMissingCharEvoModel<treeType>::getMissingRate() {
+
+    double missingRate;
+    if ( fracMissing != NULL )
+    {
+    	missingRate = fracMissing->getValue();
+    }
+    else
+    {
+    	missingRate = 0.0;
+    }
+
+    return missingRate;
+
+}
+
 template<class treeType>
 void RevBayesCore::BinaryMissingCharEvoModel<treeType>::swapParameter(const DagNode *oldP, const DagNode *newP) {
 
     if (oldP == fracMissing)
     {
-    	fracMissing = static_cast<const TypedDagNode<std::vector<double> >* >( newP );
+    	fracMissing = static_cast<const TypedDagNode<double >* >( newP );
     }
     else
     {

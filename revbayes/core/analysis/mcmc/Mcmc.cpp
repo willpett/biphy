@@ -326,9 +326,9 @@ void Mcmc::initializeChain( void ) {
             
             if ( !RbMath::isAComputableNumber(lnProb) ) 
             {
-                std::cerr << "Could not compute lnProb for node " << node->getName() << "." << std::endl;
-                node->printValue(std::cerr,"");
-                std::cerr << std::endl;
+                //std::cerr << "Could not compute lnProb for node " << node->getName() << "." << std::endl;
+                //node->printValue(std::cerr,"");
+                //std::cerr << std::endl;
             }
             lnProbability += lnProb;
 
@@ -342,7 +342,7 @@ void Mcmc::initializeChain( void ) {
 
         if ( !RbMath::isAComputableNumber( lnProbability ) )
         {
-            std::cerr << "Drawing new initial states ... " << std::endl;
+            //std::cerr << "Drawing new initial states ... " << std::endl;
             for (std::vector<DagNode *>::iterator i=orderedStochNodes.begin(); i!=orderedStochNodes.end(); i++) 
             {
                 //std::cout << (*i)->getName() << std::endl;

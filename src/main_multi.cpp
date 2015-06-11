@@ -56,8 +56,8 @@ int main (int argc, const char * argv[])
 				exit(1);
 			}
 
-			chain = new MultiBiphyRhoPi(name);
-			chain = new MultiBiphyLambdaMu(name);
+			chain = new RevBayesCore::MultiBiphyRhoPi(name);
+			chain = new RevBayesCore::MultiBiphyLambdaMu(name);
 		}else if (argc == 1){
 			throw(0);
 		}else{
@@ -91,8 +91,8 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					dgam = atoi(argv[i]);
-				}else if (s == "-rev")	{
-					modeltype = MultiBiphyRhoPi::REVERSIBLE;
+				//}else if (s == "-rev")	{
+				//	modeltype = MultiBiphyRhoPi::REVERSIBLE;
 				//}else if (s == "-dollo"){
 				//	modeltype = MultiBiphyRhoPi::DOLLO;
 				}else if (s == "-rho_pi")	{
@@ -224,7 +224,7 @@ int main (int argc, const char * argv[])
 				exit(1);
 			}
 
-			if(modeltype == MultiBiphyRhoPi::DOLLO)
+			if(modeltype == RevBayesCore::MultiBiphyRhoPi::DOLLO)
 				correction = (RevBayesCore::CorrectionType)(correction | RevBayesCore::NO_ABSENT_SITES);
 
 			if(AB & 0x01)
@@ -245,9 +245,9 @@ int main (int argc, const char * argv[])
 		cerr << '\n';
 		cerr << "usage: multibiphy -t <tree file> -d <data file> [-x <every> [<until>] ] <run name>\n";
 
-		cerr << "\nModel type:\n";
+		//cerr << "\nModel type:\n";
 		//cerr << "\t-dollo\t\tstochastic dollo model (enables -u 1)\n";
-		cerr << "\t-rev\t\treversible model (default)\n";
+		//cerr << "\t-rev\t\treversible model (default)\n";
 
 		cerr << "\nPrior parameterization:\n";
 		cerr << "\t-rho_pi <int>\n";
@@ -275,8 +275,6 @@ int main (int argc, const char * argv[])
 		cerr << "\te.g.  3 = constant sites have been removed\n";
 		cerr << "\t     15 = uninformative sites have been removed\n";
 
-		cerr << "\t-a\tsimulate ancestral states";
-
 		cerr << "\nMCMCMC options:\n";
 		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
 		cerr << "\t-si <int>\tchain swap interval (default = 1)\n";
@@ -284,7 +282,8 @@ int main (int argc, const char * argv[])
 		cerr << "\t-sigma <float>\t(default = 1)\n";
 
 		cerr << "\nOutput options:\n";
-		cerr << "\t-s\t\tsave entire output (default: disabled)\n";
+		cerr << "\t-a\tsimulate ancestral states (default: disabled)\n";
+		cerr << "\t-s\tsave entire output (default: disabled)\n";
 		exit(1);
 	}
 
@@ -308,10 +307,9 @@ int main (int argc, const char * argv[])
 
 
 			if(parameterization == LAMBDA_MU){
-				chain = new MultiBiphyLambdaMu(datafile,name,treefile,modeltype,A_prior,B_prior,A_species,B_species,correction,dgam,every,until,numChains,swapInterval,delta,sigma,saveall,ancestral);
-				std::cerr << "done" << std::endl;
+				chain = new RevBayesCore::MultiBiphyLambdaMu(name,datafile,treefile,modeltype,A_prior,B_prior,A_species,B_species,ancestral,correction,dgam,every,until,numChains,swapInterval,delta,sigma,saveall);
 			}else{
-				chain = new MultiBiphyRhoPi(datafile,name,treefile,modeltype,A_prior,B_prior,A_species,B_species,correction,dgam,every,until,numChains,swapInterval,delta,sigma,saveall,ancestral);
+				chain = new RevBayesCore::MultiBiphyRhoPi(name,datafile,treefile,modeltype,A_prior,B_prior,A_species,B_species,ancestral,correction,dgam,every,until,numChains,swapInterval,delta,sigma,saveall);
 			}
 		}else{
 			if(!fexists(name+".stream")){
@@ -319,13 +317,14 @@ int main (int argc, const char * argv[])
 				exit(1);
 			}
 			if(parameterization == LAMBDA_MU)
-				chain = new MultiBiphyLambdaMu(name,ancestral);
+				chain = new RevBayesCore::MultiBiphyLambdaMu(name,ancestral);
 			else
-				chain = new MultiBiphyRhoPi(name,ancestral);
+				chain = new RevBayesCore::MultiBiphyRhoPi(name,ancestral);
 		}
 
 	try
 	{
+		chain->init();
     	chain->run();
 	}
 	catch (RbException& e)
