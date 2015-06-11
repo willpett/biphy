@@ -268,8 +268,6 @@ void Biphy::initModel( void ) {
 	if(missing)
 		xi = new StochasticNode<double>( "xi", new BetaDistribution( one,one ) );
 
-	std::cerr << "base init" << std::endl;
-
 }
 
 void Biphy::initMCMC( void ) {

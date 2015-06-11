@@ -275,7 +275,7 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
     usingAmbiguousCharacters = ambiguousCharacters;
 
     
-    std::vector<bool> unique(numSites, true);
+    std::vector<bool> unique(totalNumSites, true);
     // compress the character matrix if we're asked to
     if ( compressed ) 
     {
@@ -286,7 +286,7 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
         {
         	if(!value->isCharacterExcluded(site)){
 				// create the site pattern
-				std::string pattern = "";
+				std::string pattern;
 				for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it)
 				{
 					if ( (*it)->isTip() )
@@ -316,7 +316,7 @@ void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
 					patternCounts.push_back(1);
 
 					// insert this pattern with the corresponding index in the map
-					patterns.insert( std::pair<std::string,size_t>(pattern,numPatterns) );
+					patterns[pattern] = numPatterns;
 
 					// increase the pattern counter
 					numPatterns++;
