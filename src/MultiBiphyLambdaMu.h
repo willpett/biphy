@@ -61,7 +61,7 @@ namespace RevBayesCore {
 
 			StochasticNode<double> *					lambda;
 			StochasticNode<double> *					mu;
-			TypedDagNode<double>*					pi;
+			TypedDagNode<double>*						pi;
 
 			std::vector<StochasticNode<double > *> 		lambda_vector;
 			std::vector<StochasticNode<double > *> 		mu_vector;
@@ -78,7 +78,7 @@ namespace RevBayesCore {
 			StochasticNode<double>*						mu_x_shape;
 
 
-			DeterministicNode< RateMatrix >* q = NULL;
+			DeterministicNode< RateMatrix >* q;
 			std::vector<const TypedDagNode< RateMatrix >* > q_vector;
 
 			TypedDagNode<std::vector<double> > *rf;
