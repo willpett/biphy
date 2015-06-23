@@ -86,7 +86,12 @@ namespace RbConstants {
     const double     SQRT_2dPI      = 0.797884560802865355879892119869;	/* sqrt(2/pi) */
     const double     LN_SQRT_PI     = 0.572364942924700087071713675677;	/* log(sqrt(pi)) == log(pi)/2 */
     const double     LN_SQRT_2PI	= 0.918938533204672741780329736406;	/* log(sqrt(2*pi)) == log(2*pi)/2 */
-    const double     LN_SQRT_PId2	= 0.225791352644727432363097614947;	/* log(sqrt(pi/2)) */
+    const double     LN_SQRT_PId2	  = 0.225791352644727432363097614947;	/* log(sqrt(pi/2)) */
+
+    /* Golden Ratio Constants */
+    const double	 GOLDEN_RATIO_PHI = 1.618033988749894848204586834366;
+    const double	 GOLDEN_RATIO_R = GOLDEN_RATIO_PHI - 1.0;
+    const double	 GOLDEN_RATIO_C = 1.0 - GOLDEN_RATIO_R;
     
 }
 

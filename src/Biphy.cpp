@@ -9,6 +9,7 @@
 #include "GammaDistribution.h"
 #include "NclReader.h"
 #include "NewickTreeReader.h"
+#include "NormalizeVectorFunction.h"
 #include "RandomNumberFactory.h"
 #include "RbSettings.h"
 #include "RbStatisticsHelper.h"
@@ -156,6 +157,8 @@ void Biphy::readInputFiles( void ) {
 			std::cerr << "Error: incompatible datatype '" << data[i]->getDatatype() << "' for datafile " << dataFile << std::endl;
 			exit(1);
 		}
+		std::map<size_t,size_t> cts;
+		//std::cout << "Read " << data[i]->getNumberOfCharacters() << " characters from datafile " << dataFile << std::endl;
 		for(size_t c = 0; c < data[i]->getNumberOfCharacters(); c++){
 			size_t present = 0;
 			for(size_t t = 0; t < data[i]->getNumberOfTaxa(); t++){
@@ -163,6 +166,7 @@ void Biphy::readInputFiles( void ) {
 				missing = missing || state.isGapState();
 				present += size_t(state.getStringValue() == "1");
 			}
+			cts[present]++;
 			if( ((present == 0) 			&& (correction & RevBayesCore::NO_ABSENT_SITES)) ||
 				((present == numTaxa) 		&& (correction & RevBayesCore::NO_PRESENT_SITES)) ||
 				((present == 1) 			&& (correction & RevBayesCore::NO_SINGLETON_GAINS)) ||
@@ -172,11 +176,13 @@ void Biphy::readInputFiles( void ) {
 				excluded++;
 			}
 		}
+		//for(std::map<size_t,size_t>::iterator it = cts.begin(); it != cts.end(); it++)
+		//	std::cerr << it->first << "\t" << it->second << std::endl;
 		numSites += data[i]->getNumberOfIncludedCharacters();
 	}
 
     if(excluded > 0)
-    	std::cerr << "excluded " << excluded << " characters" << std::endl;
+    	std::cout << "excluded " << excluded << " characters" << std::endl;
 
     symbols = ((DiscreteCharacterData<StandardState> *)data[0])->getCharacter(0,0).getStateLabels();
 	std::stringstream states;
@@ -201,7 +207,7 @@ void Biphy::readInputFiles( void ) {
     }
 
     if(trees.size() > 0)
-    	std::cerr << "Read " << trees.size() << " trees\n";
+    	std::cout << "Read " << trees.size() << " trees\n";
 }
 
 void Biphy::printConfiguration( void ) {
@@ -261,8 +267,9 @@ void Biphy::initModel( void ) {
 			value_name << name.str() << "_value";
 			gamma_rates.push_back( new DeterministicNode<double>(value_name.str(), new QuantileFunction(new ConstantNode<double>(name.str(), new double((cat+1.0/2.0)/dgam) ), new GammaDistribution(shape, shape) ) ));
 		}
+		//DeterministicNode<std::vector<double> >* site_rates_unnorm = new DeterministicNode<std::vector<double> >( "site_rates_unnorm", new VectorFunction<double>(gamma_rates) );
+		//site_rates = new DeterministicNode<std::vector<double> >( "site_rates", new NormalizeVectorFunction(site_rates_unnorm) );
 		site_rates = new DeterministicNode<std::vector<double> >( "site_rates", new VectorFunction<double>(gamma_rates) );
-		//site_rates_norm = new DeterministicNode<std::vector<double> >( "site_rates_norm", new NormalizeVectorFunction(site_rates) );
 	}
 
 	if(missing)

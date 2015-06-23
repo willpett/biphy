@@ -402,9 +402,6 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::computeTipCo
 template<class charType, class treeType>
 void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::touchSpecialization( DagNode* affecter ) {
 
-	if(affecter == this->siteRates)
-		perMixtureCorrections = std::vector<double>(this->numSiteRates,0.0);
-
 	GeneralCharEvoModel<charType, treeType>::touchSpecialization(affecter);
 
 	if(this->dagNode != NULL)
@@ -420,6 +417,8 @@ void RevBayesCore::AbstractSiteCorrectionModel<charType, treeType>::resizeLikeli
     size_t numPatterns = this->numPatterns;
     size_t numChars = this->numChars;
     size_t numNodes = this->tau->getValue().getNumberOfNodes();
+
+    perMixtureCorrections = std::vector<double>(this->numSiteRates,0.0);
 
     this->partialLikelihoods.clear();
     this->partialLikelihoods.resize(2*numNodes*numSiteRates*(numPatterns+numCorrectionSites)*numChars);

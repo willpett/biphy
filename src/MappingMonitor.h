@@ -117,18 +117,22 @@ void RevBayesCore::MappingMonitor<charType, treeType>::monitor(long gen) {
 
     	std::vector<TopologyNode*> nodes = tree->getNodes();
     	for(size_t i = 0; i < nodes.size(); i++){
-    		std::string name = nodes[i]->getName();
-    		name += "[&sequence=";
+    		std::string name;// = nodes[i]->getName();
+    		//name += "[&sequence=";
     		const RevBayesCore::DiscreteTaxonData<charType>& d = mapping[i];
     		for(size_t c = 0; c < d.size(); c++){
     			name += d[c].getStringValue();
     		}
-    		name += "]";
-    		nodes[i]->setName(name);
+    		//name += "]";
+    		//nodes[i]->setName(name);
+    		outStream << name;
+    		if(i != nodes.size() - 1)
+    			outStream << "\t";
     	}
 
-    	tree->clearBranchParameters();
-    	outStream << tree->getNewickRepresentation() << std::endl;
+    	//tree->clearBranchParameters();
+    	//outStream << tree->getNewickRepresentation();
+    	outStream << std::endl;
     	delete tree;
     }
 }
@@ -148,10 +152,17 @@ void RevBayesCore::MappingMonitor<charType, treeType>::openStream(void) {
 /** Print header for monitored values */
 template<class charType, class treeType>
 void RevBayesCore::MappingMonitor<charType, treeType>::printHeader() {
-	//for(size_t i=0;i<taxonNames.size();i++){
-	//	outStream << taxonNames[i] << "\t";
-	//}
-	//outStream << std::endl;
+	GeneralCharEvoModel<charType,treeType> model = dynamic_cast<GeneralCharEvoModel<charType, treeType>& >(data->getDistribution());
+	const std::vector< DiscreteTaxonData<charType> >& mapping = model.getMapping();
+	treeType* tree = model.getTree()->clone();
+
+	std::vector<TopologyNode*> nodes = tree->getNodes();
+	for(size_t i=0;i<nodes.size();i++){
+		outStream << i;
+		if(i != nodes.size() - 1)
+			outStream << "\t";
+	}
+	outStream << std::endl;
 }
 
 template<class charType, class treeType>

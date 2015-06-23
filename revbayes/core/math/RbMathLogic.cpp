@@ -142,4 +142,14 @@ double RbMath::min(double x, double y) {
     return (x < y) ? x : y;
 }
 
+double RbMath::sign(double a) {
+
+	return a < 0 ? -1 : (a == 0 ? 0 : 1);
+}
+
+double RbMath::sign(double a, double b	) {
+
+	return fabs(a)*sign(b);
+}
+
 

@@ -52,6 +52,8 @@ namespace RevBayesCore {
 
         size_t 												simulate( const TopologyNode &node, std::vector<StandardState> &taxa, size_t rateIndex);
 
+        virtual void                                        resizeLikelihoodVectors(void);
+
 
         std::vector<std::vector<size_t> >                   ancestralNodes;
         std::map<size_t,bool>								ancestralMap;
@@ -94,6 +96,7 @@ RevBayesCore::DolloBinaryCharEvoModel<treeType>::DolloBinaryCharEvoModel(const T
 	omega(0.0),
 	probAbsence(0.0)
 {
+
 	// initialize with default parameters
 	this->addParameter( topology );
 
@@ -186,13 +189,13 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootLikelihood( siz
 				std::vector<double>::const_iterator   p_site_left_j = p_site_left + offset;
 				std::vector<double>::const_iterator   p_site_right_j = p_site_right + offset;
 
-				double prob_birth = lambda;
-				if(this->rateVariationAcrossSites == true){
-					double r = this->siteRates->getValue()[mixture]*mu;
-					prob_birth /= r;
-					if(!node.isRoot())
-						prob_birth *= 1-exp(-r*node.getBranchLength());
-				}
+				double r = mu;
+				if(this->rateVariationAcrossSites == true)
+					r *= this->siteRates->getValue()[mixture];
+
+				double prob_birth = lambda/r;
+				if(!node.isRoot())
+					prob_birth *= 1-exp(-r*node.getBranchLength());
 
 
 				// temporary variable storing the likelihood
@@ -263,7 +266,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeTipCorrection(const
 
 	// iterate over all mixture categories
 
-	totalmass[nodeIndex] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
+	//totalmass[nodeIndex] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 
 	double mu 		= this->getClockRate(nodeIndex);
 	double lambda 	= getOriginationRate(nodeIndex);
@@ -291,15 +294,16 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeTipCorrection(const
 		this->updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
 		double pr    		= this->transitionProbMatrices[mixture][1][1];
 
+		double prob_birth = lambda/mu;
 		if(this->rateVariationAcrossSites == true)
-			mu *= this->siteRates->getValue()[mixture];
+			prob_birth /= this->siteRates->getValue()[mixture];
 
 		if(this->type & NO_SINGLETON_GAINS)
 			totalmass[nodeIndex][mixture][0] = 0.0;
 		else
 			totalmass[nodeIndex][mixture][0] = 1.0;
 
-		totalmass[nodeIndex][mixture][1] = lambda*(1-pr)/mu;
+		totalmass[nodeIndex][mixture][1] = prob_birth*(1-pr);
 
 	}
 }
@@ -324,7 +328,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 	double mu 		= this->getClockRate(nodeIndex);
 	double lambda 	= getOriginationRate(nodeIndex);
 
-	totalmass[nodeIndex] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
+	//totalmass[nodeIndex] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 
 	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 	{
@@ -370,15 +374,16 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeInternalNodeCorrect
 		if(prob < 0)
 			prob = 0;
 
+		double prob_birth = lambda/mu;
 		if(this->rateVariationAcrossSites == true)
-			mu *= this->siteRates->getValue()[mixture];
+			prob_birth /= this->siteRates->getValue()[mixture];
 
 		//Nicholls and Gray 2003
 		totalmass[nodeIndex][mixture][0] = prob;
-		totalmass[nodeIndex][mixture][1] = lambda*(1-pr)/mu;
+		totalmass[nodeIndex][mixture][1] = prob_birth*(1-pr);
 
 		// just probability of absence site
-		probAbsence += lambda*u[0]*(1-pr)/mu;
+		probAbsence += u[0]*totalmass[nodeIndex][mixture][1];
 	}
 
 }
@@ -405,7 +410,7 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 		double mu 		= this->getClockRate(root);
 		double lambda 	= getOriginationRate(root);
 
-		totalmass[root] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
+		//totalmass[root] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 
 		// iterate over all mixture categories
 		for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
@@ -418,8 +423,9 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 			double pik    		= this->transitionProbMatrices[mixture][1][1];
 
 			//get the rate modifier for this mixture category
+			double prob_birth = lambda/mu;
 			if(this->rateVariationAcrossSites == true)
-				mu *= this->siteRates->getValue()[mixture];
+				prob_birth /= this->siteRates->getValue()[mixture];
 
 			size_t offset = mixture*this->mixtureOffset + this->numPatterns*this->siteOffset;
 
@@ -461,10 +467,10 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::computeRootCorrection( siz
 			//Nicholls and Gray
 
 			totalmass[root][mixture][0] = prob;
-			totalmass[root][mixture][1] = lambda/mu;
+			totalmass[root][mixture][1] = prob_birth;
 
 			// just probability of absence site
-			probAbsence += u[0]*lambda/mu;
+			probAbsence += u[0]*totalmass[root][mixture][1];
 		}
 
 		for(size_t i = 0; i < this->tau->getValue().getNumberOfNodes(); i++){
@@ -525,12 +531,12 @@ void RevBayesCore::DolloBinaryCharEvoModel<treeType>::touchSpecialization( DagNo
 				this->recursivelyFlagNodeDirty( *nodes[*it] );
 			}
 		}
-	}else{
+	}/*else{
 		if(affecter == this->siteRates){
 			for(size_t node = 0; node < this->tau->getValue().getNumberOfNodes(); node++)
 				totalmass[node] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 		}
-	}
+	}*/
 
 	BinaryCharEvoModel<treeType>::touchSpecialization(affecter);
     
@@ -830,6 +836,16 @@ double RevBayesCore::DolloBinaryCharEvoModel<treeType>::getOriginationRate(size_
 
     return branchTime;
 
+}
+
+template<class treeType>
+void RevBayesCore::DolloBinaryCharEvoModel<treeType>::resizeLikelihoodVectors( void ) {
+    // we resize the partial likelihood vectors to the new dimensions
+
+	AbstractSiteCorrectionModel<StandardState, treeType>::resizeLikelihoodVectors();
+
+	for(size_t node = 0; node < this->tau->getValue().getNumberOfNodes(); node++)
+		totalmass[node] = std::vector<std::vector<double> >(this->numSiteRates,std::vector<double>(2,0.0));
 }
 
 #endif

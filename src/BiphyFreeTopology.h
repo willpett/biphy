@@ -70,7 +70,6 @@ class BiphyFreeTopology : public Biphy {
         ModelType 								modeltype;
 		BranchPrior 							branchprior;
 		RootPrior 								rootprior;
-		int 									correction;
 
         int 									mixture;
         bool									ppred;

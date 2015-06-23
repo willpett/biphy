@@ -76,6 +76,8 @@ void RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::computeTipCorrectio
 	// iterate over all mixture categories
 
 	double miss = getMissingRate();
+	double mu 		= this->getClockRate(nodeIndex);
+	double lambda 	= this->getOriginationRate(nodeIndex);
 
 	for (size_t mixture = 0; mixture < this->numSiteRates; ++mixture)
 	{
@@ -104,23 +106,17 @@ void RevBayesCore::DolloBinaryMissingCharEvoModel<treeType>::computeTipCorrectio
 		this->updateTransitionProbabilities( nodeIndex, node.getBranchLength() );
 		double pr    		= this->transitionProbMatrices[mixture][1][1];
 
-		double r = 1.0;
+		double prob_birth = lambda/mu;
 		if(this->rateVariationAcrossSites == true)
-			r = this->siteRates->getValue()[mixture];
+			prob_birth /= this->siteRates->getValue()[mixture];
 
 		//Probability of number of observations M descending from this node
-		double prob = 1.0;
-
 		if(this->type & NO_SINGLETON_GAINS)
-			prob -= 1.0 - miss; //  P( M != 1) = 1 - u[1] = 1 - u[2] = miss
-		else if(this->type & NO_ABSENT_SITES)
-			prob -= miss; // P( M != 0) = 1 - u[0] = 1 - u[3] = 1.0 - miss
+			this->totalmass[nodeIndex][mixture][0] = 0.0; //  P( M != 1) = 1 - u[1] = 1 - u[2] = miss
+		else
+			this->totalmass[nodeIndex][mixture][0] = 1.0 - miss; // P( M != 0) = 1 - u[0] = 1 - u[3] = 1.0 - miss
 
-		if(prob < 0.0)
-			prob = 0.0;
-
-		this->totalmass[nodeIndex][mixture][0] = prob;
-		this->totalmass[nodeIndex][mixture][1] = (1-pr)/r;
+		this->totalmass[nodeIndex][mixture][1] = prob_birth*(1-pr);
 
 	}
 }
