@@ -37,7 +37,7 @@ namespace RevBayesCore {
         void                                                burnin(int g, int ti);
         ParallelMcmcmc*                                     clone(void) const;
         void                                                printOperatorSummary(void) const;
-        void                                                run(size_t g);
+        void                                                run(int g);
         void                                                readStream(size_t g);
         bool                                                restore(void);
         unsigned int                                        getCurrentGeneration(void);

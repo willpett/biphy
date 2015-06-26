@@ -152,7 +152,7 @@ unsigned int ParallelMcmcmc::getCurrentGeneration(void)
     return currentGeneration;
 }
 
-void ParallelMcmcmc::run(size_t generations)
+void ParallelMcmcmc::run(int generations)
 {
 	if(stream.is_open())
 		stream.close();
@@ -167,7 +167,7 @@ void ParallelMcmcmc::run(size_t generations)
     }
 
     // run chain
-    for (size_t i = currentGeneration+1; i <= generations; i += swapInterval)
+    for (int i = currentGeneration+1; i <= generations || generations == -1; i += swapInterval)
     {
         // start parallel job per block of swapInterval cycles
         size_t np = numProcesses; // in fact, used by the macro below

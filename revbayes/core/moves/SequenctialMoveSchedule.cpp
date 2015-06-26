@@ -56,7 +56,7 @@ Move* SequentialMoveSchedule::nextMove( unsigned long gen ) {
                 if ( currentMove >= moves.size()) {
                     currentMove = 0;
                 }
-            } while ( moves[currentMove]->isActive( gen ) );
+            } while ( !moves[currentMove]->isActive( gen ) );
         }
     } while ( !found );
     

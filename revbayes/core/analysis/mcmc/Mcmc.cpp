@@ -442,7 +442,7 @@ unsigned long Mcmc::nextCycle(bool advanceCycle) {
     size_t proposals = round( schedule->getNumberMovesPerIteration() );
     for (size_t i=0; i<proposals; i++) 
     {
-        // Get the move
+    	// Get the move
         Move* theMove = schedule->nextMove( generation );
         
         if ( theMove->isGibbs() ) 
@@ -599,7 +599,6 @@ void Mcmc::replaceDag(const std::vector<Move *> &mvs, const std::vector<Monitor 
         }
         moves.push_back( theMove );
     }
-    
     for (std::vector<Monitor*>::const_iterator it = mons.begin(); it != mons.end(); ++it) 
     {
         Monitor *theMonitor = (*it)->clone();
@@ -683,7 +682,7 @@ void Mcmc::run(int kIterations) {
     }
     
     // Run the chain
-    for (int k=1; k<=kIterations; k++) 
+    for (int k=1; k<=kIterations || kIterations == -1; k++)
     {
         nextCycle(true);
         

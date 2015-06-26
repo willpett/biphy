@@ -16,19 +16,20 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 ${OpenMP_C_FLAGS}")
 
 
 set(REVBAYES_DIR ${CMAKE_SOURCE_DIR}/revbayes)
-set(PROJECT_SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+set(BIPHY_DIR ${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(revbayes)
 include_directories(${RBCORE_INCLUDES})
 
 add_subdirectory(src)
+include_directories(src)
 
 set(TARGET_NAME "biphy")
-add_executable(${TARGET_NAME} ${PROJECT_SRC_DIR}/main.cpp)
+add_executable(${TARGET_NAME} ${BIPHY_DIR}/main.cpp)
 set_target_properties(${TARGET_NAME} PROPERTIES PREFIX "../")
-target_link_libraries(${TARGET_NAME} rb-core wp-lib gomp)
+target_link_libraries(${TARGET_NAME} rb-core biphy-lib gomp)
 
 set(TARGET_NAME_MULTI "multibiphy")
-add_executable(${TARGET_NAME_MULTI} ${PROJECT_SRC_DIR}/main_multi.cpp)
+add_executable(${TARGET_NAME_MULTI} ${BIPHY_DIR}/main_multi.cpp)
 set_target_properties(${TARGET_NAME_MULTI} PROPERTIES PREFIX "../")
-target_link_libraries(${TARGET_NAME_MULTI} rb-core wp-lib gomp)
+target_link_libraries(${TARGET_NAME_MULTI} rb-core biphy-lib gomp)

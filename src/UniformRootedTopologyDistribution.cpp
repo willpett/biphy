@@ -14,12 +14,15 @@ using namespace RevBayesCore;
 UniformRootedTopologyDistribution::UniformRootedTopologyDistribution(const std::vector<std::string> &tn, const std::vector<Clade> &c, const Clade &o) : TypedDistribution<Topology>( new Topology() ),
 		numTaxa( tn.size() ), taxonNames( tn ), constraints( c ), outgroup( o ) {
     
-    double lnFact = 0.0;
-    for (size_t i = 2; i < numTaxa; i++) {
-        lnFact += std::log(i);
+    double branchLnFact = 0.0;
+    double nodeLnFact = 0.0;
+    for (size_t i = 2; i < 2*numTaxa-3; i++) {
+    	branchLnFact += std::log(i);
+    	if(i <= numTaxa - 2)
+    		nodeLnFact += std::log(i);
     }
 
-    logTreeTopologyProb = (numTaxa - 1) * RbConstants::LN2 - 2.0 * lnFact - std::log( numTaxa ) ;
+    logTreeTopologyProb = (numTaxa - 2) * RbConstants::LN2 + nodeLnFact - branchLnFact;
     if(hasOutgroup()){
     	std::vector<std::string> ingroup;
 		for (size_t i = 0; i < taxonNames.size(); i++) {
