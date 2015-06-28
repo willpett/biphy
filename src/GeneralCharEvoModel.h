@@ -587,7 +587,8 @@ void RevBayesCore::GeneralCharEvoModel<charType, treeType>::simulateMapping(cons
 
     if(node.isTip()){
     	for ( size_t i = 0; i < this->numSites; ++i )
-    		mapping[nodeIndex].addCharacter(this->value->getTaxonData(nodeIndex).getCharacter(i));
+    		mapping[nodeIndex].addCharacter(this->value->getTaxonData(node.getName()).getCharacter(i));
+
     	return;
     }
 

@@ -326,8 +326,9 @@ void Topology::setRoot( TopologyNode* r) {
     fillNodesByPhylogeneticTraversal(r);
     std::vector<TopologyNode*> newnodes(nodes.size());
     for (unsigned int i = 0; i < nodes.size(); ++i) {
-    	if(nodes[i]->getIndex() == -1 || nodes.size() != numNodes)
+    	if(nodes[i]->getIndex() == -1 || ((nodes.size() != numNodes) && (numNodes > 0)))
     		nodes[i]->setIndex(i);
+
     	newnodes[nodes[i]->getIndex()] = nodes[i];
     }
     nodes = newnodes;

@@ -113,27 +113,43 @@ void RevBayesCore::MappingMonitor<charType, treeType>::monitor(long gen) {
     if (gen % samplingFrequency == 0) {
     	GeneralCharEvoModel<charType,treeType> model = dynamic_cast<GeneralCharEvoModel<charType, treeType>& >(data->getDistribution());
     	const std::vector< DiscreteTaxonData<charType> >& mapping = model.getMapping();
-    	treeType* tree = model.getTree()->clone();
+    	//treeType* tree = model.getTree()->clone();
 
-    	std::vector<TopologyNode*> nodes = tree->getNodes();
+    	std::vector<TopologyNode*> nodes = model.getTree()->getNodes();
+
+    	std::map<size_t,size_t> nodemap;
+
     	for(size_t i = 0; i < nodes.size(); i++){
-    		std::string name;// = nodes[i]->getName();
-    		//name += "[&sequence=";
-    		const RevBayesCore::DiscreteTaxonData<charType>& d = mapping[i];
-    		for(size_t c = 0; c < d.size(); c++){
-    			name += d[c].getStringValue();
-    		}
-    		//name += "]";
-    		//nodes[i]->setName(name);
+    		size_t nd = nodes[i]->getBranchParameter("ND");
+
+    		nodemap[nd] = i;
+    	}
+
+    	for(size_t i = 0; i < nodes.size(); i++){
+    		std::string name;
+			//name += "[&sequence=";
+    		size_t index = i;
+    		if(nodemap.size() == nodes.size())
+    			index = nodemap[i];
+
+			const RevBayesCore::DiscreteTaxonData<charType>& d = mapping[index];
+			for(size_t c = 0; c < d.size(); c++){
+				name += d[c].getStringValue();
+			}
+			//name += "]";
+			//nodes[i]->setName(name);
+
     		outStream << name;
-    		if(i != nodes.size() - 1)
+    		if(i != nodes.size())
     			outStream << "\t";
     	}
 
+    	outStream << std::endl;
+
     	//tree->clearBranchParameters();
     	//outStream << tree->getNewickRepresentation();
-    	outStream << std::endl;
-    	delete tree;
+    	//outStream << std::endl;
+    	//delete tree;
     }
 }
 

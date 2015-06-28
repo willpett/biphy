@@ -199,8 +199,8 @@ TopologyNode* NHXConverter::createNode(const std::string &n, std::vector<Topolog
                 
                 // \todo: Needs implementation
                 //                childNode->addNodeParameter(paramName, paramValue);
-                if(paramName == "index")
-                	childNode->setIndex(atoi(paramValue.c_str()));
+				childNode->addBranchParameter(paramName,atof(paramValue.c_str()));
+
                 
             } while ( (c = ss.peek()) == ':' );
             
@@ -280,11 +280,7 @@ TopologyNode* NHXConverter::createNode(const std::string &n, std::vector<Topolog
 
 				// \todo: Needs implementation
 				//                childNode->addNodeParameter(paramName, paramValue);
-				//std::cout << paramName << "\t" << atof(paramValue.c_str()) << std::endl;
-				if(paramName == "ND")
-				    childNode->setIndex(atoi(paramValue.c_str()));
-				else
-					childNode->addBranchParameter(paramName,atof(paramValue.c_str()));
+				childNode->addBranchParameter(paramName,atof(paramValue.c_str()));
 
 			} while ( (c = ss.peek()) == ':' );
 
@@ -357,10 +353,7 @@ TopologyNode* NHXConverter::createNode(const std::string &n, std::vector<Topolog
 
 			// \todo: Needs implementation
 			//                childNode->addNodeParameter(paramName, paramValue);
-			if(paramName == "ND")
-				node->setIndex(atoi(paramValue.c_str()));
-			else
-				node->addBranchParameter(paramName,atof(paramValue.c_str()));
+			node->addBranchParameter(paramName,atof(paramValue.c_str()));
 
 		} while ( (c = ss.peek()) == ':' );
         
