@@ -11,6 +11,8 @@
 #include "SumFunction.h"
 #include "MappingMonitor.h"
 
+#include <algorithm>
+
 using namespace RevBayesCore;
 
 MultiBiphy::MultiBiphy(const std::string n,
@@ -82,7 +84,21 @@ void MultiBiphy::readInputFiles( void ) {
 	rootSpecies.clear();
 	speciesIndex.clear();
 	std::map<size_t, size_t> counts;
+
+	size_t found = 0;
+	std::vector<BranchLengthTree*> newtrees = trees;
 	for(size_t i = 0; i < trees.size(); i++){
+		std::vector<std::string> tree_names = trees[i]->getTipNames();
+		std::sort(tree_names.begin(), tree_names.end());
+		for(size_t j = 0; j < data.size(); j++){
+			std::vector<std::string> data_names = data[j]->getTaxonNames();
+			std::sort(data_names.begin(), data_names.end());
+			if(std::equal(data_names.begin(), data_names.end(), tree_names.begin())){
+				found++;
+				newtrees[j] = trees[i];
+				break;
+			}
+		}
 		std::vector<TopologyNode*> nodes = trees[i]->getNodes();
 
 		std::map<size_t, size_t> smap;
@@ -98,6 +114,12 @@ void MultiBiphy::readInputFiles( void ) {
 
 		node2speciesMaps.push_back(smap);
 	}
+
+	if(found != trees.size()){
+		std::cerr << found << " Error: taxon labels in matrices do not match those in trees\n";
+		exit(1);
+	}
+	trees = newtrees;
 
 	numSpecies = 0;
 	for(std::map<size_t, size_t>::iterator it = counts.begin(); it != counts.end(); it++)
