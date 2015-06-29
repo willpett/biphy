@@ -116,7 +116,7 @@ void MultiBiphy::readInputFiles( void ) {
 	}
 
 	if(found != trees.size()){
-		std::cerr << found << " Error: taxon labels in matrices do not match those in trees\n";
+		std::cerr << " Error: taxon labels in matrices do not match those in trees\n";
 		exit(1);
 	}
 	trees = newtrees;

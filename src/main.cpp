@@ -41,7 +41,7 @@ int main (int argc, const char * argv[])
 	bool nexus = false;
 	bool ppred = false;
 	bool dolloMapping = false;
-	bool IIDmissing = false;
+	//bool IIDmissing = false;
 
 	Biphy *chain = NULL;
 
@@ -104,9 +104,9 @@ int main (int argc, const char * argv[])
 				}
 				else if (s == "-e")	{
 					nexus = true;
-				}else if (s == "-i")	{
+				}/*else if (s == "-i")	{
 					IIDmissing = true;
-				}else if (s == "-dollo"){
+				}*/else if (s == "-dollo"){
 					modeltype = BiphyFreeTopology::DOLLO;
 				}else if (s == "-map"){
 					dolloMapping = true;
@@ -338,8 +338,8 @@ int main (int argc, const char * argv[])
 		cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
 		cerr << "\t-cv <file>\tcross-validation test alignment\n";
 
-		cerr << "\nOther options:\n";
-		cerr << "\t-i\t\tIID missing data proportions across taxa (default: disabled)\n";
+		//cerr << "\nOther options:\n";
+		//cerr << "\t-i\t\tIID missing data proportions across taxa (default: disabled)\n";
 		exit(1);
 	}
 

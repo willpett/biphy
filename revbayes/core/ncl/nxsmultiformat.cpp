@@ -1573,6 +1573,7 @@ void MultiFormatReader::readPhylipFile(std::istream & inf, NxsCharactersBlock::D
 		dataB->datatype = dt;
 		dataB->ResetSymbols();
 		dataB->gap = '-';
+		dataB->missing = '?';
 		NxsPartition dtParts;
 		std::vector<NxsCharactersBlock::DataTypesEnum> dtv;
 		dataB->CreateDatatypeMapperObjects(dtParts, dtv);

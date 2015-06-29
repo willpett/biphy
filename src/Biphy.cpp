@@ -243,7 +243,7 @@ void Biphy::printConfiguration( void ) {
 	}
 
 	if(missing)
-		std::cout << "proportion of missing data ~ Beta(1,1)\n";
+		std::cout << "\nproportion of missing data ~ Beta(1,1)\n";
 
 	std::cout << "\n";
 }
