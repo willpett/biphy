@@ -310,7 +310,92 @@ void Topology::setRooted(bool tf) {
     rooted = tf;
 }
 
+void Topology::reRoot(size_t index) {
+	TopologyNode* node = nodes[index];
 
+	if(node->isRoot())
+		return;
+
+	TopologyNode* parent = &node->getParent();
+
+	if(rooted){
+		if(parent->isRoot())
+			return;
+
+		TopologyNode* childA = &root->getChild(0);
+		TopologyNode* childB = &root->getChild(1);
+
+		// remove root's children
+		root->removeChild(childA);
+		root->removeChild(childB);
+
+		//set the children as roots
+		childA->setParent(NULL);
+		childB->setParent(NULL);
+
+		//reattach the root and reset parent-child relationships
+		parent->removeChild(node);
+
+		root->addChild(node);
+		node->setParent(root);
+
+		root->addChild(parent);
+		parent->setParent(root);
+
+		TopologyNode* r = setChild(&parent->getParent(), parent);
+
+		//check which subtree contains the root
+		//and reattach appropriately
+		if(r == childA){
+			childA->addChild(childB);
+			childB->setParent(childA);
+		}else{
+			childB->addChild(childA);
+			childA->setParent(childB);
+		}
+	}else{
+		std::vector<TopologyNode*> rootChildren = root->getChildren();
+		std::vector<TopologyNode*> nodeChildren = node->getChildren();
+
+		for(size_t i = 0; i < nodeChildren.size(); i++){
+			node->removeChild(nodeChildren[i]);
+			root->addChild(nodeChildren[i]);
+			nodeChildren[i]->setParent(root);
+		}
+
+		for(size_t i = 0; i < rootChildren.size(); i++){
+			if(rootChildren[i] != node){
+				root->removeChild(rootChildren[i]);
+				node->addChild(rootChildren[i]);
+				rootChildren[i]->setParent(node);
+			}
+		}
+
+		if(parent->isRoot())
+			return;
+
+		root->addChild(parent);
+		parent->setParent(root);
+
+		parent->removeChild(node);
+		node->setParent(NULL);
+
+		setChild(&parent->getParent(), parent);
+	}
+}
+
+TopologyNode* Topology::setChild(TopologyNode* oldParent, TopologyNode* oldChild) {
+	oldParent->removeChild(oldChild);
+
+	TopologyNode* r = oldParent;
+	if(!oldParent->isRoot())
+		r = setChild(&oldParent->getParent(), oldParent);
+
+	oldChild->addChild(oldParent);
+	oldParent->setParent(oldChild);
+
+	return r;
+}
 
 void Topology::setRoot( TopologyNode* r) {
 
@@ -319,6 +404,8 @@ void Topology::setRoot( TopologyNode* r) {
     
 //    root->setTopology( this );
     
+    rooted = (root->getNumberOfChildren() == 2);
+
     nodes.clear();
     
     // bootstrap all nodes from the root and add the in a pre-order traversal

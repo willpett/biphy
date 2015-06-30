@@ -58,12 +58,14 @@ namespace RevBayesCore {
         bool                                                isRooted(void) const;                                                   //!< Get a pointer to the root node of the Tree
         void                                                setRoot(TopologyNode* r);                   //!< Set the root and bootstrap the Tree from it
         void                                                setRooted(bool tf);
-        
+        void                                                reRoot(size_t index);
 
     private:
 //        void                                                fillNodesByPreorderTraversal(TopologyNode* node);                   //!< fill the nodes vector by a preorder traversal recursively starting with this node.
         void                                                fillNodesByPhylogeneticTraversal(TopologyNode* node);               //!< fill the nodes vector by a preorder traversal recursively starting with this node.
 //        void                                                fillNodesByIndex(void);
+
+        TopologyNode*                                       setChild(TopologyNode*, TopologyNode*);
 
         // private members
         TopologyNode*                                       root;

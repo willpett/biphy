@@ -101,7 +101,7 @@ namespace RevBayesCore {
     protected:    
 
         // helper methods
-        virtual std::string                         buildNewickString(void);                                                            //!< compute the newick RlString for a tree rooting at this node
+        virtual std::string                         buildNewickString(void);
     
         // protected members
         std::vector<TopologyNode*>                  children;                                                                           //!< Vector holding the node's children. Note that the parent owns the children but not the other way around. 

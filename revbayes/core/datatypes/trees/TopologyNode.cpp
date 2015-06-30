@@ -883,7 +883,7 @@ void TopologyNode::setParent(TopologyNode* p, bool forceNewickRecomp) {
         
     }
 
-    rootNode = false;
+    rootNode = (parent == NULL);
 }
 
 

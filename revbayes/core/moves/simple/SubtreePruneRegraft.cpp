@@ -84,7 +84,7 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
         double u = rng->uniform01();
         size_t index = std::floor(tau.getNumberOfNodes() * u);
         newBrother = &tau.getNode(index);
-    } while ( newBrother->isRoot() || isDescendant(*newBrother,parent) || (newBrother->getParent().isRoot() & outgroup));
+    } while ( newBrother->isRoot() || isDescendant(*newBrother,*node) || newBrother == &parent || newBrother == storedBrother || (newBrother->getParent().isRoot() & outgroup));
     
     TopologyNode &newGrandparent = newBrother->getParent();
     
