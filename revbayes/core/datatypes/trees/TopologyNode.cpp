@@ -383,9 +383,8 @@ const std::string& TopologyNode::computeNewick(void) {
     return newick;
 }
 
-
 /* Build newick string */
-std::string TopologyNode::computePlainNewick( void ) const {
+std::string TopologyNode::computePlainNewick( void ) {
     
     // test whether this is a internal or external node
     if (tipNode) 

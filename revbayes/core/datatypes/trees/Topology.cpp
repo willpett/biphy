@@ -47,7 +47,7 @@ Topology::Topology(const Topology& t) :
         TopologyNode * newRoot = t.getRoot().clone();
 
         // set the root. This will also set the nodes vector.
-        setRoot(newRoot);
+        setRoot(newRoot,true);
     }
     
 }
@@ -81,7 +81,7 @@ Topology& Topology::operator=(const Topology &t)
         TopologyNode* newRoot = t.root->clone();
 
         // set the root. This will also set the nodes vector.
-        setRoot(newRoot);
+        setRoot(newRoot,true);
     }
     
     return *this;
@@ -382,10 +382,54 @@ void Topology::reRoot(size_t index) {
 
 		setChild(&parent->getParent(), parent);
 	}
+
+	this->getNewickRepresentation();
+}
+
+void Topology::setRooted(size_t index) {
+	TopologyNode* node = nodes[index];
+
+	if(isRooted()){
+		if(!node->isRoot())
+			reRoot(index);
+		return;
+	}else{
+		TopologyNode* oldRoot = root;
+		root = new TopologyNode();
+
+		if(node->isRoot()){
+			TopologyNode* child = &oldRoot->getChild(0);
+
+			oldRoot->removeChild(child);
+
+			root->addChild(child);
+			root->addChild(oldRoot);
+
+			oldRoot->setParent(root);
+			child->setParent(root);
+		}else{
+			TopologyNode* parent = &node->getParent();
+
+			parent->removeChild(node);
+
+			if(!parent->isRoot())
+				setChild(&parent->getParent(),parent);
+
+			root->addChild(node);
+			root->addChild(parent);
+
+			parent->setParent(root);
+			node->setParent(root);
+		}
+
+		setRoot(root,false);
+	}
+
+	this->getNewickRepresentation();
 }
 
 TopologyNode* Topology::setChild(TopologyNode* oldParent, TopologyNode* oldChild) {
-	oldParent->removeChild(oldChild);
+	oldParent->removeChild(oldChild, true);
 
 	TopologyNode* r = oldParent;
 	if(!oldParent->isRoot())
@@ -397,7 +441,7 @@ TopologyNode* Topology::setChild(TopologyNode* oldParent, TopologyNode* oldChild
 	return r;
 }
 
-void Topology::setRoot( TopologyNode* r) {
+void Topology::setRoot( TopologyNode* r, bool save_index) {
 
     // set the root
     root = r;
@@ -413,7 +457,7 @@ void Topology::setRoot( TopologyNode* r) {
     fillNodesByPhylogeneticTraversal(r);
     std::vector<TopologyNode*> newnodes(nodes.size());
     for (unsigned int i = 0; i < nodes.size(); ++i) {
-    	if(nodes[i]->getIndex() == -1 || ((nodes.size() != numNodes) && (numNodes > 0)))
+    	if(nodes[i]->getIndex() == -1 || !save_index)
     		nodes[i]->setIndex(i);
 
     	newnodes[nodes[i]->getIndex()] = nodes[i];
@@ -426,7 +470,7 @@ void Topology::setRoot( TopologyNode* r) {
 
 
 std::ostream& RevBayesCore::operator<<(std::ostream& o, const Topology& x) {
-    o << x.getNewickRepresentation();
+    o << x.getPlainNewickRepresentation();
     
     return o;
 }

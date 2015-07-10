@@ -56,8 +56,9 @@ namespace RevBayesCore {
         const TopologyNode&                                 getTipNode(size_t indx) const;                                          //!< Get a pointer to tip node i
         bool                                                isBinary(void) const;                                                   //!< Is the BranchLengthTree rooted
         bool                                                isRooted(void) const;                                                   //!< Get a pointer to the root node of the Tree
-        void                                                setRoot(TopologyNode* r);                   //!< Set the root and bootstrap the Tree from it
+        void                                                setRoot(TopologyNode* r, bool = true);                   //!< Set the root and bootstrap the Tree from it
         void                                                setRooted(bool tf);
+        void                                                setRooted(size_t index);
         void                                                reRoot(size_t index);
 
     private:

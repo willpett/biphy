@@ -114,7 +114,7 @@ namespace RevBayesCore {
         
     protected:
         // private methods
-        void                                                                compress(void);
+        virtual void                                                        compress(void);
         void                                                                fillLikelihoodVector(const TopologyNode &n, size_t nIdx);
 
     
@@ -219,7 +219,7 @@ const treeType* RevBayesCore::AbstractCharEvoModel<charType, treeType>::getTree(
 template<class charType, class treeType>
 void RevBayesCore::AbstractCharEvoModel<charType, treeType>::compress( void )
 {
-    
+
 //    compressed = false;
     
     charMatrix.clear();

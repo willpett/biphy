@@ -75,7 +75,7 @@ void NewickTreeMonitor::monitor(long gen) {
         //    tree->getValue().addBranchParameter((*it)->getName(), (*it)->getValue(), false);
         //}
             
-        outStream << tree->getValue();
+        outStream << tree->getValue().getNewickRepresentation();
         outStream << ";" << std::endl;
         
     }
