@@ -10,8 +10,6 @@
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
 
-using namespace RevBayesCore;
-
 SingleRandomMoveSchedule::SingleRandomMoveSchedule(const std::vector<Move*> &s) : MoveSchedule( s ) {
     
     sumOfWeights = 0.0;

@@ -25,9 +25,7 @@
 #include "SimpleMove.h"
 #include "ContinuousStochasticNode.h"
 
-namespace RevBayesCore {
-
-    class SlidingMove : public SimpleMove {
+class SlidingMove : public SimpleMove {
 
     public:
                                     SlidingMove( ContinuousStochasticNode *n, double d, bool tuning, double w );                     //!<  constructor
@@ -50,8 +48,6 @@ namespace RevBayesCore {
         ContinuousStochasticNode*   variable;
         double                      storedValue;
 };
-    
-}
 
 #endif
 

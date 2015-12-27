@@ -25,37 +25,32 @@
 #include <string>
 #include <vector>
 
-namespace RevBayesCore {
-        
-    class ScreenMonitor : public Monitor {
-        
-    public:
-        // Constructors and Destructors
-        ScreenMonitor(DagNode *n, int g, const std::string &del, bool pp=true, bool l=true, bool pr=true);                                                                //!< Constructor with single DAG node
-        ScreenMonitor(const std::set<DagNode *> &n, int g, const std::string &del, bool pp=true, bool l=true, bool pr=true);                                              //!< Constructor with set of DAG node
-        ScreenMonitor(const std::vector<DagNode *> &n, int g, const std::string &del, bool pp=true, bool l=true, bool pr=true);                                              //!< Constructor with vector of DAG node
-        ScreenMonitor(const ScreenMonitor& f);
-        
-        // basic methods
-        ScreenMonitor*                      clone(void) const;                                                  //!< Clone the object
-        
-        // Monitor functions
-        void                                monitor(long gen);                                                  //!< Monitor at generation gen
-        
-        // FileMonitor functions
-        void                                printHeader(void);                                                  //!< Print header
-        
-    private:
-        
-        // parameters
-        std::string                         separator;
-        bool                                posterior;
-        bool                                prior;
-        bool                                likelihood;
-        
-    };
+class ScreenMonitor : public Monitor {
     
-}
-
+public:
+    // Constructors and Destructors
+    ScreenMonitor(DagNode *n, int g, const std::string &del, bool pp=true, bool l=true, bool pr=true);                                                                //!< Constructor with single DAG node
+    ScreenMonitor(const std::set<DagNode *> &n, int g, const std::string &del, bool pp=true, bool l=true, bool pr=true);                                              //!< Constructor with set of DAG node
+    ScreenMonitor(const std::vector<DagNode *> &n, int g, const std::string &del, bool pp=true, bool l=true, bool pr=true);                                              //!< Constructor with vector of DAG node
+    ScreenMonitor(const ScreenMonitor& f);
+    
+    // basic methods
+    ScreenMonitor*                      clone(void) const;                                                  //!< Clone the object
+    
+    // Monitor functions
+    void                                monitor(long gen);                                                  //!< Monitor at generation gen
+    
+    // FileMonitor functions
+    void                                printHeader(void);                                                  //!< Print header
+    
+private:
+    
+    // parameters
+    std::string                         separator;
+    bool                                posterior;
+    bool                                prior;
+    bool                                likelihood;
+    
+};
 #endif
 

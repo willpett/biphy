@@ -14,9 +14,7 @@
 
 #include <cmath>
 
-using namespace RevBayesCore;
-
-SubtreePruneRegraft::SubtreePruneRegraft(StochasticNode<Topology> *v, double w, bool outgrp) : SimpleMove( v, w), variable( v ), outgroup(outgrp) {
+SubtreePruneRegraft::SubtreePruneRegraft(StochasticNode<Tree> *v, double w, bool outgrp) : SimpleMove( v, w), variable( v ), outgroup(outgrp) {
     
 }
 
@@ -57,7 +55,7 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
     // Get random number generator    
     RandomNumberGenerator* rng     = GLOBAL_RNG;
     
-    Topology& tau = variable->getValue();
+    Tree& tau = variable->getValue();
     
     // pick a random node which is not the root and neithor the direct descendant of the root
     TopologyNode* node;
@@ -89,17 +87,17 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
     TopologyNode &newGrandparent = newBrother->getParent();
     
     // now prune
-    grandparent.removeChild( &parent, true );
-    parent.removeChild( storedBrother, true );
-    grandparent.addChild( storedBrother, true );
-    storedBrother->setParent( &grandparent, true );
+    grandparent.removeChild( &parent );
+    parent.removeChild( storedBrother );
+    grandparent.addChild( storedBrother );
+    storedBrother->setParent( &grandparent );
     
     // re-attach
-    newGrandparent.removeChild( newBrother, true );
-    parent.addChild( newBrother, true );
-    newGrandparent.addChild( &parent, true );
-    parent.setParent( &newGrandparent, true );
-    newBrother->setParent( &parent, true );
+    newGrandparent.removeChild( newBrother );
+    parent.addChild( newBrother );
+    newGrandparent.addChild( &parent );
+    parent.setParent( &newGrandparent );
+    newBrother->setParent( &parent );
     
     return 0.0;
 }
@@ -138,6 +136,6 @@ void SubtreePruneRegraft::swapNode(DagNode *oldN, DagNode *newN) {
     // call the parent method
     SimpleMove::swapNode(oldN, newN);
     
-    variable = static_cast<StochasticNode<Topology>* >(newN) ;
+    variable = static_cast<StochasticNode<Tree>* >(newN) ;
 }
 

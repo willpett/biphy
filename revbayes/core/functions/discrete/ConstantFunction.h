@@ -20,44 +20,41 @@
 #include "TypedFunction.h"
 #include "TypedDagNode.h"
 
-namespace RevBayesCore {
+template <class valueType>
+class ConstantFunction : public TypedFunction<valueType> {
     
-    template <class valueType>
-    class ConstantFunction : public TypedFunction<valueType> {
-        
-    public:
-        ConstantFunction(const TypedDagNode<valueType> *a);
-        
-        ConstantFunction*                       clone(void) const;                                                  //!< Create a clon.
-        void                                    update(void);                                                       //!< Recompute the value
-        
-    protected:
-        void                                    swapParameterInternal(const DagNode *oldP, const DagNode *newP);    //!< Implementation of swaping parameters
+public:
+    ConstantFunction(const TypedDagNode<valueType> *a);
+    
+    ConstantFunction*                       clone(void) const;                                                  //!< Create a clon.
+    void                                    update(void);                                                       //!< Recompute the value
+    
+protected:
+    void                                    swapParameterInternal(const DagNode *oldP, const DagNode *newP);    //!< Implementation of swaping parameters
 
-    private:
-        const TypedDagNode<valueType>*          x;
-    };
-}
+private:
+    const TypedDagNode<valueType>*          x;
+};
 
 
 
 
 
 template<class valueType>
-RevBayesCore::ConstantFunction<valueType>::ConstantFunction(const TypedDagNode<valueType> *a) : TypedFunction<valueType>(new valueType(a->getValue()) ), x( a ) {
+ConstantFunction<valueType>::ConstantFunction(const TypedDagNode<valueType> *a) : TypedFunction<valueType>(new valueType(a->getValue()) ), x( a ) {
 	this->addParameter( a );
     
 }
 
 
 template<class valueType>
-RevBayesCore::ConstantFunction<valueType>* RevBayesCore::ConstantFunction<valueType>::clone( void ) const {
+ConstantFunction<valueType>* ConstantFunction<valueType>::clone( void ) const {
     return new ConstantFunction(*this);
 }
 
 
 template <class valueType>
-void RevBayesCore::ConstantFunction<valueType>::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
+void ConstantFunction<valueType>::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
     if (oldP == x) {
         x = static_cast<const TypedDagNode<valueType>* >( newP );
     }
@@ -65,7 +62,7 @@ void RevBayesCore::ConstantFunction<valueType>::swapParameterInternal(const DagN
 
 
 template<class valueType>
-void RevBayesCore::ConstantFunction<valueType>::update( void ) {
+void ConstantFunction<valueType>::update( void ) {
     *this->value =  x->getValue();
 }
 

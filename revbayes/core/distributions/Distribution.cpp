@@ -1,8 +1,6 @@
 #include "DagNode.h"
 #include "Distribution.h"
 
-using namespace RevBayesCore;
-
 Distribution::Distribution( void ) : parameters( std::set<const DagNode*>() ) {
     
 }
@@ -11,7 +9,8 @@ Distribution::Distribution( void ) : parameters( std::set<const DagNode*>() ) {
 
 void Distribution::addParameter(const DagNode *p) {
     
-    parameters.insert( p );
+    if(p != NULL)
+        parameters.insert( p );
     
 }
 

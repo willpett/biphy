@@ -23,27 +23,23 @@
 
 #include <vector>
 
-namespace RevBayesCore {
+class SequentialMoveSchedule : public MoveSchedule  {
     
-    class SequentialMoveSchedule : public MoveSchedule  {
-        
-    public:
-        SequentialMoveSchedule(const std::vector<Move*> &m);                                                                                                                                         //!< Default constructor
-        virtual                                        ~SequentialMoveSchedule(void);                                                                             //!< Destructor
-        
-        // pure virtual public methods
-        SequentialMoveSchedule*                         clone(void) const;
-        double                                          getNumberMovesPerIteration(void) const;
-        Move*                                           nextMove(unsigned long g);
-        
-    private:
-        
-        // Hidden member variables
-        double                                          movesPerIteration;
-        size_t                                          currentMove;
-        double                                          usedPropOfCurrentMove;
-    };
+public:
+    SequentialMoveSchedule(const std::vector<Move*> &m);                                                                                                                                         //!< Default constructor
+    virtual                                        ~SequentialMoveSchedule(void);                                                                             //!< Destructor
     
-}
+    // pure virtual public methods
+    SequentialMoveSchedule*                         clone(void) const;
+    double                                          getNumberMovesPerIteration(void) const;
+    Move*                                           nextMove(unsigned long g);
+    
+private:
+    
+    // Hidden member variables
+    double                                          movesPerIteration;
+    size_t                                          currentMove;
+    double                                          usedPropOfCurrentMove;
+};
 
 #endif

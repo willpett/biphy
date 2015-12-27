@@ -20,9 +20,6 @@
 #include "DagNode.h"
 #include "Model.h"
 #include "Monitor.h"
-
-using namespace RevBayesCore;
-
 /* Constructor */
 ScreenMonitor::ScreenMonitor(DagNode *n, int g, const std::string &del, bool pp, bool l, bool pr) : Monitor(g,n), separator( del ), posterior( pp ), prior( pr ), likelihood( l ) {
     

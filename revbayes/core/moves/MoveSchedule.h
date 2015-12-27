@@ -22,26 +22,22 @@
 
 #include <vector>
 
-namespace RevBayesCore {
+class MoveSchedule {
     
-    class MoveSchedule {
-        
-    public:
-        virtual                                                ~MoveSchedule(void);                                                                             //!< Destructor
-        
-        // pure virtual public methods
-        virtual MoveSchedule*                                   clone(void) const = 0;
-        virtual double                                          getNumberMovesPerIteration(void) const = 0;
-        virtual Move*                                           nextMove(unsigned long g) = 0;
-        
-    protected:
-        MoveSchedule(const std::vector<Move*> &m);                                                                                                                                         //!< Default constructor
-                
-        // Hidden member variables
-        std::vector<Move*>                                      moves;
-        
-    };
+public:
+    virtual                                                ~MoveSchedule(void);                                                                             //!< Destructor
     
-}
+    // pure virtual public methods
+    virtual MoveSchedule*                                   clone(void) const = 0;
+    virtual double                                          getNumberMovesPerIteration(void) const = 0;
+    virtual Move*                                           nextMove(unsigned long g) = 0;
+    
+protected:
+    MoveSchedule(const std::vector<Move*> &m);                                                                                                                                         //!< Default constructor
+            
+    // Hidden member variables
+    std::vector<Move*>                                      moves;
+    
+};
 
 #endif

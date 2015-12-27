@@ -2,14 +2,12 @@
 #include "DistributionUniform.h"
 #include "RandomNumberFactory.h"
 
-using namespace RevBayesCore;
-
 UniformDistribution::UniformDistribution(const TypedDagNode<double> *mi, const TypedDagNode<double> *ma) : ContinuousDistribution( new double( 0.0 ) ), min( mi ), max( ma ) {
     // add the parameters to the parents set
     addParameter( min );
     addParameter( max );
     
-    *value = RbStatistics::Uniform::rv(min->getValue(), max->getValue(), *GLOBAL_RNG);
+    *value = Statistics::Uniform::rv(min->getValue(), max->getValue(), *GLOBAL_RNG);
 }
 
 
@@ -25,7 +23,7 @@ UniformDistribution::~UniformDistribution( void ) {
 
 double UniformDistribution::cdf( void ) const {
     
-    return RbStatistics::Uniform::cdf( min->getValue(), max->getValue(), *value);
+    return Statistics::Uniform::cdf( min->getValue(), max->getValue(), *value);
 }
 
 
@@ -37,7 +35,7 @@ UniformDistribution* UniformDistribution::clone( void ) const {
 
 double UniformDistribution::computeLnProbability( void ) {
     
-    return RbStatistics::Uniform::lnPdf(min->getValue(), max->getValue(), *value);
+    return Statistics::Uniform::lnPdf(min->getValue(), max->getValue(), *value);
 }
 
 
@@ -55,13 +53,13 @@ double UniformDistribution::getMin( void ) const {
 
 double UniformDistribution::quantile(double p) const {
     
-    return RbStatistics::Uniform::quantile( min->getValue(), max->getValue(), p);
+    return Statistics::Uniform::quantile( min->getValue(), max->getValue(), p);
 }
 
 
 void UniformDistribution::redrawValue( void ) {
     
-    *value = RbStatistics::Uniform::rv(min->getValue(), max->getValue(), *GLOBAL_RNG);
+    *value = Statistics::Uniform::rv(min->getValue(), max->getValue(), *GLOBAL_RNG);
     
 }
 

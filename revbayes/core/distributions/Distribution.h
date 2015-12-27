@@ -35,51 +35,47 @@
 #include <iostream>
 #include <set>
 
-namespace RevBayesCore {
-    
-    class DagNode;
-    
-    class Distribution : public Cloneable {
-        
-    public:
-        // destructor
-        virtual                            ~Distribution(void) {}
-        
-        // public methods
-        virtual void                        getAffected(std::set<DagNode *>& affected, DagNode* affecter);  //!< get affected nodes
-        const std::set<const DagNode*>&     getParameters(void) const;                                      //!< get the parameters of the distribution
-        void                                keep(DagNode* affecter);
-        void                                restore(DagNode *restorer);
-        void                                touch(DagNode *toucher );
+class DagNode;
 
-        virtual void                        reInitialized( void );                                          //!< The model was re-initialized
-        
-        // pure virtual public methods
-        virtual Distribution*               clone(void) const = 0;                                          //!< Clone the distribution
-        virtual double                      computeLnProbability(void) = 0;                                 //!< Compute the ln probability
-        virtual void                        redrawValue(void) = 0;                                          //!< Draw a new random value from the distribution
-        virtual void                        swapParameter(const DagNode *oldP, const DagNode *newP) = 0;    //!< Exchange the parameter
-        
-    protected:
-        // hidden constructor
-        Distribution(void);
-        
-        // inheritable methods
-        void                                addParameter(const DagNode* p);                                 //!< add a parameter to the distribution
-        void                                removeParameter(const DagNode *p);
-  
-        virtual void                        keepSpecialization(DagNode* affecter);
-        virtual void                        restoreSpecialization(DagNode *restorer);
-        virtual void                        touchSpecialization(DagNode *toucher);
+class Distribution : public Cloneable {
+    
+public:
+    // destructor
+    virtual                            ~Distribution(void) {}
+    
+    // public methods
+    virtual void                        getAffected(std::set<DagNode *>& affected, DagNode* affecter);  //!< get affected nodes
+    const std::set<const DagNode*>&     getParameters(void) const;                                      //!< get the parameters of the distribution
+    void                                keep(DagNode* affecter);
+    void                                restore(DagNode *restorer);
+    void                                touch(DagNode *toucher );
 
-    private:
-        std::set<const DagNode*>            parameters;
-        
-    };
+    virtual void                        reInitialized( void );                                          //!< The model was re-initialized
     
-    // Global functions using the class
-    std::ostream&                       operator<<(std::ostream& o, const Distribution& x);                                //!< Overloaded output operator
+    // pure virtual public methods
+    virtual Distribution*               clone(void) const = 0;                                          //!< Clone the distribution
+    virtual double                      computeLnProbability(void) = 0;                                 //!< Compute the ln probability
+    virtual void                        redrawValue(void) = 0;                                          //!< Draw a new random value from the distribution
+    virtual void                        swapParameter(const DagNode *oldP, const DagNode *newP) = 0;    //!< Exchange the parameter
     
-}
+protected:
+    // hidden constructor
+    Distribution(void);
+    
+    // inheritable methods
+    void                                addParameter(const DagNode* p);                                 //!< add a parameter to the distribution
+    void                                removeParameter(const DagNode *p);
+
+    virtual void                        keepSpecialization(DagNode* affecter);
+    virtual void                        restoreSpecialization(DagNode *restorer);
+    virtual void                        touchSpecialization(DagNode *toucher);
+
+private:
+    std::set<const DagNode*>            parameters;
+    
+};
+
+// Global functions using the class
+std::ostream&                       operator<<(std::ostream& o, const Distribution& x);
 
 #endif

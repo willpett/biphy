@@ -1,13 +1,11 @@
 #include "ScaleMove.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
-#include "RbException.h"
 #include "TypedDagNode.h"
 
 #include <cmath>
 #include <iostream>
-
-using namespace RevBayesCore;
+#include "Exception.h"
 
 /** 
  * Constructor

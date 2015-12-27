@@ -16,63 +16,58 @@
 #include <vector>
 #include <string>
 
-namespace RevBayesCore {
+class TreeLengthStatistic : public TypedFunction<double> {
     
-    template<class treeType>
-    class TreeLengthStatistic : public TypedFunction<double> {
-        
-    public:
-        TreeLengthStatistic(const TypedDagNode<treeType> *t);                                                                                   //!< Default constructor
-        TreeLengthStatistic(const TreeLengthStatistic& t);                                                                                      //!< Copy constructor
-        virtual                                    ~TreeLengthStatistic(void);                                                                  //!< Destructor
-        
-        TreeLengthStatistic&                        operator=(const TreeLengthStatistic& t);
-        
-        // Basic utility functions
-        TreeLengthStatistic*                        clone(void) const;                                                                          //!< Clone object
-        void                                        update(void);                                                                               //!< Clone the function
-        
-    protected:
-        void                                        swapParameterInternal(const DagNode *oldP, const DagNode *newP);                            //!< Implementation of swaping parameters
-        
-    private:
-        // members
-        const TypedDagNode<treeType>*               tree;
-        
-    };
+public:
+    TreeLengthStatistic(const TypedDagNode<Tree> *t);                                                                                   //!< Default constructor
+    TreeLengthStatistic(const TreeLengthStatistic& t);                                                                                      //!< Copy constructor
+    virtual                                    ~TreeLengthStatistic(void);                                                                  //!< Destructor
     
-}
+    TreeLengthStatistic&                        operator=(const TreeLengthStatistic& t);
+    
+    // Basic utility functions
+    TreeLengthStatistic*                        clone(void) const;                                                                          //!< Clone object
+    void                                        update(void);                                                                               //!< Clone the function
+    
+protected:
+    void                                        swapParameterInternal(const DagNode *oldP, const DagNode *newP);                            //!< Implementation of swaping parameters
+    
+private:
+    // members
+    const TypedDagNode<Tree>*               tree;
+    
+};
 
 //#include "TreeLengthStatistic.h"
 
 using namespace RevBayesCore;
 
-template<class treeType>
-TreeLengthStatistic<treeType>::TreeLengthStatistic(const TypedDagNode<treeType> *t) : TypedFunction<double>( new double(0.0) ), tree( t ) {
+
+TreeLengthStatistic::TreeLengthStatistic(const TypedDagNode<Tree> *t) : TypedFunction<double>( new double(0.0) ), tree( t ) {
     // add the tree parameter as a parent
     addParameter( tree );
     
     update();
 }
 
-template<class treeType>
-TreeLengthStatistic<treeType>::TreeLengthStatistic(const TreeLengthStatistic &n) : TypedFunction<double>( n ), tree( n.tree ) {
+
+TreeLengthStatistic::TreeLengthStatistic(const TreeLengthStatistic &n) : TypedFunction<double>( n ), tree( n.tree ) {
     // no need to add parameters, happens automatically
 }
 
-template<class treeType>
-TreeLengthStatistic<treeType>::~TreeLengthStatistic( void ) {
+
+TreeLengthStatistic::~TreeLengthStatistic( void ) {
     // We don't delete the parameters, because they might be used somewhere else too. The model needs to do that!
 }
 
 
-template<class treeType>
-TreeLengthStatistic<treeType>* TreeLengthStatistic<treeType>::clone( void ) const {
-    return new TreeLengthStatistic<treeType>( *this );
+
+TreeLengthStatistic* TreeLengthStatistic::clone( void ) const {
+    return new TreeLengthStatistic( *this );
 }
 
-template<class treeType>
-void TreeLengthStatistic<treeType>::update( void ) {
+
+void TreeLengthStatistic::update( void ) {
     
     double treeHeight = tree->getValue().getRoot().getAge();
     
@@ -87,10 +82,9 @@ void TreeLengthStatistic<treeType>::update( void ) {
 }
 
 
-template<class treeType>
-void TreeLengthStatistic<treeType>::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
+void TreeLengthStatistic::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
     if (oldP == tree) {
-        tree = static_cast<const TypedDagNode<treeType>* >( newP );
+        tree = static_cast<const TypedDagNode<Tree>* >( newP );
     }
 }
 

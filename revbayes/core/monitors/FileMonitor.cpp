@@ -21,9 +21,6 @@
 #include "Mcmc.h"
 #include "Model.h"
 #include "Monitor.h"
-
-using namespace RevBayesCore;
-
 /* Constructor */
 FileMonitor::FileMonitor(DagNode *n, int g, const std::string &fname, const std::string &del, bool pp, bool l, bool pr, bool ap, bool ci, bool ch) : Monitor(g,n), outStream(), filename( fname ), separator( del ), posterior( pp ), prior( pr ), likelihood( l ), append(ap), chainIdx(ci), chainHeat(ch) {
     
@@ -51,8 +48,8 @@ FileMonitor::FileMonitor(const FileMonitor &f) : Monitor( f ), outStream() {
     chainIdx    = f.chainIdx;
     chainHeat   = f.chainHeat;
     
-    if (f.outStream.is_open())
-        openStream();
+    //if (f.outStream.is_open())
+    //    openStream();
 }
 
 

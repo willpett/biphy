@@ -23,26 +23,23 @@
 #include "ContinuousDistribution.h"
 #include "TypedDagNode.h"
 
-namespace RevBayesCore {
+class QuantileFunction : public ContinuousFunction {
     
-    class QuantileFunction : public ContinuousFunction {
-        
-    public:
-        QuantileFunction(const TypedDagNode<double> *p, ContinuousDistribution *d);
-        QuantileFunction(const QuantileFunction &pdf);
-        virtual                            ~QuantileFunction(void);
-        
-        QuantileFunction*                   clone(void) const;                                                  //!< Create a clon.
-        void                                update(void);                                                       //!< Recompute the value
-        
-    protected:
-        void                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);    //!< Implementation of swaping parameters
-        
-    private:
-        const TypedDagNode<double>*         p;
-        ContinuousDistribution*             dist;
-    };
-}
+public:
+    QuantileFunction(const TypedDagNode<double> *p, ContinuousDistribution *d);
+    QuantileFunction(const QuantileFunction &pdf);
+    virtual                            ~QuantileFunction(void);
+    
+    QuantileFunction*                   clone(void) const;                                                  //!< Create a clon.
+    void                                update(void);                                                       //!< Recompute the value
+    
+protected:
+    void                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);    //!< Implementation of swaping parameters
+    
+private:
+    const TypedDagNode<double>*         p;
+    ContinuousDistribution*             dist;
+};
 
 
 #endif

@@ -1,8 +1,7 @@
 #include "TruncatedDistributionUnnormalized.h"
-#include "RandomNumberFactory.h"
-#include "RbConstants.h"
 
-using namespace RevBayesCore;
+#include "Constants.h"
+#include "RandomNumberFactory.h"
 
 TruncatedDistributionUnnormalized::TruncatedDistributionUnnormalized(TypedDistribution<double> *fin, const TypedDagNode<double> *mi, const TypedDagNode<double> *ma) : TypedDistribution<double>( new double( 0.0 ) ), min( mi ), max( ma ), f( fin ){
     // add the parameters to the parents set
@@ -41,7 +40,7 @@ TruncatedDistributionUnnormalized* TruncatedDistributionUnnormalized::clone( voi
 double TruncatedDistributionUnnormalized::computeLnProbability( void ) {
     
 	if(*value < min->getValue() || *value > max->getValue())
-		return RbConstants::Double::neginf;
+		return Constants::Double::neginf;
 	f->setValue(*value);
     return f->computeLnProbability();
 }

@@ -15,27 +15,23 @@
 
 #include <vector>
 
-namespace RevBayesCore {
+class SingleRandomMoveSchedule : public MoveSchedule  {
     
-    class SingleRandomMoveSchedule : public MoveSchedule  {
-        
-    public:
-        SingleRandomMoveSchedule(const std::vector<Move*> &m);                                                                                                                                         //!< Default constructor
-        virtual                                        ~SingleRandomMoveSchedule(void);                                                                             //!< Destructor
-        
-        // pure virtual public methods
-        SingleRandomMoveSchedule*                             clone(void) const;
-        double                                          getNumberMovesPerIteration(void) const;
-        void                                            setNumberMovesPerIteration(double);
-        Move*                                           nextMove(unsigned long g);
-        
-    private:
-        
-        // Hidden member variables
-        double                                          sumOfWeights;
-        std::vector<double>                             weights;
-    };
+public:
+    SingleRandomMoveSchedule(const std::vector<Move*> &m);                                                                                                                                         //!< Default constructor
+    virtual                                        ~SingleRandomMoveSchedule(void);                                                                             //!< Destructor
     
-}
+    // pure virtual public methods
+    SingleRandomMoveSchedule*                             clone(void) const;
+    double                                          getNumberMovesPerIteration(void) const;
+    void                                            setNumberMovesPerIteration(double);
+    Move*                                           nextMove(unsigned long g);
+    
+private:
+    
+    // Hidden member variables
+    double                                          sumOfWeights;
+    std::vector<double>                             weights;
+};
 
 #endif /* defined(__revbayes_mlandis__SingleRandomMoveSchedule__) */

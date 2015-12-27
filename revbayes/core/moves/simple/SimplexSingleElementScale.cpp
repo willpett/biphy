@@ -20,14 +20,10 @@
 #include "SimplexSingleElementScale.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
-#include "RbConstants.h"
-#include "RbException.h"
-#include "RbStatisticsHelper.h"
-#include "RbUtil.h"
-
 #include <cmath>
-
-using namespace RevBayesCore;
+#include "StatisticsHelper.h"
+#include "Constants.h"
+#include "Exception.h"
 
 SimplexSingleElementScale::SimplexSingleElementScale(StochasticNode<std::vector<double> > *v, double a, bool t, double weight) : SimpleMove( v, weight, t ), variable( v ), alpha( a ) {
     
@@ -72,9 +68,9 @@ double SimplexSingleElementScale::performSimpleMove( void ) {
     // draw new rates and compute the hastings ratio at the same time
     double a = alpha * currentValue + 1.0;
     double b = alpha * (1.0-currentValue) + 1.0;
-    double new_value = RbStatistics::Beta::rv(a, b, *rng);
+    double new_value = Statistics::Beta::rv(a, b, *rng);
     while(new_value == 0.0 || new_value == 1.0){
-    	new_value = RbStatistics::Beta::rv(a, b, *rng);
+    	new_value = Statistics::Beta::rv(a, b, *rng);
     }
     
     // set the value
@@ -89,10 +85,10 @@ double SimplexSingleElementScale::performSimpleMove( void ) {
 		value[i] /= sum;
     
     // compute the Hastings ratio
-    double forward = RbStatistics::Beta::lnPdf(a, b, new_value);
+    double forward = Statistics::Beta::lnPdf(a, b, new_value);
     double new_a = alpha * value[chosenIndex] + 1.0;
     double new_b = alpha * (1.0-value[chosenIndex]) + 1.0;
-    double backward = RbStatistics::Beta::lnPdf(new_a, new_b, currentValue);
+    double backward = Statistics::Beta::lnPdf(new_a, new_b, currentValue);
     
     return backward / forward;
 }

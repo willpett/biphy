@@ -20,7 +20,7 @@
 #define CrossValidationScoreMonitor_H
 
 #include "Monitor.h"
-#include "AbstractCharacterData.h"
+#include "BinaryCharacterData.h"
 #include "StochasticNode.h"
 
 #include <fstream>
@@ -28,41 +28,37 @@
 #include <string>
 #include <vector>
 
-namespace RevBayesCore {
+class CrossValidationScoreMonitor : public Monitor {
     
-    class CrossValidationScoreMonitor : public Monitor {
-        
-    public:
-        // Constructors and Destructors
-        CrossValidationScoreMonitor(StochasticNode<AbstractCharacterData> *t, AbstractCharacterData* test, int g, const std::string &fname, bool ap=false);
-        //!< Constructor with set of DAG node
-        CrossValidationScoreMonitor(const CrossValidationScoreMonitor& f);
-        
-        // basic methods
-        CrossValidationScoreMonitor*          clone(void) const;                                                  //!< Clone the object
-        
-        // Monitor functions
-        void                                monitor(long gen);                                                  //!< Monitor at generation gen
-        void                                swapNode(DagNode *oldN, DagNode *newN);
+public:
+    // Constructors and Destructors
+    CrossValidationScoreMonitor(StochasticNode<BinaryCharacterData > *t, BinaryCharacterData* test, int g, const std::string &fname, bool ap=false);
+    //!< Constructor with set of DAG node
+    CrossValidationScoreMonitor(const CrossValidationScoreMonitor& f);
+    
+    // basic methods
+    CrossValidationScoreMonitor*          clone(void) const;                                                  //!< Clone the object
+    
+    // Monitor functions
+    void                                monitor(long gen);                                                  //!< Monitor at generation gen
+    void                                swapNode(DagNode *oldN, DagNode *newN);
 
-        // FileMonitor functions
-        void                                closeStream(void);                                                  //!< Close stream after finish writing
-        void                                openStream(void);                                                   //!< Open the stream for writing
-        void                                printHeader(void);                                                  //!< Print header
-        
-    private:        
-        // the stream to print
-        std::fstream                        outStream;
-        
-        // parameters
-        StochasticNode<AbstractCharacterData>*      data;
-        AbstractCharacterData*				test;
-        std::string                         filename;
-        bool                                append;
-        
-    };
+    // FileMonitor functions
+    void                                closeStream(void);                                                  //!< Close stream after finish writing
+    void                                openStream(void);                                                   //!< Open the stream for writing
+    void                                printHeader(void);                                                  //!< Print header
     
-}
+private:        
+    // the stream to print
+    std::fstream                        outStream;
+    
+    // parameters
+    StochasticNode<BinaryCharacterData >*      data;
+    BinaryCharacterData*				test;
+    std::string                         filename;
+    bool                                append;
+    
+};
 
 #endif
 

@@ -6,33 +6,31 @@
 
 #include <vector>
 
-namespace RevBayesCore {
+template <class valueType>
+class VectorScaleFunction : public TypedFunction<std::vector<valueType> > {
     
-	template <class valueType>
-    class VectorScaleFunction : public TypedFunction<std::vector<valueType> > {
-        
-    public:
-        VectorScaleFunction(const TypedDagNode<std::vector<valueType> > *vector, const TypedDagNode<valueType> *scalar);
-        VectorScaleFunction(const VectorScaleFunction &n);                                                                                      //!< Copy constructor
-        virtual                                            ~VectorScaleFunction(void);                                                      //!< Virtual destructor
-        
-        // public member functions
-        VectorScaleFunction*                                clone(void) const;                                                          //!< Create an independent clone
-        void                                                update(void);
-        void                                                keep(DagNode* affecter);
-        void                                                restore(DagNode *restorer);
-        void                                                touch(DagNode *toucher );
-        
-    protected:
-        void                                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);            //!< Implementation of swaping parameters
-        
-    private:
-        
-        // members
-        const TypedDagNode<std::vector<valueType> > *vector;
-        const TypedDagNode<valueType> *scalar;
-        
-    };
+public:
+    VectorScaleFunction(const TypedDagNode<std::vector<valueType> > *vector, const TypedDagNode<valueType> *scalar);
+    VectorScaleFunction(const VectorScaleFunction &n);                                                                                      //!< Copy constructor
+    virtual                                            ~VectorScaleFunction(void);                                                      //!< Virtual destructor
+    
+    // public member functions
+    VectorScaleFunction*                                clone(void) const;                                                          //!< Create an independent clone
+    void                                                update(void);
+    void                                                keep(DagNode* affecter);
+    void                                                restore(DagNode *restorer);
+    void                                                touch(DagNode *toucher );
+    
+protected:
+    void                                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);            //!< Implementation of swaping parameters
+    
+private:
+    
+    // members
+    const TypedDagNode<std::vector<valueType> > *vector;
+    const TypedDagNode<valueType> *scalar;
+    
+};
 
 template <class valueType>
 void VectorScaleFunction<valueType>::keep( DagNode *toucher ) {
@@ -107,8 +105,6 @@ void VectorScaleFunction<valueType>::swapParameterInternal(const DagNode *oldP, 
 	}else if(oldP == scalar){
 		scalar = static_cast<const TypedDagNode<double>* >( newP );
 	}
-
-}
 
 }
 #endif

@@ -27,27 +27,23 @@
 
 #include <vector>
 
-namespace RevBayesCore {
+class DirichletDistribution : public TypedDistribution< std::vector<double> > {
     
-    class DirichletDistribution : public TypedDistribution< std::vector<double> > {
-        
-    public:
-        DirichletDistribution(const TypedDagNode< std::vector<double> > *l);
-        DirichletDistribution(const DirichletDistribution &n);                                                                          //!< Copy constructor
-        virtual                                            ~DirichletDistribution(void);                                                //!< Virtual destructor
-        
-        // public member functions
-        DirichletDistribution*                              clone(void) const;                                                          //!< Create an independent clone
-        double                                              computeLnProbability(void);
-        void                                                redrawValue(void);
-        void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
-        
-    private:
-        
-        // members
-        const TypedDagNode<std::vector<double> >*           alpha;
-    };
+public:
+    DirichletDistribution(const TypedDagNode< std::vector<double> > *l);
+    DirichletDistribution(const DirichletDistribution &n);                                                                          //!< Copy constructor
+    virtual                                            ~DirichletDistribution(void);                                                //!< Virtual destructor
     
-}
+    // public member functions
+    DirichletDistribution*                              clone(void) const;                                                          //!< Create an independent clone
+    double                                              computeLnProbability(void);
+    void                                                redrawValue(void);
+    void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
+    
+private:
+    
+    // members
+    const TypedDagNode<std::vector<double> >*           alpha;
+};
 
 #endif

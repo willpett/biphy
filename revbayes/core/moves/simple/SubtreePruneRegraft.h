@@ -24,39 +24,35 @@
 
 #include "SimpleMove.h"
 #include "StochasticNode.h"
-#include "Topology.h"
+#include "Tree.h"
 
-namespace RevBayesCore {
+class SubtreePruneRegraft : public SimpleMove {
     
-    class SubtreePruneRegraft : public SimpleMove {
-        
-    public:
-        SubtreePruneRegraft( StochasticNode<Topology> *n, double weight, bool outgroup = false);                                            //!<  constructor
-        
-        // Basic utility functions
-        SubtreePruneRegraft*                        clone(void) const;                                                                  //!< Clone object
-        void                                        swapNode(DagNode *oldN, DagNode *newN);
-        
-    protected:
-        const std::string&                          getMoveName(void) const;                                                            //!< Get the name of the move for summary printing
-        double                                      performSimpleMove(void);                                                            //!< Perform move
-        void                                        rejectSimpleMove(void);
-        
-    private:
-        // private methods
-        bool                                        isDescendant(const TopologyNode &n, const TopologyNode &p);
-        
-        // member variables
-        StochasticNode<Topology>*                   variable;
-        
-        // stored objects to undo proposal
-        TopologyNode*                               storedChoosenNode;
-        TopologyNode*                               storedBrother;
-        bool										outgroup;
-        
-    };
+public:
+    SubtreePruneRegraft( StochasticNode<Tree> *n, double weight, bool outgroup = false);                                            //!<  constructor
     
-}
+    // Basic utility functions
+    SubtreePruneRegraft*                        clone(void) const;                                                                  //!< Clone object
+    void                                        swapNode(DagNode *oldN, DagNode *newN);
+    
+protected:
+    const std::string&                          getMoveName(void) const;                                                            //!< Get the name of the move for summary printing
+    double                                      performSimpleMove(void);                                                            //!< Perform move
+    void                                        rejectSimpleMove(void);
+    
+private:
+    // private methods
+    bool                                        isDescendant(const TopologyNode &n, const TopologyNode &p);
+    
+    // member variables
+    StochasticNode<Tree>*                       variable;
+    
+    // stored objects to undo proposal
+    TopologyNode*                               storedChoosenNode;
+    TopologyNode*                               storedBrother;
+    bool										outgroup;
+    
+};
 
 #endif
 

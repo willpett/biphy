@@ -11,8 +11,10 @@ endif()
 add_definitions(-DVERSION="${DESCRIPTION}")
 
 find_package(OpenMP REQUIRED)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -msse -msse2 -msse3 ${OpenMP_CXX_FLAGS}")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse3 -O3 ${OpenMP_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O3 ${OpenMP_C_FLAGS}")
+
+#-Wa,-q -mavx 
 
 
 set(REVBAYES_DIR ${CMAKE_SOURCE_DIR}/revbayes)
@@ -28,8 +30,3 @@ set(TARGET_NAME "biphy")
 add_executable(${TARGET_NAME} ${BIPHY_DIR}/main.cpp)
 set_target_properties(${TARGET_NAME} PROPERTIES PREFIX "../")
 target_link_libraries(${TARGET_NAME} rb-core biphy-lib gomp)
-
-set(TARGET_NAME_MULTI "multibiphy")
-add_executable(${TARGET_NAME_MULTI} ${BIPHY_DIR}/main_multi.cpp)
-set_target_properties(${TARGET_NAME_MULTI} PROPERTIES PREFIX "../")
-target_link_libraries(${TARGET_NAME_MULTI} rb-core biphy-lib gomp)

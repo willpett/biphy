@@ -1,13 +1,10 @@
  
 
 #include "SimpleMove.h"
-#include "RbException.h"
 #include "StochasticNode.h"
-#include "RbConstants.h"
-
 #include <set>
-
-using namespace RevBayesCore;
+#include "Constants.h"
+#include "Exception.h"
 
 SimpleMove::SimpleMove(DagNode *n, double w, bool t) : Move( n, w, t ), theNode( n ) {
     
@@ -38,15 +35,15 @@ double SimpleMove::performMove( double &probRatio ) {
     
     if (changed) 
     {
-        throw RbException("Trying to execute a simple move twice without accept/reject in the meantime.");
+        throw Exception("Trying to execute a simple move twice without accept/reject in the meantime.");
     }
     changed = true;
     
     double hr = performSimpleMove();
     
-    if ( hr != hr || hr == RbConstants::Double::inf ) 
+    if ( hr != hr || hr == Constants::Double::inf ) 
     {
-        return RbConstants::Double::neginf;
+        return Constants::Double::neginf;
     }
     
     // touch the node
@@ -55,7 +52,7 @@ double SimpleMove::performMove( double &probRatio ) {
     // calculate the probability ratio for the node we just changed
     probRatio = theNode->getLnProbabilityRatio();
         
-    if ( probRatio != RbConstants::Double::inf && probRatio != RbConstants::Double::neginf ) 
+    if ( probRatio != Constants::Double::inf && probRatio != Constants::Double::neginf ) 
     {
         
         std::set<DagNode* > affectedNodes;

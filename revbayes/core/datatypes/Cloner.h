@@ -22,29 +22,25 @@
 
 #include <string>
 
-namespace RevBayesCore {
+template <typename objType, int>
+// general case: T is not derived from Cloneable
+// calls copy constructor
+class Cloner {
     
-    template <typename objType, int>
-    // general case: T is not derived from Cloneable
-    // calls copy constructor
-    class Cloner {
-        
-    public:
-        //!< Create a clone of the given object.
-        static objType*                 createClone( const objType &o ) { return new objType( o ); } 
-    };
+public:
+    //!< Create a clone of the given object.
+    static objType*                 createClone( const objType &o ) { return new objType( o ); } 
+};
+
+template <typename objType>
+// T is derived from Cloneable
+// calls clone
+class Cloner<objType,1> {
     
-    template <typename objType>
-    // T is derived from Cloneable
-    // calls clone
-    class Cloner<objType,1> {
-        
-    public:
-        //!< Create a clone of the given object.
-        static objType*                 createClone( const objType &o ) { return o.clone(); } 
-    };
-    
-}
+public:
+    //!< Create a clone of the given object.
+    static objType*                 createClone( const objType &o ) { return o.clone(); } 
+};
 
 
 

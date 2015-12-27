@@ -21,31 +21,19 @@
 #include "DistributionBeta.h"
 #include "DistributionGamma.h"
 #include "RandomNumberGenerator.h"
-#include "RbConstants.h"
-#include "RbException.h"
-#include "RbMathFunctions.h"
-#include "RbMathLogic.h"
+#include "Constants.h"
+#include "Exception.h"
+#include "MathFunctions.h"
+#include "MathLogic.h"
 
 
-using namespace RevBayesCore;
-
-/*!
- * This function returns the probability density for a
- * Beta-distributed random variable.
- *
- * \brief Beta probability density.
- * \param a parameter of the Beta.
- * \param b parameter of the Beta.
- * \return Returns the probability density.
- * \throws Does not throw an error.
- */
-double RbStatistics::Beta::pdf(double a, double b, double x) {
+double Statistics::Beta::pdf(double a, double b, double x) {
 
 	double pdf;
 	if ( x < 0.0 || 1.0 < x )
 		pdf = 0.0;
 	else
-		pdf = std::pow(x, (a - 1.0)) * std::pow((1.0 - x), (b - 1.0)) / RbMath::beta(a, b);
+		pdf = std::pow(x, (a - 1.0)) * std::pow((1.0 - x), (b - 1.0)) / Math::beta(a, b);
 	return pdf;
 }
 
@@ -59,14 +47,14 @@ double RbStatistics::Beta::pdf(double a, double b, double x) {
  * \return Returns the natural log of the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Beta::lnPdf(double a, double b, double x) {
+double Statistics::Beta::lnPdf(double a, double b, double x) {
 
 	# define xsml 2.2474362225598545e-308
 
 	//if(a < xsml || b < xsml)
-	//	return RbConstants::Double::neginf;
+	//	return Constants::Double::neginf;
 
-	return ( (RbMath::lnGamma(a + b) - RbMath::lnGamma(a) - RbMath::lnGamma(b)) + (a - 1.0) * std::log(x) + (b - 1.0) * std::log(1.0 - x) );
+	return ( (Math::lnGamma(a + b) - Math::lnGamma(a) - Math::lnGamma(b)) + (a - 1.0) * std::log(x) + (b - 1.0) * std::log(1.0 - x) );
 }
 
 /*!
@@ -79,13 +67,13 @@ double RbStatistics::Beta::lnPdf(double a, double b, double x) {
  * \return Returns the cumulative probability.
  * \throws Does not throw an error.
  */
-double RbStatistics::Beta::cdf(double a, double b, double x) {
+double Statistics::Beta::cdf(double a, double b, double x) {
 
 	double cdf;
 	if ( x <= 0.0 )
 		cdf = 0.0;
 	else if ( x <= 1.0 )
-		cdf = RbMath::incompleteBeta(a, b, x);
+		cdf = Math::incompleteBeta(a, b, x);
 	else
 		cdf = 1.0;
 	return cdf;
@@ -104,7 +92,7 @@ double RbStatistics::Beta::cdf(double a, double b, double x) {
  */
 
 
-double RbStatistics::Beta::quantile(double alpha, double beta, double x) {
+double Statistics::Beta::quantile(double alpha, double beta, double x) {
     
 	int		i, nswitches;
 	double	curPos, curFraction, increment;
@@ -114,7 +102,7 @@ double RbStatistics::Beta::quantile(double alpha, double beta, double x) {
 	bool stopIter = false;
     bool directionUp;
 	increment = 0.25;
-	curFraction = RbMath::incompleteBeta (alpha, beta, curPos);
+	curFraction = Math::incompleteBeta (alpha, beta, curPos);
 	if (curFraction > x)
 		directionUp = false;
 	else
@@ -122,7 +110,7 @@ double RbStatistics::Beta::quantile(double alpha, double beta, double x) {
     
 	while (!stopIter)
     {
-		curFraction = RbMath::incompleteBeta(alpha, beta, curPos);
+		curFraction = Math::incompleteBeta(alpha, beta, curPos);
 		if (curFraction > x && directionUp == false)
         {
 			/* continue going down */
@@ -184,19 +172,19 @@ double RbStatistics::Beta::quantile(double alpha, double beta, double x) {
  * Communications of the ACM 21, 317-322.
  * (Algorithms BB and BC)
  */
-#define expmax	(DBL_MAX_EXP * RbConstants::LN2)/* = log(DBL_MAX) */
+#define expmax	(DBL_MAX_EXP * Constants::LN2)/* = log(DBL_MAX) */
 
-double RbStatistics::Beta::rv(double aa, double bb, RandomNumberGenerator& rng) {
-	double x = RbStatistics::Beta::rv_unsafe(aa, bb, rng);
-	while(	RbMath::compEssentiallyEqual(x,1.0,std::numeric_limits<double>::epsilon()) ||
-		RbMath::compEssentiallyEqual(x,0.0,std::numeric_limits<double>::epsilon()) ||
-		RbMath::isNan(x))
-		x = RbStatistics::Beta::rv_unsafe(aa, bb, rng);
+double Statistics::Beta::rv(double aa, double bb, RandomNumberGenerator& rng) {
+	double x = Statistics::Beta::rv_unsafe(aa, bb, rng);
+	while(	Math::compEssentiallyEqual(x,1.0,std::numeric_limits<double>::epsilon()) ||
+		Math::compEssentiallyEqual(x,0.0,std::numeric_limits<double>::epsilon()) ||
+		Math::isNan(x))
+		x = Statistics::Beta::rv_unsafe(aa, bb, rng);
 
 	return x;
 }
 
-double RbStatistics::Beta::rv_unsafe(double aa, double bb, RandomNumberGenerator& rng) {
+double Statistics::Beta::rv_unsafe(double aa, double bb, RandomNumberGenerator& rng) {
     double a, b, alpha;
     double r, s, t, u1, u2, v, w, y, z;
 
@@ -207,34 +195,34 @@ double RbStatistics::Beta::rv_unsafe(double aa, double bb, RandomNumberGenerator
     static double olda = -1.0;
     static double oldb = -1.0;
 
-    if (aa <= 0. || bb <= 0. || (!RbMath::isFinite(aa) && !RbMath::isFinite(bb)))
+    if (aa <= 0. || bb <= 0. || (!Math::isFinite(aa) && !Math::isFinite(bb)))
         {
         std::ostringstream ss;
         ss << "Cannot draw random variable from beta distribution for a = " << aa << " and b = " << bb;
-        throw (RbException(ss));
+        throw (Exception(ss));
         }
 
-    if (!RbMath::isFinite(aa))
+    if (!Math::isFinite(aa))
     	return 1.0;
 
-    if (!RbMath::isFinite(bb))
+    if (!Math::isFinite(bb))
     	return 0.0;
 
     /* Test if we need new "initializing" */
     qsame = (olda == aa) && (oldb == bb);
     if (!qsame) { olda = aa; oldb = bb; }
 
-    a = RbMath::min(aa, bb);
-    b = RbMath::max(aa, bb); /* a <= b */
+    a = Math::min(aa, bb);
+    b = Math::max(aa, bb); /* a <= b */
     alpha = a + b;
 
 #define v_w_from__u1_bet(AA) 			                \
 v = beta * log(u1 / (1.0 - u1));	                    \
 if (v <= expmax) {		                                \
 w = AA * exp(v);		                                \
-if(!RbMath::isFinite(w)) w = RbConstants::Double::max;	\
+if(!Math::isFinite(w)) w = Constants::Double::max;	\
 } else				                                    \
-w = RbConstants::Double::max
+w = Constants::Double::max
 
     if (a <= 1.0)
         {

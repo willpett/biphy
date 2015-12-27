@@ -17,11 +17,9 @@
 #include <cmath>
 
 #include "DistributionNormal.h"
-#include "RbConstants.h"
+
+#include "Constants.h"
 #include "RandomNumberGenerator.h"
-
-using namespace RevBayesCore;
-
 /*!
  * This function calculates the probability density 
  * for a standard normally-distributed random variable.
@@ -31,9 +29,9 @@ using namespace RevBayesCore;
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Normal::pdf(double x) {
+double Statistics::Normal::pdf(double x) {
     
-	return exp( -0.5 * x * x )  / RbConstants::SQRT_2PI;
+	return exp( -0.5 * x * x )  / Constants::SQRT_2PI;
 }
 
 /*!
@@ -47,10 +45,10 @@ double RbStatistics::Normal::pdf(double x) {
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Normal::pdf(double mu, double sigma, double x) {
+double Statistics::Normal::pdf(double mu, double sigma, double x) {
     
 	double y = ( x - mu ) / sigma;
-	return exp( -0.5 * y * y )  / ( sigma * sqrt ( 2.0 * RbConstants::PI ) );
+	return exp( -0.5 * y * y )  / ( sigma * sqrt ( 2.0 * Constants::PI ) );
 }
 
 /*!
@@ -62,9 +60,9 @@ double RbStatistics::Normal::pdf(double mu, double sigma, double x) {
  * \return Returns the natural log of the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Normal::lnPdf(double x) {
+double Statistics::Normal::lnPdf(double x) {
     
-	return - RbConstants::LN_SQRT_2PI - 0.5 * x * x;
+	return - Constants::LN_SQRT_2PI - 0.5 * x * x;
 }
 
 /*!
@@ -78,9 +76,9 @@ double RbStatistics::Normal::lnPdf(double x) {
  * \return Returns the natural log of the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Normal::lnPdf(double mu, double sigma, double x) {
+double Statistics::Normal::lnPdf(double mu, double sigma, double x) {
     
-	return - RbConstants::LN_SQRT_2PI - std::log(sigma) - 0.5 * (x - mu) * (x - mu) / (sigma * sigma);
+	return - Constants::LN_SQRT_2PI - std::log(sigma) - 0.5 * (x - mu) * (x - mu) / (sigma * sigma);
 }
 
 /*!
@@ -93,7 +91,7 @@ double RbStatistics::Normal::lnPdf(double mu, double sigma, double x) {
  * \see Adams, A. G. 1969. Areas under the normal curve. Cojputer J. 12:197-198.
  * \throws Does not throw an error.
  */
-double RbStatistics::Normal::cdf(double x) {
+double Statistics::Normal::cdf(double x) {
     
 	double cdf;
 	double q;
@@ -157,7 +155,7 @@ double RbStatistics::Normal::cdf(double x) {
  * \see Adams, A. G. 1969. Areas under the normal curve. Cojputer J. 12:197-198.
  * \throws Does not throw an error.
  */
-double RbStatistics::Normal::cdf(double mu, double sigma, double x) {
+double Statistics::Normal::cdf(double mu, double sigma, double x) {
     
 	double cdf;
 	double q;
@@ -224,7 +222,7 @@ double RbStatistics::Normal::cdf(double mu, double sigma, double x) {
  * \see Beasley, JD & S. G. Springer. 1977. Algorithm AS 111: The percentage
  *      points of the normal distribution. 26:118-121.
  */
-double RbStatistics::Normal::quantile(double p) {
+double Statistics::Normal::quantile(double p) {
     
 	double a0 = -0.322232431088;
 	double a1 = -1.0;
@@ -255,14 +253,14 @@ double RbStatistics::Normal::quantile(double p) {
  * \return Returns the quantile.
  * \throws Does not throw an error.
  */
-double RbStatistics::Normal::quantile(double mu, double sigma, double p) {
+double Statistics::Normal::quantile(double mu, double sigma, double p) {
 	
 	double z = Normal::quantile(p);
 	double x = z * sigma + mu;
 	return x;
 }
 
-double RbStatistics::Normal::rv(RandomNumberGenerator& rng) {
+double Statistics::Normal::rv(RandomNumberGenerator& rng) {
     
 	double v1 = 0.0;
 	double v2 = 0.0; // NOTE: We should eventually implement this so you generate and
@@ -280,7 +278,7 @@ double RbStatistics::Normal::rv(RandomNumberGenerator& rng) {
 	return ( v2 * fac );
 }
 
-double RbStatistics::Normal::rv(double mu, double sigma, RandomNumberGenerator& rng) {
+double Statistics::Normal::rv(double mu, double sigma, RandomNumberGenerator& rng) {
     
 	double v1 = 0.0;
 	double v2 = 0.0; // NOTE: We should eventually implement this so you generate and

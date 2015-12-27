@@ -20,26 +20,21 @@
 
 #include <vector>
 
-namespace RevBayesCore {
+class RandomNumberGenerator {
 
-    class RandomNumberGenerator {
+public:
 
-    public:
+                                        RandomNumberGenerator(void);                            //!< Default constructor using time seed
+                                        RandomNumberGenerator(std::vector<unsigned int> s);     //!< Constructor explicitly setting seeds
 
-                                            RandomNumberGenerator(void);                            //!< Default constructor using time seed
-                                            RandomNumberGenerator(std::vector<unsigned int> s);     //!< Constructor explicitly setting seeds
+    // Regular functions
+    const std::vector<unsigned int>&    getSeed(void) const;                                    //!< Get the seed values
+    void                                setSeed(std::vector<unsigned int> s);                   //!< Set the seeds of the RNG
+    double                              uniform01(void);                                        //!< Get a random [0,1) var
 
-        // Regular functions
-        const std::vector<unsigned int>&    getSeed(void) const;                                    //!< Get the seed values
-        void                                setSeed(std::vector<unsigned int> s);                   //!< Set the seeds of the RNG
-		double                              uniform01(void);                                        //!< Get a random [0,1) var
+private:
+    std::vector<unsigned int>           seed;                                                   //!< Vector of two seed values
 
-	private:
-		std::vector<unsigned int>           seed;                                                   //!< Vector of two seed values
-
-    };
-    
-}
-
+};
 #endif
 

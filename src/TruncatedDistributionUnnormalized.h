@@ -25,32 +25,28 @@
 #include "ContinuousDistribution.h"
 #include "TypedDagNode.h"
 
-namespace RevBayesCore {
+class TruncatedDistributionUnnormalized : public TypedDistribution<double> {
     
-	class TruncatedDistributionUnnormalized : public TypedDistribution<double> {
-        
-    public:
-        TruncatedDistributionUnnormalized(TypedDistribution<double> *f, const TypedDagNode<double> *min, const TypedDagNode<double> *max);
-        TruncatedDistributionUnnormalized(const TruncatedDistributionUnnormalized &n);                                                                              //!< Copy constructor
-        virtual                                            ~TruncatedDistributionUnnormalized(void);                                                  //!< Virtual destructor
-        
-        // public member functions
-        TruncatedDistributionUnnormalized*                  clone(void) const;                                                          //!< Create an independent clone
-        double                                              computeLnProbability(void);
-        double                                              getMax(void) const;
-        double                                              getMin(void) const;                                                   //!< Qu
-        void                                                redrawValue(void);
-        void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
-        
-    private:
-        
-        // members
-        const TypedDagNode<double>*                          min;
-        const TypedDagNode<double>*                          max;
-        TypedDistribution<double>*				     		 f;
-        
-    };
+public:
+    TruncatedDistributionUnnormalized(TypedDistribution<double> *f, const TypedDagNode<double> *min, const TypedDagNode<double> *max);
+    TruncatedDistributionUnnormalized(const TruncatedDistributionUnnormalized &n);                                                                              //!< Copy constructor
+    virtual                                            ~TruncatedDistributionUnnormalized(void);                                                  //!< Virtual destructor
     
-}
+    // public member functions
+    TruncatedDistributionUnnormalized*                  clone(void) const;                                                          //!< Create an independent clone
+    double                                              computeLnProbability(void);
+    double                                              getMax(void) const;
+    double                                              getMin(void) const;                                                   //!< Qu
+    void                                                redrawValue(void);
+    void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
+    
+private:
+    
+    // members
+    const TypedDagNode<double>*                          min;
+    const TypedDagNode<double>*                          max;
+    TypedDistribution<double>*				     		 f;
+    
+};
 
 #endif

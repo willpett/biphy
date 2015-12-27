@@ -25,30 +25,27 @@
 #include <set>
 #include <string>
 
-namespace RevBayesCore {
+class TreeChangeEventListener;
     
-    class TreeChangeEventListener;
+class TreeChangeEventHandler {
     
-    class TreeChangeEventHandler {
-        
-    public:
-        // constructors and destructors
-        TreeChangeEventHandler(void);
-        TreeChangeEventHandler(const TreeChangeEventHandler &h);
-        virtual                                    ~TreeChangeEventHandler(void);
-        
-        TreeChangeEventHandler&                     operator=(const TreeChangeEventHandler &h);
-        
-        // public methods
-        void                                        addListener(TreeChangeEventListener* l);                        //!< Add a new listener
-        void                                        fire(const TopologyNode& n);
-        const std::set<TreeChangeEventListener*>&   getListeners(void) const;
-        void                                        removeListener(TreeChangeEventListener* l);                     //!< Remove an existant listener
-        
-    private:
-        std::set<TreeChangeEventListener*>          listeners;
-    };
-
-}
+public:
+    // constructors and destructors
+    TreeChangeEventHandler(void);
+    TreeChangeEventHandler(const TreeChangeEventHandler &h);
+    virtual                                    ~TreeChangeEventHandler(void);
+    
+    TreeChangeEventHandler&                     operator=(const TreeChangeEventHandler &h);
+    
+    // public methods
+    void                                        addListener(TreeChangeEventListener* l);                        //!< Add a new listener
+    void                                        fire(const TopologyNode& n);
+    const std::set<TreeChangeEventListener*>&   getListeners(void) const;
+    void                                        removeListener(TreeChangeEventListener* l);
+    void                                        clear(void);
+    
+private:
+    std::set<TreeChangeEventListener*>          listeners;
+};
 
 #endif

@@ -20,175 +20,45 @@
 #define MappingMonitor_H
 
 #include "Monitor.h"
-#include "AbstractCharacterData.h"
+#include "BinaryCharacterData.h"
 #include "StochasticNode.h"
-
-#include "GeneralCharEvoModel.h"
-#include "AbstractDiscreteCharacterData.h"
-#include "RbException.h"
-
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-
-namespace RevBayesCore {
-
-	template<class charType, class treeType>
-    class MappingMonitor : public Monitor {
-        
-    public:
-        // Constructors and Destructors
-        MappingMonitor(StochasticNode<AbstractCharacterData> *t, int g, const std::string &fname, bool ap=false);
-        //!< Constructor with set of DAG node
-        MappingMonitor(const MappingMonitor& f);
-        
-        // basic methods
-        MappingMonitor*          clone(void) const;                                                  //!< Clone the object
-        
-        // Monitor functions
-        void                                monitor(long gen);                                                  //!< Monitor at generation gen
-        void                                swapNode(DagNode *oldN, DagNode *newN);
-
-        // FileMonitor functions
-        void                                closeStream(void);                                                  //!< Close stream after finish writing
-        void                                openStream(void);                                                   //!< Open the stream for writing
-        void                                printHeader(void);                                                  //!< Print header
-        
-    private:        
-        // the stream to print
-        std::fstream                        outStream;
-        
-        // parameters
-        StochasticNode<AbstractCharacterData>*      data;
-        std::string                         filename;
-        bool                                append;
-        
-    };
-
-}
-
-/* Constructor */
-template<class charType, class treeType>
-RevBayesCore::MappingMonitor<charType, treeType>::MappingMonitor(StochasticNode<AbstractCharacterData> *t, int g, const std::string &fname, bool ap) : Monitor(g,t), outStream(), data( t ), filename( fname ), append(ap) {
-    if(dynamic_cast<AbstractDiscreteCharacterData*>(&(t->getValue())) == 0){
-    	throw RbException("MappingMonitor requires DiscreteCharacterData");
-    }
-    if(dynamic_cast<GeneralCharEvoModel<charType, treeType>*>(&(t->getDistribution())) == 0){
-		throw RbException("MappingMonitor requires GeneralCharEvolModel");
-	}
-}
-
-template<class charType, class treeType>
-RevBayesCore::MappingMonitor<charType, treeType>::MappingMonitor(const MappingMonitor &m) : Monitor( m ), outStream(), data( m.data ) {
-
-    filename    = m.filename;
-    append      = m.append;
-
-    if (m.outStream.is_open())
-        openStream();
-}
+#include "Exception.h"
 
 
-/* Clone the object */
-template<class charType, class treeType>
-RevBayesCore::MappingMonitor<charType, treeType>* RevBayesCore::MappingMonitor<charType, treeType>::clone(void) const {
+class MappingMonitor : public Monitor {
+    
+public:
+    // Constructors and Destructors
+    MappingMonitor(StochasticNode<BinaryCharacterData > *t, int g, const std::string &fname, bool ap=false);
+    //!< Constructor with set of DAG node
+    MappingMonitor(const MappingMonitor& f);
+    
+    // basic methods
+    MappingMonitor*          clone(void) const;                                                  //!< Clone the object
+    
+    // Monitor functions
+    void                                monitor(long gen);                                                  //!< Monitor at generation gen
+    void                                swapNode(DagNode *oldN, DagNode *newN);
 
-    return new MappingMonitor(*this);
-}
-
-template<class charType, class treeType>
-void RevBayesCore::MappingMonitor<charType, treeType>::closeStream() {
-    outStream.close();
-}
-
-
-/** Monitor value at generation gen */
-template<class charType, class treeType>
-void RevBayesCore::MappingMonitor<charType, treeType>::monitor(long gen) {
-
-    // get the printing frequency
-    int samplingFrequency = printgen;
-
-    if (gen % samplingFrequency == 0) {
-    	GeneralCharEvoModel<charType,treeType> model = dynamic_cast<GeneralCharEvoModel<charType, treeType>& >(data->getDistribution());
-    	const std::vector< DiscreteTaxonData<charType> >& mapping = model.getMapping();
-    	//treeType* tree = model.getTree()->clone();
-
-    	std::vector<TopologyNode*> nodes = model.getTree()->getNodes();
-
-    	std::map<size_t,size_t> nodemap;
-
-    	for(size_t i = 0; i < nodes.size(); i++){
-    		size_t nd = nodes[i]->getBranchParameter("ND");
-
-    		nodemap[nd] = i;
-    	}
-
-    	for(size_t i = 0; i < nodes.size(); i++){
-    		std::string name;
-			//name += "[&sequence=";
-    		size_t index = i;
-    		if(nodemap.size() == nodes.size())
-    			index = nodemap[i];
-
-			const RevBayesCore::DiscreteTaxonData<charType>& d = mapping[index];
-			for(size_t c = 0; c < d.size(); c++){
-				name += d[c].getStringValue();
-			}
-			//name += "]";
-			//nodes[i]->setName(name);
-
-    		outStream << name;
-    		if(i != nodes.size())
-    			outStream << "\t";
-    	}
-
-    	outStream << std::endl;
-
-    	//tree->clearBranchParameters();
-    	//outStream << tree->getNewickRepresentation();
-    	//outStream << std::endl;
-    	//delete tree;
-    }
-}
-
-
-/** open the file stream for printing */
-template<class charType, class treeType>
-void RevBayesCore::MappingMonitor<charType, treeType>::openStream(void) {
-
-    // open the stream to the file
-    if (append)
-        outStream.open( filename.c_str(), std::fstream::out | std::fstream::app);
-    else
-        outStream.open( filename.c_str(), std::fstream::out);
-}
-
-/** Print header for monitored values */
-template<class charType, class treeType>
-void RevBayesCore::MappingMonitor<charType, treeType>::printHeader() {
-	GeneralCharEvoModel<charType,treeType> model = dynamic_cast<GeneralCharEvoModel<charType, treeType>& >(data->getDistribution());
-	const std::vector< DiscreteTaxonData<charType> >& mapping = model.getMapping();
-	treeType* tree = model.getTree()->clone();
-
-	std::vector<TopologyNode*> nodes = tree->getNodes();
-	for(size_t i=0;i<nodes.size();i++){
-		outStream << i;
-		if(i != nodes.size() - 1)
-			outStream << "\t";
-	}
-	outStream << std::endl;
-}
-
-template<class charType, class treeType>
-void RevBayesCore::MappingMonitor<charType, treeType>::swapNode(DagNode *oldN, DagNode *newN) {
-	if ( oldN == data ) {
-		data = static_cast< StochasticNode<AbstractCharacterData> *>( newN );
-	}
-    // delegate to base class
-    Monitor::swapNode(oldN, newN);
-}
+    // FileMonitor functions
+    void                                closeStream(void);                                                  //!< Close stream after finish writing
+    void                                openStream(void);                                                   //!< Open the stream for writing
+    void                                printHeader(void);                                                  //!< Print header
+    
+private:        
+    // the stream to print
+    std::fstream                        outStream;
+    
+    // parameters
+    StochasticNode<BinaryCharacterData >*      data;
+    std::string                         filename;
+    bool                                append;
+    
+};
 
 #endif
 

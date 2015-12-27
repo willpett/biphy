@@ -1,9 +1,5 @@
 #include "AbstractMove.h"
 
-
-using namespace RevBayesCore;
-
-
 /** 
  * Constructor
  *

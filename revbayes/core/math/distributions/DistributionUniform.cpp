@@ -17,10 +17,9 @@
 #include <cmath>
 
 #include "DistributionUniform.h"
-#include "RandomNumberGenerator.h"
-#include "RbConstants.h"
 
-using namespace RevBayesCore;
+#include "Constants.h"
+#include "RandomNumberGenerator.h"
 
 /*!
  * This function calculates the probability density 
@@ -32,7 +31,7 @@ using namespace RevBayesCore;
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Uniform::pdf(double a, double b, double x) {
+double Statistics::Uniform::pdf(double a, double b, double x) {
     
 	if ( x < a || x > b)
 		return 0.0;
@@ -49,10 +48,10 @@ double RbStatistics::Uniform::pdf(double a, double b, double x) {
  * \return Returns the natural log of the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Uniform::lnPdf(double a, double b, double x) {
+double Statistics::Uniform::lnPdf(double a, double b, double x) {
     
 	if ( x < a || x > b)
-		return RbConstants::Double::neginf;
+		return Constants::Double::neginf;
 	return ( -std::log(b-a) );
 }
 
@@ -67,7 +66,7 @@ double RbStatistics::Uniform::lnPdf(double a, double b, double x) {
  * \return Returns the cumulative probability.
  * \throws Does not throw an error.
  */
-double RbStatistics::Uniform::cdf(double a, double b, double x) {
+double Statistics::Uniform::cdf(double a, double b, double x) {
     
 	if ( x < a )
 		return 0.0;
@@ -88,12 +87,12 @@ double RbStatistics::Uniform::cdf(double a, double b, double x) {
  * \return Returns the quantile.
  * \throws Does not throw an error.
  */
-double RbStatistics::Uniform::quantile(double a, double b, double p) {
+double Statistics::Uniform::quantile(double a, double b, double p) {
     
 	return a + (b - a) * p;
 }
 
-double RbStatistics::Uniform::rv(double a, double b, RandomNumberGenerator& rng) {
+double Statistics::Uniform::rv(double a, double b, RandomNumberGenerator& rng) {
     
 	double u = rng.uniform01();
 	return (a + (b-a)*u);
@@ -107,7 +106,7 @@ double RbStatistics::Uniform::rv(double a, double b, RandomNumberGenerator& rng)
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Uniform::pdf(double x) {
+double Statistics::Uniform::pdf(double x) {
     
 	if ( x < 0.0 || x > 1.0)
 		return 0.0;
@@ -122,10 +121,10 @@ double RbStatistics::Uniform::pdf(double x) {
  * \return Returns the natural log of the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Uniform::lnPdf(double x) {
+double Statistics::Uniform::lnPdf(double x) {
     
 	if ( x < 0.0 || x > 1.0)
-		return RbConstants::Double::neginf;
+		return Constants::Double::neginf;
 	return 0.0;
 }
 
@@ -138,7 +137,7 @@ double RbStatistics::Uniform::lnPdf(double x) {
  * \return Returns the cumulative probability.
  * \throws Does not throw an error.
  */
-double RbStatistics::Uniform::cdf(double x) {
+double Statistics::Uniform::cdf(double x) {
     
 	if ( x < 0.0 )
 		return 0.0;
@@ -157,12 +156,12 @@ double RbStatistics::Uniform::cdf(double x) {
  * \return Returns the quantile.
  * \throws Does not throw an error.
  */
-double RbStatistics::Uniform::quantile(double p) {
+double Statistics::Uniform::quantile(double p) {
     
 	return p;
 }
 
-double RbStatistics::Uniform::rv(RandomNumberGenerator& rng) {
+double Statistics::Uniform::rv(RandomNumberGenerator& rng) {
     
 	return rng.uniform01();
 }

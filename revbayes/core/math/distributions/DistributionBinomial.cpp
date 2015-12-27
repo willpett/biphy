@@ -18,13 +18,12 @@
 
 #include "DistributionBeta.h"
 #include "DistributionBinomial.h"
-#include "RbConstants.h"
-#include "RbException.h"
-#include "RbMathFunctions.h"
-#include "RbMathHelper.h"
-#include "RbMathLogic.h"
 
-using namespace RevBayesCore;
+#include "Constants.h"
+#include "Exception.h"
+#include "MathFunctions.h"
+#include "MathHelper.h"
+#include "MathLogic.h"
 
 /*!
  * This function calculates the probability density 
@@ -37,13 +36,13 @@ using namespace RevBayesCore;
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Binomial::cdf(double n, double p, double x) {
+double Statistics::Binomial::cdf(double n, double p, double x) {
 
-    if(RbMath::isInt(n)) 
+    if(Math::isInt(n)) 
         {
         std::ostringstream s;
         s << "Cannot compute cdf of the binomial distribution because n = " << n << " is not an interger";
-        throw (RbException(s));
+        throw (Exception(s));
         }
     n = int(n);
     /* PR#8560: n=0 is a valid value */
@@ -51,7 +50,7 @@ double RbStatistics::Binomial::cdf(double n, double p, double x) {
         {
         std::ostringstream s;
         s << "Cannot compute cdf of the binomial distribution for n = " << n << " and p = " << p;
-        throw (RbException(s));
+        throw (Exception(s));
         }
     
     if (x < 0) 
@@ -61,7 +60,7 @@ double RbStatistics::Binomial::cdf(double n, double p, double x) {
     if (n <= x) 
         return 1.0;
     
-    return RbStatistics::Beta::cdf(p, x + 1, n - x);
+    return Statistics::Beta::cdf(p, x + 1, n - x);
 }
 
 /*!
@@ -75,7 +74,7 @@ double RbStatistics::Binomial::cdf(double n, double p, double x) {
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Binomial::lnPdf(double n, double p, double x) {
+double Statistics::Binomial::lnPdf(double n, double p, double x) {
 
     double q = 1.0 - p;
     return pdf(n, p, q, x, true);
@@ -92,7 +91,7 @@ double RbStatistics::Binomial::lnPdf(double n, double p, double x) {
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Binomial::pdf(double n, double p, double x) {
+double Statistics::Binomial::pdf(double n, double p, double x) {
 
     double q = 1.0 - p;
     return pdf(n,p,q,x,false);
@@ -119,59 +118,59 @@ double RbStatistics::Binomial::pdf(double n, double p, double x) {
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Binomial::pdf(double n, double p, double q, double x, bool asLog) {
+double Statistics::Binomial::pdf(double n, double p, double q, double x, bool asLog) {
 
     double lf, lc;
     
     if (p == 0) 
-        return((x == 0) ? (asLog ? 0.0 : 1.0) : (asLog ? RbConstants::Double::neginf : 0.0) );
+        return((x == 0) ? (asLog ? 0.0 : 1.0) : (asLog ? Constants::Double::neginf : 0.0) );
     if (q == 0) 
-        return((x == n) ? (asLog ? 0.0 : 1.0) : (asLog ? RbConstants::Double::neginf : 0.0) );
+        return((x == n) ? (asLog ? 0.0 : 1.0) : (asLog ? Constants::Double::neginf : 0.0) );
     
     if (x == 0) 
         {
         if(n == 0) 
             return ( asLog ? 0.0 : 1.0);
-        lc = (p < 0.1) ? -RbMath::binomialDeviance(n,n*q) - n*p : n*log(q);
+        lc = (p < 0.1) ? -Math::binomialDeviance(n,n*q) - n*p : n*log(q);
         return( (asLog ? lc : exp(lc)) );
         }
     if (x == n) 
         {
-        lc = (q < 0.1) ? -RbMath::binomialDeviance(n,n*p) - n*q : n*log(p);
+        lc = (q < 0.1) ? -Math::binomialDeviance(n,n*p) - n*q : n*log(p);
         return ( (asLog ? lc : exp(lc) ) );
         }
     if (x < 0 || x > n) 
-        return ( asLog ? RbConstants::Double::neginf : 0.0 );
+        return ( asLog ? Constants::Double::neginf : 0.0 );
     
     /* n*p or n*q can underflow to zero if n and p or q are small.  This
      used to occur in dbeta, and gives NaN as from R 2.3.0.  */
-    lc = RbMath::stirlerr(n) - RbMath::stirlerr(x) - RbMath::stirlerr(n-x) - RbMath::binomialDeviance(x,n*p) - RbMath::binomialDeviance(n-x,n*q);
+    lc = Math::stirlerr(n) - Math::stirlerr(x) - Math::stirlerr(n-x) - Math::binomialDeviance(x,n*p) - Math::binomialDeviance(n-x,n*q);
     
     /* f = (M_2PI*x*(n-x))/n; could overflow or underflow */
     /* Upto R 2.7.1:
      * lf = log(M_2PI) + log(x) + log(n-x) - log(n);
      * -- following is much better for  x << n : */
-    lf = log(RbConstants::TwoPI) + log(x) + RbMath::log1p(- x/n);
+    lf = log(Constants::TwoPI) + log(x) + Math::log1p(- x/n);
     
     return (asLog ? (lc - 0.5*lf) : exp(lc - 0.5*lf));
 }
 
-double RbStatistics::Binomial::do_search(double y, double *z, double p, double n, double pr, double incr) {
+double Statistics::Binomial::do_search(double y, double *z, double p, double n, double pr, double incr) {
     if(*z >= p) {
         /* search to the left */
         for(;;) {
             double newz;
             if(y == 0 ||
-               (newz = RbStatistics::Binomial::pdf(y - incr, n, pr)) < p)
+               (newz = Statistics::Binomial::pdf(y - incr, n, pr)) < p)
                 return y;
-            y = RbMath::Helper::fmax2(0, y - incr);
+            y = Math::Helper::fmax2(0, y - incr);
             *z = newz;
         }
     }
     else {		/* search to the right */
         for(;;) {
-            y = RbMath::Helper::fmin2(y + incr, n);
-            if(y == n || ( (*z = RbStatistics::Binomial::cdf(y, n, pr)) >= p) )
+            y = Math::Helper::fmin2(y + incr, n);
+            if(y == n || ( (*z = Statistics::Binomial::cdf(y, n, pr)) >= p) )
                 return y;
         }
     }
@@ -200,22 +199,22 @@ double RbStatistics::Binomial::do_search(double y, double *z, double p, double n
  */
 #include "DistributionNormal.h"
 
-double RbStatistics::Binomial::quantile(double p, double n, double pr) {
+double Statistics::Binomial::quantile(double p, double n, double pr) {
     double q, mu, sigma, gamma, z, y;
     
 #ifdef IEEE_754
     if (ISNAN(p) || ISNAN(n) || ISNAN(pr))
         return p + n + pr;
 #endif
-    if(!RbMath::isFinite(n) || !RbMath::isFinite(pr))
-        throw RbException("Nan produced in qBinom");
+    if(!Math::isFinite(n) || !Math::isFinite(pr))
+        throw Exception("Nan produced in qBinom");
     /* if log_p is true, p = -Inf is a legitimate value */
-    if(!RbMath::isFinite(p))
-        throw RbException("Nan produced in qBinom");
+    if(!Math::isFinite(p))
+        throw Exception("Nan produced in qBinom");
     
-    if(n != floor(n + 0.5)) throw RbException("Nan produced in qBinom");
+    if(n != floor(n + 0.5)) throw Exception("Nan produced in qBinom");
     if (pr < 0 || pr > 1 || n < 0)
-        throw RbException("Nan produced in qBinom");
+        throw Exception("Nan produced in qBinom");
     
 //    R_Q_P01_boundaries(p, 0, n);
     
@@ -231,12 +230,12 @@ double RbStatistics::Binomial::quantile(double p, double n, double pr) {
     if (p + 1.01*DBL_EPSILON >= 1.) return n;
     
     /* y := approx.value (Cornish-Fisher expansion) :  */
-    z = RbStatistics::Normal::quantile(p, 0., 1.);
+    z = Statistics::Normal::quantile(p, 0., 1.);
     y = floor(mu + sigma * (z + gamma * (z*z - 1) / 6) + 0.5);
     
     if(y > n) /* way off */ y = n;
     
-    z = RbStatistics::Binomial::quantile(y, n, pr);
+    z = Statistics::Binomial::quantile(y, n, pr);
     
     /* fuzz to ensure left continuity: */
     p *= 1 - 64*DBL_EPSILON;
@@ -248,7 +247,7 @@ double RbStatistics::Binomial::quantile(double p, double n, double pr) {
         do {
             oldincr = incr;
             y = do_search(y, &z, p, n, pr, incr);
-            incr = RbMath::Helper::fmax2(1, floor(incr/100));
+            incr = Math::Helper::fmax2(1, floor(incr/100));
         } while(oldincr > 1 && incr > n*1e-15);
         return y;
     }
@@ -290,7 +289,7 @@ double RbStatistics::Binomial::quantile(double p, double n, double pr) {
 
 #define repeat for(;;)
 
-int RbStatistics::Binomial::rv(double nin, double pp, RevBayesCore::RandomNumberGenerator &rng)
+int Statistics::Binomial::rv(double nin, double pp, RandomNumberGenerator &rng)
 {
     /* FIXME: These should become THREAD_specific globals : */
     
@@ -305,12 +304,12 @@ int RbStatistics::Binomial::rv(double nin, double pp, RevBayesCore::RandomNumber
     double p, q, np, g, r, al, alv, amaxp, ffm, ynorm;
     int i,ix,k, n;
     
-    if (!RbMath::isFinite(nin)) throw RbException("Infinite value in rBinom");
+    if (!Math::isFinite(nin)) throw Exception("Infinite value in rBinom");
     r = floor(nin + 0.5);
-    if (r != nin) throw RbException("NaN produced in rBinom");
-    if (!RbMath::isFinite(pp) ||
+    if (r != nin) throw Exception("NaN produced in rBinom");
+    if (!Math::isFinite(pp) ||
         /* n=0, p=0, p=1 are not errors <TSL>*/
-        r < 0 || pp < 0. || pp > 1.)  throw RbException("NaN produced in rBinom");
+        r < 0 || pp < 0. || pp > 1.)  throw Exception("NaN produced in rBinom");
     
     if (r == 0 || pp == 0.) return 0;
     if (pp == 1.) return int(r);

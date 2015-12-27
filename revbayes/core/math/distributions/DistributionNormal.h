@@ -18,25 +18,22 @@
 #ifndef DistributionNormal_H
 #define DistributionNormal_H
 
-namespace RevBayesCore {
-    
-    class RandomNumberGenerator;
+class RandomNumberGenerator;
 
-    namespace RbStatistics {
+namespace Statistics {
+
+    namespace Normal {
     
-        namespace Normal {
-        
-            double                      pdf(double x);                                                          /*!< Normal(0,1) probability density */
-            double                      pdf(double mu, double sigma, double x);                                 /*!< Normal(mu,sigma) probability density */
-            double                      lnPdf(double x);                                                        /*!< Log of the Normal(0,1) probability density */
-            double                      lnPdf(double mu, double sigma, double x);                               /*!< Log of the Normal(mu,sigma) probability density */
-            double                      cdf(double x);                                                          /*!< Normal(0,1) cumulative probability */
-            double                      cdf(double mu, double sigma, double x);                                 /*!< Normal(mu,sigma) cumulative probability */
-            double                      quantile(double p);                                                     /*!< Normal(0,1) quantile */
-            double                      quantile(double mu, double sigma, double p);                            /*!< Normal(mu,sigma) quantile */
-            double                      rv(RandomNumberGenerator& rng);                                         /*!< Normal(0,1) random variable */
-            double                      rv(double mu, double sigma, RandomNumberGenerator& rng);                /*!< Normal(mu,sigma) random variable */
-        }
+        double                      pdf(double x);                                                          /*!< Normal(0,1) probability density */
+        double                      pdf(double mu, double sigma, double x);                                 /*!< Normal(mu,sigma) probability density */
+        double                      lnPdf(double x);                                                        /*!< Log of the Normal(0,1) probability density */
+        double                      lnPdf(double mu, double sigma, double x);                               /*!< Log of the Normal(mu,sigma) probability density */
+        double                      cdf(double x);                                                          /*!< Normal(0,1) cumulative probability */
+        double                      cdf(double mu, double sigma, double x);                                 /*!< Normal(mu,sigma) cumulative probability */
+        double                      quantile(double p);                                                     /*!< Normal(0,1) quantile */
+        double                      quantile(double mu, double sigma, double p);                            /*!< Normal(mu,sigma) quantile */
+        double                      rv(RandomNumberGenerator& rng);                                         /*!< Normal(0,1) random variable */
+        double                      rv(double mu, double sigma, RandomNumberGenerator& rng);                /*!< Normal(mu,sigma) random variable */
     }
 }
 

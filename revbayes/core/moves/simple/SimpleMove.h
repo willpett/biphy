@@ -25,35 +25,31 @@
 
 #include <vector>
 
-namespace RevBayesCore {
+class SimpleMove : public Move {
 
-    class SimpleMove : public Move {
-    
-    public:
-        virtual                                 ~SimpleMove(void);                                                         //!< Destructor
-    
-        // functions you have to override
-        virtual SimpleMove*                     clone(void) const = 0;                                                              //!< Clone the MoveSimple to get an independent copy
-    
-        // methods you may want to overwrite
-        virtual void                            swapNode(DagNode *oldN, DagNode *newN);
+public:
+    virtual                                 ~SimpleMove(void);                                                         //!< Destructor
 
-    protected:
-        SimpleMove(DagNode *n, double w, bool autoTune = false);                                                                    //!< constructor
-        
-        void                                    acceptMove(void);                                                                   //!< Accept the InferenceMoveSimple
-        double                                  performMove(double& probRatio);                                                     //!< Perform the InferenceMoveSimple
-        void                                    rejectMove(void);                                                                   //!< Reject the InferenceMoveSimple
-    
-        virtual double                          performSimpleMove(void) = 0;                                                        //!< Perform the InferenceMoveSimple
-        virtual void                            rejectSimpleMove(void) = 0;
-        virtual void                            acceptSimpleMove(void); // non-pure virtual accept function
-    
-        bool                                    changed;
-        DagNode*                                theNode;
+    // functions you have to override
+    virtual SimpleMove*                     clone(void) const = 0;                                                              //!< Clone the MoveSimple to get an independent copy
 
-    };
+    // methods you may want to overwrite
+    virtual void                            swapNode(DagNode *oldN, DagNode *newN);
+
+protected:
+    SimpleMove(DagNode *n, double w, bool autoTune = false);                                                                    //!< constructor
     
-}
+    void                                    acceptMove(void);                                                                   //!< Accept the InferenceMoveSimple
+    double                                  performMove(double& probRatio);                                                     //!< Perform the InferenceMoveSimple
+    void                                    rejectMove(void);                                                                   //!< Reject the InferenceMoveSimple
+
+    virtual double                          performSimpleMove(void) = 0;                                                        //!< Perform the InferenceMoveSimple
+    virtual void                            rejectSimpleMove(void) = 0;
+    virtual void                            acceptSimpleMove(void); // non-pure virtual accept function
+
+    bool                                    changed;
+    DagNode*                                theNode;
+
+};
 
 #endif

@@ -1,9 +1,8 @@
 #include "DistributionNegativeBinomial.h"
 #include "NegativeBinomialDistribution.h"
-#include "RandomNumberFactory.h"
-#include "RbConstants.h"
 
-using namespace RevBayesCore;
+#include "Constants.h"
+#include "RandomNumberFactory.h"
 
 NegativeBinomialDistribution::NegativeBinomialDistribution(const TypedDagNode<int> *m, const TypedDagNode<double> *q) : TypedDistribution<int>( new int( 0 ) ),
     r( m ),
@@ -17,9 +16,9 @@ NegativeBinomialDistribution::NegativeBinomialDistribution(const TypedDagNode<in
     addParameter( q );
     
     if(p->getValue() == 1.0)
-    	*value = RbConstants::Integer::inf;
+    	*value = Constants::Integer::inf;
     else
-    	*value = RbStatistics::NegativeBinomial::rv(r->getValue(), p->getValue(), *GLOBAL_RNG);
+    	*value = Statistics::NegativeBinomial::rv(r->getValue(), p->getValue(), *GLOBAL_RNG);
 }
 
 
@@ -42,17 +41,17 @@ double NegativeBinomialDistribution::computeLnProbability( void )
     // check that the value is inside the boundaries
     if ( *value < 0 )
     {
-        return RbConstants::Double::neginf;
+        return Constants::Double::neginf;
     }
     
     if(p->getValue() == 1.0)
-    	if(*value == RbConstants::Integer::inf){
+    	if(*value == Constants::Integer::inf){
     		return 0.0;
     	}else{
-    		return RbConstants::Double::neginf;
+    		return Constants::Double::neginf;
     	}
 
-    return RbStatistics::NegativeBinomial::lnPdf(r->getValue(), p->getValue(), *value);
+    return Statistics::NegativeBinomial::lnPdf(r->getValue(), p->getValue(), *value);
 }
 
 
@@ -60,9 +59,9 @@ double NegativeBinomialDistribution::computeLnProbability( void )
 void NegativeBinomialDistribution::redrawValue( void ) {
 
 	if(p->getValue() == 1.0){
-		*value = RbConstants::Integer::inf;
+		*value = Constants::Integer::inf;
 	}else{
-		*value = RbStatistics::NegativeBinomial::rv(r->getValue(), p->getValue(), *GLOBAL_RNG);
+		*value = Statistics::NegativeBinomial::rv(r->getValue(), p->getValue(), *GLOBAL_RNG);
 	}
     //std::cerr << r->getValue() << "\t" << p->getValue() << "\t" << *value << std::endl;
 }

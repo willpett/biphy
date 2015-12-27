@@ -25,31 +25,58 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "BinaryCharEvoModel.h"
+#include <unistd.h>
 
-#include "ParallelMcmcmc.h"
-#include "AbstractCharacterData.h"
-#include "BranchLengthTree.h"
+#include "BinaryCharacterData.h"
 #include "ConstantNode.h"
 #include "ContinuousStochasticNode.h"
-    
+#include "DeterministicNode.h"
+#include "ParallelMcmcmc.h"
+#include "Tree.h"
+
+struct ModelPrior {
+    enum Type {DOLLO, HOMOGENEOUS, HIERARCHICAL};
+};
+
+struct RootPrior {
+    enum Type {FREE, RIGID, TRUNCATED};
+};
+
+struct BranchPrior {
+    enum Type {DEFAULT, FIXED, STRICT, EXPONENTIAL, DIRICHLET};
+};
+
 class Biphy {
         
     public:
 
     	Biphy(const std::string name,
-			const std::string datafile,
-			const std::string treefile,
-			int correction,
-			int dgam,
-			int every,
-			int until,
-			int numchains,
-			int swapInterval,
-			double delta,
-			double sigma,
-			bool saveall
+                const std::string datafile,
+				const std::string cvfile,
+                const std::string treefile,
+                const std::string outgroupfile,
+                ModelPrior::Type modeltype,
+                BranchPrior::Type branchprior,
+                RootPrior::Type rootprior,
+                int correction,
+                int dgam,
+                int mixture,
+                double rootmin,
+                double rootmax,
+                int every,
+                int until,
+                int numchains,
+                int swapInterval,
+                double delta,
+                double sigma,
+                bool saveall,
+                bool nexus
 			);
+    	
+    	/* stream reading mode */
+    	Biphy(const std::string name, const std::string cvfile, bool ppred, bool dolloMapping, bool site, bool ancestral);
+    	
+    	/* restart mode */
     	Biphy(const std::string name);
         
         void									init();
@@ -59,9 +86,6 @@ class Biphy {
 
         void                                    open();
         void                                    save();
-        
-        virtual void                            openParams(std::ifstream&);
-        virtual void                            saveParams(std::ofstream&);
 
         virtual void                            precheck();
         virtual void                            readInputFiles();
@@ -77,7 +101,6 @@ class Biphy {
 
         int										correction;
         int										dgam;
-        bool									missing;
         int                                     every;
         int                                     until;
         int                                     numChains;
@@ -87,26 +110,44 @@ class Biphy {
         bool									saveall;
         bool									readstream;
         bool									restart;
+
+        Model* 								    model;
+        ParallelMcmcmc* 						mcmc;
+
+        std::vector<Move*> 					    moves;
+		std::vector<Monitor*> 				    monitors;
+		std::vector<DagNode*> 				    monitoredNodes;
+
+        std::vector<Tree*> 		                trees;
+        BinaryCharacterData* 	                data;
+
+        ConstantNode<double>*					    one;
+        ConstantNode<double>*					    zero;
+
+        ContinuousStochasticNode*					shape;
+        DeterministicNode<std::vector<double> >*	site_rates;
         
-        std::string symbols;
+        // members
+        std::string                             outgroupFile;
+        std::string                             cvfile;
 
-        RevBayesCore::Model* 								model;
-        RevBayesCore::ParallelMcmcmc* 						mcmc;
+        ModelPrior::Type                        modeltype;
+        BranchPrior::Type                       branchprior;
+        RootPrior::Type                         rootprior;
 
-        std::vector<RevBayesCore::Move*> 					moves;
-		std::vector<RevBayesCore::Monitor*> 				monitors;
-		std::vector<RevBayesCore::DagNode*> 				monitoredNodes;
+        int                                     mixture;
+        bool                                    ppred;
+        double                                  rootmin;
+        double                                  rootmax;
+        bool                                    nexus;
+        bool                                    dolloMapping;
+        bool                                    perSiteLnProbs;
+        bool                                    ancestral;
 
-        std::vector<RevBayesCore::BranchLengthTree*> 		trees;
-        std::vector<RevBayesCore::AbstractCharacterData*> 	data;
+        Clade                                   outgroup;
 
-        RevBayesCore::ConstantNode<double>*					one;
-        RevBayesCore::ConstantNode<double>*					zero;
+        BinaryCharacterData*                    cvdata;
 
-        RevBayesCore::ContinuousStochasticNode*					shape;
-        RevBayesCore::DeterministicNode<std::vector<double> >*	site_rates;
-        RevBayesCore::StochasticNode<double>*					xi;
-
-    };
+};
 
 #endif

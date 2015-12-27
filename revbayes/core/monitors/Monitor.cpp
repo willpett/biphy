@@ -2,12 +2,8 @@
 
 #include "DagNode.h"
 #include "Monitor.h"
-#include "RbException.h"
-
 #include <algorithm>
-
-using namespace RevBayesCore;
-
+#include "Exception.h"
 
 
 Monitor::Monitor(int g) : printgen( g ), model( NULL ) {
@@ -110,7 +106,7 @@ void Monitor::swapNode(DagNode *oldN, DagNode *newN)
     std::vector<DagNode*>::iterator it = find(nodes.begin(), nodes.end(), oldN);
 
     if (it == nodes.end()) {
-        throw RbException("Cannot replace DAG node with name\"" + oldN->getName() + "\" in this monitor because the monitor doesn't hold this DAG node.");
+        throw Exception("Cannot replace DAG node with name\"" + oldN->getName() + "\" in this monitor because the monitor doesn't hold this DAG node.");
     }
     
     it = nodes.insert( it, newN );

@@ -1,14 +1,12 @@
 #include "VectorSingleElementScaleMove.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
-#include "RbException.h"
-#include "RbMathVector.h"
 #include "TypedDagNode.h"
 
 #include <cmath>
 #include <iostream>
-
-using namespace RevBayesCore;
+#include "MathVector.h"
+#include "Exception.h"
 
 
 VectorSingleElementScaleMove::VectorSingleElementScaleMove(StochasticNode<std::vector<double> > *v, double l, bool t, double w) : SimpleMove( v, w, t ), variable(v), lambda( l ) {

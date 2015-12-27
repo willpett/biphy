@@ -1,11 +1,8 @@
 #include "BetaDistribution.h"
 #include "DistributionBeta.h"
 #include "RandomNumberFactory.h"
-#include "RbMathLogic.h"
-
 #include <limits>
-
-using namespace RevBayesCore;
+#include "MathLogic.h"
 
 BetaDistribution::BetaDistribution(const TypedDagNode<double> *a, const TypedDagNode<double> *b) : ContinuousDistribution( new double( 0.5 ) ), alpha( a ), beta( b ) {
     // add the parameters to the parents set
@@ -22,7 +19,7 @@ BetaDistribution::~BetaDistribution( void ) {
 
 
 double BetaDistribution::cdf( void ) const {
-    return RbStatistics::Beta::cdf(alpha->getValue(), beta->getValue(), *value);
+    return Statistics::Beta::cdf(alpha->getValue(), beta->getValue(), *value);
 }
 
 
@@ -32,7 +29,7 @@ BetaDistribution* BetaDistribution::clone( void ) const {
 
 
 double BetaDistribution::computeLnProbability( void ) {
-    return RbStatistics::Beta::lnPdf(alpha->getValue(), beta->getValue(), *value);
+    return Statistics::Beta::lnPdf(alpha->getValue(), beta->getValue(), *value);
 }
 
 
@@ -47,12 +44,12 @@ double BetaDistribution::getMin( void ) const {
 
 
 double BetaDistribution::quantile(double p) const {
-    return RbStatistics::Beta::quantile(alpha->getValue(), beta->getValue(), p);
+    return Statistics::Beta::quantile(alpha->getValue(), beta->getValue(), p);
 }
 
 
 void BetaDistribution::redrawValue( void ) {
-    *value = RbStatistics::Beta::rv(alpha->getValue(), beta->getValue(), *GLOBAL_RNG);
+    *value = Statistics::Beta::rv(alpha->getValue(), beta->getValue(), *GLOBAL_RNG);
 }
 
 

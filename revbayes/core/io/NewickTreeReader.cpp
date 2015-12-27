@@ -1,12 +1,8 @@
-#include "BranchLengthTree.h"
+#include "Tree.h"
 #include "NewickConverter.h"
 #include "NewickTreeReader.h"
-#include "RbException.h"
-
 #include <fstream>
-
-using namespace RevBayesCore;
-
+#include "Exception.h"
 
 /**
  * Default constructor.
@@ -23,16 +19,16 @@ NewickTreeReader::NewickTreeReader()
 /**
  *
  */
-std::vector<BranchLengthTree*>* NewickTreeReader::readBranchLengthTrees(std::string const &fn) 
+std::vector<Tree*>* NewickTreeReader::readTrees(std::string const &fn) 
 {
     /* Open file */
     std::ifstream inFile( fn.c_str() );
     
     if ( !inFile )
-        throw RbException( "Could not open file \"" + fn + "\"" );
+        throw Exception( "Could not open file \"" + fn + "\"" );
     
     /* Initialize */
-    std::vector<BranchLengthTree*>* trees = new std::vector<BranchLengthTree*>();
+    std::vector<Tree*>* trees = new std::vector<Tree*>();
     std::string commandLine;
     
     /* line-processing loop */
@@ -51,46 +47,10 @@ std::vector<BranchLengthTree*>* NewickTreeReader::readBranchLengthTrees(std::str
                 
         
         NewickConverter c;
-        BranchLengthTree *blTree = c.convertFromNewick( line );
+        Tree *blTree = c.convertFromNewick( line );
 
         trees->push_back( blTree );
     }
     
-    return trees;
-}
-
-std::vector<Topology*>* NewickTreeReader::readTopologies(std::string const &fn)
-{
-    /* Open file */
-    std::ifstream inFile( fn.c_str() );
-
-    if ( !inFile )
-        throw RbException( "Could not open file \"" + fn + "\"" );
-
-    /* Initialize */
-    std::vector<Topology*>* trees = new std::vector<Topology*>();
-    std::string commandLine;
-
-    /* line-processing loop */
-    while ( inFile.good() )
-    {
-
-        // Read a line
-        std::string line;
-        getline( inFile, line );
-
-        // skip empty lines
-        if (line.length() == 0)
-        {
-            continue;
-        }
-
-
-        NewickConverter c;
-        Topology *blTree = c.convertTopologyFromNewick( line );
-
-        trees->push_back( blTree );
-    }
-
     return trees;
 }

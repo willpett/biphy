@@ -25,25 +25,21 @@
 
 #include "TypedDistribution.h"
 
-namespace RevBayesCore {
+class ContinuousDistribution : public TypedDistribution<double> {
+        
+public:
+    virtual                                            ~ContinuousDistribution(void) {}                                 //!< Virtual destructor
     
-    class ContinuousDistribution : public TypedDistribution<double> {
-        
-    public:
-        virtual                                            ~ContinuousDistribution(void) {}                                 //!< Virtual destructor
-        
-        // public member functions
-        virtual ContinuousDistribution*                     clone(void) const = 0;                                          //!< Create an independent clone
-        virtual double                                      getMax(void) const = 0;                                         //!< Get the maximum value the variable can be
-        virtual double                                      getMin(void) const = 0;                                         //!< Get the minimum value the variable can be
-        virtual double                                      cdf(void) const = 0;                                         //!< Get the minimum value the variable can be
-        virtual double                                      quantile(double p) const = 0;                                         //!< Get the minimum value the variable can be
-        
-    protected:
-        ContinuousDistribution(double *val);
-        
-    };
+    // public member functions
+    virtual ContinuousDistribution*                     clone(void) const = 0;                                          //!< Create an independent clone
+    virtual double                                      getMax(void) const = 0;                                         //!< Get the maximum value the variable can be
+    virtual double                                      getMin(void) const = 0;                                         //!< Get the minimum value the variable can be
+    virtual double                                      cdf(void) const = 0;                                         //!< Get the minimum value the variable can be
+    virtual double                                      quantile(double p) const = 0;                                         //!< Get the minimum value the variable can be
     
-}
+protected:
+    ContinuousDistribution(double *val);
+    
+};
 
 #endif

@@ -1,10 +1,9 @@
 #include "GammaDistribution.h"
+
+#include "MathLogic.h"
+#include "Constants.h"
 #include "DistributionGamma.h"
 #include "RandomNumberFactory.h"
-#include "RbConstants.h"
-#include "RbMathLogic.h"
-
-using namespace RevBayesCore;
 
 GammaDistribution::GammaDistribution(const TypedDagNode<double> *sh, const TypedDagNode<double> *r) : ContinuousDistribution( new double( 1.0 ) ), shape( sh ), rate( r ) {
     // add the parameters to the parents set
@@ -21,7 +20,7 @@ GammaDistribution::~GammaDistribution( void ) {
 
 
 double GammaDistribution::cdf( void ) const {
-    return RbStatistics::Gamma::cdf(shape->getValue(), rate->getValue(), *value);
+    return Statistics::Gamma::cdf(shape->getValue(), rate->getValue(), *value);
 }
 
 
@@ -31,12 +30,12 @@ GammaDistribution* GammaDistribution::clone( void ) const {
 
 
 double GammaDistribution::computeLnProbability( void ) {
-    return RbStatistics::Gamma::lnPdf(shape->getValue(), rate->getValue(), *value);
+    return Statistics::Gamma::lnPdf(shape->getValue(), rate->getValue(), *value);
 }
 
 
 double GammaDistribution::getMax( void ) const {
-    return RbConstants::Double::inf;
+    return Constants::Double::inf;
 }
 
 
@@ -46,16 +45,16 @@ double GammaDistribution::getMin( void ) const {
 
 
 double GammaDistribution::quantile(double p) const {
-    return RbStatistics::Gamma::quantile(shape->getValue(), rate->getValue(), p);
+    return Statistics::Gamma::quantile(shape->getValue(), rate->getValue(), p);
 }
 
 
 void GammaDistribution::redrawValue( void ) {
-    *value = RbStatistics::Gamma::rv(shape->getValue(), rate->getValue(), *GLOBAL_RNG);
-    while(	RbMath::compEssentiallyEqual(*value,1.0,std::numeric_limits<double>::epsilon()) ||
-    		RbMath::compEssentiallyEqual(*value,0.0,std::numeric_limits<double>::epsilon()) ||
-    		RbMath::isNan(*value))
-    	*value = RbStatistics::Gamma::rv(shape->getValue(), rate->getValue(), *GLOBAL_RNG);
+    *value = Statistics::Gamma::rv(shape->getValue(), rate->getValue(), *GLOBAL_RNG);
+    while(	Math::compEssentiallyEqual(*value,1.0,std::numeric_limits<double>::epsilon()) ||
+    		Math::compEssentiallyEqual(*value,0.0,std::numeric_limits<double>::epsilon()) ||
+    		Math::isNan(*value))
+    	*value = Statistics::Gamma::rv(shape->getValue(), rate->getValue(), *GLOBAL_RNG);
 }
 
 

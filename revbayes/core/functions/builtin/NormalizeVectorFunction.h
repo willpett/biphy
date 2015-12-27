@@ -27,30 +27,26 @@
 
 #include <vector>
 
-namespace RevBayesCore {
+class NormalizeVectorFunction : public TypedFunction< std::vector<double> > {
     
-    class NormalizeVectorFunction : public TypedFunction< std::vector<double> > {
-        
-    public:
-        NormalizeVectorFunction(const TypedDagNode<std::vector<double> > * v);
+public:
+    NormalizeVectorFunction(const TypedDagNode<std::vector<double> > * v);
 //        NormalizeVectorFunction(const NormalizeVectorFunction &n);                                                                                        //!< Copy constructor
 //        virtual                                            ~NormalizeVectorFunction(void);                                                       //!< Virtual destructor
-        
-        // public member functions
-        NormalizeVectorFunction*                            clone(void) const;                                                          //!< Create an independent clone
-        void                                                update(void);
-        
-    protected:
-        void                                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);            //!< Implementation of swaping parameters
-        
-    private:
-        
-        // members
-        const TypedDagNode<std::vector<double> >*           vals;
-        
-    };
     
-}
+    // public member functions
+    NormalizeVectorFunction*                            clone(void) const;                                                          //!< Create an independent clone
+    void                                                update(void);
+    
+protected:
+    void                                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);            //!< Implementation of swaping parameters
+    
+private:
+    
+    // members
+    const TypedDagNode<std::vector<double> >*           vals;
+    
+};
 
 
 #endif

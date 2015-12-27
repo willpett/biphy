@@ -16,10 +16,8 @@
  */
 
 #include "RandomNumberGenerator.h"
-#include "RbException.h"
 #include <ctime>
-
-using namespace RevBayesCore;
+#include "Exception.h"
 
 /** Default constructor calling time to get the initial seeds */
 RandomNumberGenerator::RandomNumberGenerator(void) {
@@ -36,7 +34,7 @@ RandomNumberGenerator::RandomNumberGenerator(void) {
 RandomNumberGenerator::RandomNumberGenerator(std::vector<unsigned int> s) {
 
     if ( s.size() != 2 )
-        throw RbException("Two integer seeds required");
+        throw Exception("Two integer seeds required");
 	seed = s;
 }
 
@@ -51,7 +49,7 @@ const std::vector<unsigned int>& RandomNumberGenerator::getSeed( void ) const {
 void RandomNumberGenerator::setSeed(std::vector<unsigned int> s) {
 
     if (s.size() != 2)
-        throw RbException("Two integer seeds required");
+        throw Exception("Two integer seeds required");
     seed = s;
 }
 

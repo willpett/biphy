@@ -25,33 +25,29 @@
 #include "ContinuousDistribution.h"
 #include "TypedDagNode.h"
 
-namespace RevBayesCore {
+class GammaDistribution : public ContinuousDistribution {
     
-    class GammaDistribution : public ContinuousDistribution {
-        
-    public:
-        GammaDistribution(const TypedDagNode<double> *sd, const TypedDagNode<double> *r);
-        virtual                                            ~GammaDistribution(void);                                                  //!< Virtual destructor
-        
-        // public member functions
-        double                                              cdf(void) const;                                                                  //!< Cummulative density function
-        GammaDistribution*                                  clone(void) const;                                                          //!< Create an independent clone
-        double                                              computeLnProbability(void);
-        double                                              getMax(void) const;
-        double                                              getMin(void) const;
-        double                                              quantile(double p) const;                                                       //!< Qu
-        void                                                redrawValue(void);
-        void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
-		
-        
-    private:
-        
-        // members
-        const TypedDagNode<double>*                          shape;
-        const TypedDagNode<double>*                          rate;
-        
-    };
+public:
+    GammaDistribution(const TypedDagNode<double> *sd, const TypedDagNode<double> *r);
+    virtual                                            ~GammaDistribution(void);                                                  //!< Virtual destructor
     
-}
+    // public member functions
+    double                                              cdf(void) const;                                                                  //!< Cummulative density function
+    GammaDistribution*                                  clone(void) const;                                                          //!< Create an independent clone
+    double                                              computeLnProbability(void);
+    double                                              getMax(void) const;
+    double                                              getMin(void) const;
+    double                                              quantile(double p) const;                                                       //!< Qu
+    void                                                redrawValue(void);
+    void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
+    
+    
+private:
+    
+    // members
+    const TypedDagNode<double>*                          shape;
+    const TypedDagNode<double>*                          rate;
+    
+};
 
 #endif

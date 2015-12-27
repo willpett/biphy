@@ -18,21 +18,18 @@
 #ifndef DistributionBeta_H
 #define DistributionBeta_H
 
-namespace RevBayesCore {
+class RandomNumberGenerator;
+
+namespace Statistics {
+
+    namespace Beta {
     
-    class RandomNumberGenerator;
-    
-    namespace RbStatistics {
-    
-        namespace Beta {
-        
-            double                      pdf(double a, double b, double x);                                    /*!< Beta(a,b) probability density */
-            double                      lnPdf(double a, double b, double x);                                  /*!< Beta(a,b) log_e probability density */
-            double                      cdf(double a, double b, double x);                                    /*!< Beta(a,b) cumulative probability */
-            double                      quantile(double a, double b, double p);                               /*!< Beta(a,b) quantile */
-            double                      rv(double a, double b, RandomNumberGenerator& rng);                   /*!< Beta(a,b) random variable */
-            double                      rv_unsafe(double a, double b, RandomNumberGenerator& rng);
-        }
+        double                      pdf(double a, double b, double x);                                    /*!< Beta(a,b) probability density */
+        double                      lnPdf(double a, double b, double x);                                  /*!< Beta(a,b) log_e probability density */
+        double                      cdf(double a, double b, double x);                                    /*!< Beta(a,b) cumulative probability */
+        double                      quantile(double a, double b, double p);                               /*!< Beta(a,b) quantile */
+        double                      rv(double a, double b, RandomNumberGenerator& rng);                   /*!< Beta(a,b) random variable */
+        double                      rv_unsafe(double a, double b, RandomNumberGenerator& rng);
     }
 }
 

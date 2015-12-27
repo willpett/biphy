@@ -17,18 +17,15 @@
 #include <cmath>
 #include <iostream>
 
-#include "RbMathCombinatorialFunctions.h"
 #include "DistributionPoisson.h"
-#include "RbStatisticsHelper.h"
-#include "RbException.h"
 
+#include "Exception.h"
+#include "MathCombinatorialFunctions.h"
+#include "StatisticsHelper.h"
 
-using namespace RevBayesCore;
-
-
-double RbStatistics::Poisson::pdf(double lambda, int x) {
+double Statistics::Poisson::pdf(double lambda, int x) {
     
-	return exp(x * std::log(lambda) - lambda - RbMath::lnFactorial(x));
+	return exp(x * std::log(lambda) - lambda - Math::lnFactorial(x));
 }
 
 /*!
@@ -41,9 +38,9 @@ double RbStatistics::Poisson::pdf(double lambda, int x) {
  * \return Returns the natural log of the probability. 
  * \throws Does not throw an error.
  */
-double RbStatistics::Poisson::lnPdf(double lambda, int x) {
+double Statistics::Poisson::lnPdf(double lambda, int x) {
     
-    return ( x * std::log(lambda) - lambda - RbMath::lnFactorial(x) );
+    return ( x * std::log(lambda) - lambda - Math::lnFactorial(x) );
 }
 
 /*!
@@ -56,7 +53,7 @@ double RbStatistics::Poisson::lnPdf(double lambda, int x) {
  * \return Returns the cumulative probability. 
  * \throws Does not throw an error.
  */
-double RbStatistics::Poisson::cdf(double lambda, int x) {
+double Statistics::Poisson::cdf(double lambda, int x) {
     
 	if ( x < 0 )
 		return 0.0;
@@ -81,7 +78,7 @@ double RbStatistics::Poisson::cdf(double lambda, int x) {
  * \return Returns the quantile.
  * \throws Does not throw an error.
  */
-double RbStatistics::Poisson::quantile(double lambda, double p) {
+double Statistics::Poisson::quantile(double lambda, double p) {
     
 	/* Starting with x = 0, find the first value for which
      CDF(X-1) <= CDF <= CDF(X). */
@@ -119,7 +116,7 @@ double RbStatistics::Poisson::quantile(double lambda, double p) {
  * \return This function returns a Poisson-distributed integer.
  * \throws Does not throw an error.
  */
-int RbStatistics::Poisson::rv(double lambda, RandomNumberGenerator& rng) {
+int Statistics::Poisson::rv(double lambda, RandomNumberGenerator& rng) {
     
 	if (lambda < 17.0)
         {
@@ -132,13 +129,13 @@ int RbStatistics::Poisson::rv(double lambda, RandomNumberGenerator& rng) {
                 {
                 std::ostringstream s;
                 s << "Parameter negative in poisson function";
-                throw (RbException(s));
+                throw (Exception(s));
                 }
             
 			/* For extremely small lambda we calculate the probabilities of x = 1
              and x = 2 (ignoring higher x). The reason for using this 
              method is to prevent numerical inaccuracies in other methods. */
-            //			return RbStatistics::Helper::poissonLow(lambda, *rng);
+            //			return Statistics::Helper::poissonLow(lambda, *rng);
                 
             // MJL 071713: Poisson rv are supported on 0..inf, so why would a small rate return 1 instead of 0?
             // return 1;
@@ -147,7 +144,7 @@ int RbStatistics::Poisson::rv(double lambda, RandomNumberGenerator& rng) {
 		else 
             {
 			/* use the inversion method */
-			return RbStatistics::Helper::poissonInver(lambda, rng);
+			return Statistics::Helper::poissonInver(lambda, rng);
             // MJL 071713: Same as above.
             return 0;
             //return 1;
@@ -158,10 +155,10 @@ int RbStatistics::Poisson::rv(double lambda, RandomNumberGenerator& rng) {
 		if (lambda > 2.0e9) 
             {
 			/* there should be an error here */
-			throw RbException( "Parameter too big in poisson function" );
+			throw Exception( "Parameter too big in poisson function" );
             }
 		/* use the ratio-of-uniforms method */
-        return RbStatistics::Helper::poissonRatioUniforms(lambda, rng);
+        return Statistics::Helper::poissonRatioUniforms(lambda, rng);
         
         return 1;
         }

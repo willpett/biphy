@@ -17,13 +17,12 @@
 #include <cmath>
 
 #include "DistributionGamma.h"
-#include "DistributionNormal.h"
-#include "RbStatisticsHelper.h"
-#include "RbConstants.h"
-#include "RbMathFunctions.h"
-#include "RbMathLogic.h"
 
-using namespace RevBayesCore;
+#include "Constants.h"
+#include "MathFunctions.h"
+#include "MathLogic.h"
+#include "DistributionNormal.h"
+#include "StatisticsHelper.h"
 
 /*!
  * This function calculates the probability density 
@@ -36,9 +35,9 @@ using namespace RevBayesCore;
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Gamma::pdf(double shape, double rate, double x) {
+double Statistics::Gamma::pdf(double shape, double rate, double x) {
 
-	return (pow(rate, shape) / RbMath::gamma(shape)) * pow(x, shape - 1.0) * exp(-x * rate);
+	return (pow(rate, shape) / Math::gamma(shape)) * pow(x, shape - 1.0) * exp(-x * rate);
 }
 
 
@@ -53,33 +52,33 @@ double RbStatistics::Gamma::pdf(double shape, double rate, double x) {
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Gamma::pdf(double shape, double rate, double x, bool isLog) {
+double Statistics::Gamma::pdf(double shape, double rate, double x, bool isLog) {
 
     //    double pr;
     //    if (shape < 0 || scale <= 0) {
     //        std::ostringstream s;
     //        s << "Cannot compute the pdf for the gamma distribution for shape = " << shape << " and scale = " << scale;
-    //        throw (RbException(s));
+    //        throw (Exception(s));
     //	    }
     // if (x < 0)
     //	        return 0.0;
     // 
     // if (shape == 0) /* point mass at 0 */
-    //	        return (x == 0)? RbConstants::Double::inf : 0.0;
+    //	        return (x == 0)? Constants::Double::inf : 0.0;
     //
     // if (x == 0) {
-    //	        if (shape < 1) return RbConstants::Double::inf;
+    //	        if (shape < 1) return Constants::Double::inf;
     //	        if (shape > 1) return 0.0;
     //	        /* else */
     //	        return isLog ? -log(scale) : 1 / scale;
     //	    }
     //
     // if (shape < 1) {
-    //	        pr = RbStatistics::Poisson::pdf(shape, x/scale, isLog);
+    //	        pr = Statistics::Poisson::pdf(shape, x/scale, isLog);
     //	        return isLog ?  pr + log(shape/x) : pr*shape/x;
     //	    }
     // /* else  shape >= 1 */
-    // pr = RbStatistics::Poisson::pdf(shape-1, x/scale, isLog);
+    // pr = Statistics::Poisson::pdf(shape-1, x/scale, isLog);
     // return isLog ? pr - log(scale) : pr/scale;
     
     return isLog ? pdf(shape, rate, exp(x)) : pdf(shape, rate, x);
@@ -96,9 +95,9 @@ double RbStatistics::Gamma::pdf(double shape, double rate, double x, bool isLog)
  * \return Returns the natural log of the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::Gamma::lnPdf(double shape, double rate, double x) {
+double Statistics::Gamma::lnPdf(double shape, double rate, double x) {
 
-	return shape * log(rate) - RbMath::lnGamma(shape) + (shape - 1.0) * log(x) - x * rate;
+	return shape * log(rate) - Math::lnGamma(shape) + (shape - 1.0) * log(x) - x * rate;
 }
 
 /*!
@@ -112,9 +111,9 @@ double RbStatistics::Gamma::lnPdf(double shape, double rate, double x) {
  * \return Returns the cumulative probability.
  * \throws Does not throw an error.
  */
-double RbStatistics::Gamma::cdf(double shape, double rate, double x) {
+double Statistics::Gamma::cdf(double shape, double rate, double x) {
     
-	return RbMath::incompleteGamma( rate*x, shape, RbMath::lnGamma(shape) );
+	return Math::incompleteGamma( rate*x, shape, Math::lnGamma(shape) );
 }
 
 /*!
@@ -128,17 +127,17 @@ double RbStatistics::Gamma::cdf(double shape, double rate, double x) {
  * \return Returns the quantile.
  * \throws Does not throw an error.
  */
-double RbStatistics::Gamma::quantile(double shape, double rate, double p) {
+double Statistics::Gamma::quantile(double shape, double rate, double p) {
 
 	//if(shape < 0.0)
 	//	return 0.0;
-//	return RbStatistics::ChiSquare::quantile(p, 2.0 * shape) / (2.0 * rate);
-	return RbStatistics::Helper::pointChi2(p, 2.0 * shape) / (2.0 * rate); 
+//	return Statistics::ChiSquare::quantile(p, 2.0 * shape) / (2.0 * rate);
+	return Statistics::Helper::pointChi2(p, 2.0 * shape) / (2.0 * rate); 
 }
 
 
-double RbStatistics::Gamma::rv(double shape, double rate, RandomNumberGenerator& rng) {
+double Statistics::Gamma::rv(double shape, double rate, RandomNumberGenerator& rng) {
     
-	return (RbStatistics::Helper::rndGamma(shape, rng) / rate);
+	return (Statistics::Helper::rndGamma(shape, rng) / rate);
 }
 

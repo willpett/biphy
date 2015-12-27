@@ -18,34 +18,32 @@
 
 
 #include "PosteriorPredictiveStateFrequencyMonitor.h"
-#include "AbstractDiscreteCharacterData.h"
 #include "DagNode.h"
 #include "Model.h"
 #include "Monitor.h"
-#include "RbException.h"
+#include "Exception.h"
 
 #include <algorithm>
 
-using namespace RevBayesCore;
-
 /* Constructor */
-PosteriorPredictiveStateFrequencyMonitor::PosteriorPredictiveStateFrequencyMonitor(StochasticNode<AbstractCharacterData> *t, int g, const std::string &fname, bool ap) : Monitor(g,t), outStream(), data( t ), filename( fname ), append(ap) {
-    if(dynamic_cast<AbstractDiscreteCharacterData*>(t->getValue().clone()) == 0){
-    	throw RbException("PosteriorPredictiveStateFrequencyMonitor requires DiscreteCharacterData");
-    }
+PosteriorPredictiveStateFrequencyMonitor::PosteriorPredictiveStateFrequencyMonitor(StochasticNode<BinaryCharacterData> *t, int g, const std::string &fname, bool ap) :
+Monitor(g,t), outStream(), data( t ), filename( fname ), append(ap)
+{
     for(size_t i=0;i<data->getValue().getNumberOfTaxa();i++){
     	taxonNames.push_back(data->getValue().getTaxonNameWithIndex(i));
     }
 }
 
 
-PosteriorPredictiveStateFrequencyMonitor::PosteriorPredictiveStateFrequencyMonitor(const PosteriorPredictiveStateFrequencyMonitor &m) : Monitor( m ), outStream(), data( m.data ), taxonNames( m.taxonNames) {
+PosteriorPredictiveStateFrequencyMonitor::PosteriorPredictiveStateFrequencyMonitor(const PosteriorPredictiveStateFrequencyMonitor &m) :
+		Monitor( m ), outStream(), data( m.data ), taxonNames( m.taxonNames)
+{
     
     filename    = m.filename;
     append      = m.append;
     
-    if (m.outStream.is_open())
-        openStream();
+    //if (m.outStream.is_open())
+    //  openStream();
 }
 
 
@@ -68,14 +66,14 @@ void PosteriorPredictiveStateFrequencyMonitor::monitor(long gen) {
     int samplingFrequency = printgen;
     
     if (gen % samplingFrequency == 0) {
-    	AbstractCharacterData* oldData = data->getValue().clone();
+        BinaryCharacterData* oldData = data->getValue().clone();
     	data->redraw();
-    	AbstractDiscreteCharacterData& newData = dynamic_cast<AbstractDiscreteCharacterData&>(data->getValue());
-    	MatrixReal frequencies = newData.computeStateFrequencies();
-    	std::vector<std::string> newNames = newData.getTaxonNames();
+    	BinaryCharacterData* newData = &data->getValue();
+    	std::vector<double> frequencies = newData->computeStateFrequencies();
+    	//std::vector<std::string> newNames = newData->getTaxonNames();
     	for(size_t i=0;i<taxonNames.size();i++){
-			size_t idx = std::find(newNames.begin(),newNames.end(),taxonNames[i]) - newNames.begin();
-			outStream << frequencies[idx][1] << "\t";
+			//size_t idx = std::find(newNames.begin(),newNames.end(),taxonNames[i]) - newNames.begin();
+			outStream << frequencies[i] << "\t";
     	}
     	outStream << std::endl;
     	data->clamp(oldData);
@@ -104,7 +102,7 @@ void PosteriorPredictiveStateFrequencyMonitor::printHeader() {
 
 void PosteriorPredictiveStateFrequencyMonitor::swapNode(DagNode *oldN, DagNode *newN) {
 	if ( oldN == data ) {
-		data = static_cast< StochasticNode<AbstractCharacterData> *>( newN );
+		data = static_cast< StochasticNode<BinaryCharacterData> *>( newN );
 	}
     // delegate to base class
     Monitor::swapNode(oldN, newN);

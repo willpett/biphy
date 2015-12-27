@@ -1,9 +1,7 @@
 #include "Model.h"
 
+#include "../utils/Exception.h"
 #include "DagNode.h"
-#include "RbException.h"
-
-using namespace RevBayesCore;
 
 
 /**
@@ -14,7 +12,7 @@ using namespace RevBayesCore;
  *
  * \param[in]    source    The DAG node from which the model graph is extracted.
  */
-Model::Model(const DagNode *source) 
+Model::Model(DagNode *source) 
 {
     
     // add this node to the source nodes and build model graph
@@ -31,12 +29,12 @@ Model::Model(const DagNode *source)
  *
  * \param[in]    sources    The set of DAG nodes from which the model graph is extracted.
  */
-Model::Model(const std::set<const DagNode*> s) : 
+Model::Model(std::set<DagNode*> s) : 
     sources() 
 {
     
     // iterate over all sources
-    for (std::set<const DagNode*>::const_iterator it = s.begin(); it != s.end(); ++it) 
+    for (std::set<DagNode*>::const_iterator it = s.begin(); it != s.end(); ++it) 
     {
         // add this node and build model graph
         addSourceNode( *it );
@@ -54,10 +52,10 @@ Model::Model(const Model &m) : sources()
 {
     
     // iterate over all sources
-    for (std::set<const DagNode*>::const_iterator it = m.sources.begin(); it != m.sources.end(); ++it) 
+    for (std::set<DagNode*>::const_iterator it = m.sources.begin(); it != m.sources.end(); ++it) 
     {
         // add this node and build model graph
-        addSourceNode( *it );
+        cloneSourceNode( *it );
     }
     
 }
@@ -81,7 +79,7 @@ Model::~Model( void )
     
     while ( !sources.empty() ) 
     {
-        std::set<const DagNode*>::iterator theNode = sources.begin();
+        std::set<DagNode*>::iterator theNode = sources.begin();
         sources.erase( theNode );
         
         if ( (*theNode)->decrementReferenceCount() == 0)
@@ -124,7 +122,7 @@ Model& Model::operator=(const Model &x)
         // empty the source nodes
         while ( !sources.empty() ) 
         {
-            std::set<const DagNode*>::iterator theNode = sources.begin();
+            std::set<DagNode*>::iterator theNode = sources.begin();
             sources.erase( theNode );
             
             if ( (*theNode)->decrementReferenceCount() == 0)
@@ -134,38 +132,62 @@ Model& Model::operator=(const Model &x)
         }
         
         // iterate over all sources
-        for (std::set<const DagNode*>::const_iterator it = x.sources.begin(); it != x.sources.end(); ++it) 
+        for (std::set<DagNode*>::const_iterator it = x.sources.begin(); it != x.sources.end(); ++it) 
         {
             // add this node and build model graph
-            addSourceNode( *it );
+            cloneSourceNode( *it );
         }
     }
     
     return *this;
 }
 
-
-
-/**
- * Add a new source node.
- * We extract the model graph from the source node by calling cloneDAG on it.
- * cloneDAG clones the entire connected graph containing the given node.
- * Then we insert the source node in our set of source nodes so that we can use it
- * later to construct the model graph again in the copy constructor.
- * At the same time we fill the nodes map between the pointers of the nodes to the original DAG
- * and the the pointer to the cloned DAG nodes and fill also the vector of DAG nodes contained 
- * in this model.
- * 
- *
- * \param[in]    sourceNode    The new source node.
- */
-void Model::addSourceNode(const DagNode *sourceNode) 
+void Model::addSourceNode( DagNode *sourceNode) 
 {
     
     // check that the source node is a valid pointer
     if (sourceNode == NULL)
-        throw RbException("Cannot instantiate a model with a NULL DAG node.");
+        throw Exception("Cannot instantiate a model with a NULL DAG node.");
     
+    // add the source node to our set of sources
+    sourceNode->incrementReferenceCount();
+    sources.insert( sourceNode );
+    
+    // we don't really know which nodes are new in our nodes map.
+    // therefore we empty the nodes map and fill it again.
+    for (std::vector<DagNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it) 
+        (*it)->decrementReferenceCount();
+    
+    nodes.clear();
+    std::set<const DagNode*> nodeset;
+    sourceNode->collectDAG(nodeset);
+    
+    std::set<const DagNode*>::iterator i = nodeset.begin();
+    while ( i != nodeset.end() ) 
+    {
+        // get the copied node
+        DagNode* theNewNode = const_cast<DagNode*>(*i);
+        
+        // increment the iterator;
+        ++i;
+        
+        // increment the reference count to the new node
+        theNewNode->incrementReferenceCount();
+            
+        // insert in direct access vector
+        nodes.push_back( theNewNode );
+    }
+    
+    
+}
+
+void Model::cloneSourceNode( DagNode *sourceNode) 
+{
+    // check that the source node is a valid pointer
+    if (sourceNode == NULL)
+        throw Exception("Cannot instantiate a model with a NULL DAG node.");
+    
+    std::map<const DagNode*, DagNode* > nodesMap;
     // copy the entire graph connected to the source node
     // only if the node is not contained already in the nodesMap will it be copied.
     sourceNode->cloneDAG(nodesMap);
@@ -202,7 +224,6 @@ void Model::addSourceNode(const DagNode *sourceNode)
         // insert in direct access vector
         nodes.push_back( theNewNode );
     }
-    
 }
 
 /**
@@ -239,17 +260,4 @@ std::vector<DagNode *>& Model::getDagNodes( void )
 {
     
     return nodes;
-}
-
-
-/**
- * Constant getter function for the map between the pointers of the original DAG nodels
- * to the copied DAG nodes of the model.
- *
- * \return Map between pointers from original to copied DAG nodes.
- */
-const std::map<const DagNode*, DagNode*>& Model::getNodesMap( void ) const 
-{
-    
-    return nodesMap;
 }

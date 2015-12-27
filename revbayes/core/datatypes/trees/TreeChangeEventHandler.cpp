@@ -11,8 +11,6 @@
 
 #include <iostream>
 
-using namespace RevBayesCore;
-
 TreeChangeEventHandler::TreeChangeEventHandler(void) :
     listeners()
 {
@@ -30,7 +28,7 @@ TreeChangeEventHandler::~TreeChangeEventHandler(void)
 {
     if ( listeners.empty() == false )
     {
-        std::cerr << "Deleting handler while " << listeners.size() << " listener are still listening." << std::endl;
+        //std::cerr << "Deleting handler while " << listeners.size() << " listener are still listening." << std::endl;
     }
 }
 
@@ -54,6 +52,12 @@ void TreeChangeEventHandler::addListener(TreeChangeEventListener *l)
 
 }
 
+void TreeChangeEventHandler::clear(void) 
+{
+
+    listeners.clear();
+
+}
 
 
 void TreeChangeEventHandler::fire(const TopologyNode &n) 

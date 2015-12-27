@@ -23,78 +23,74 @@
 #define StochasticNode_H
 
 #include "DynamicNode.h"
-#include "AbstractCharacterData.h"
+#include "BinaryCharacterData.h"
 
-namespace RevBayesCore {
-    
+template <class valueType>
+class TypedDistribution;
 
-    template <class valueType>
-    class TypedDistribution;
-    
-    template <class valueType>
-    class StochasticNode : public DynamicNode<valueType> {
-    
-    public:
-     
-        StochasticNode(const std::string &n, TypedDistribution<valueType> *d);
-        StochasticNode(const StochasticNode<valueType> &n);                                                                             //!< Copy constructor
-        virtual                                            ~StochasticNode(void);                                                       //!< Virtual destructor
-    
-        // pure virtual methods
-        virtual StochasticNode<valueType>*                  clone(void) const;
-        virtual void										extractValue(std::istream& is);
+template <class valueType>
+class StochasticNode : public DynamicNode<valueType> {
 
-        // methods    
-        void                                                clamp(valueType *val);                                                      //!< Clamp an observation to this random variable
-        virtual TypedDistribution<valueType>&               getDistribution(void);
-        virtual const TypedDistribution<valueType>&         getDistribution(void) const;
-        virtual double                                      getLnProbability(void);
-        virtual double                                      getLnProbabilityRatio(void);
-        valueType&                                          getValue(void);
-        const valueType&                                    getValue(void) const;
-        bool                                                isClamped(void) const;                                                      //!< Is this DAG node clamped?
-        bool                                                isStochastic(void) const;                                                   //!< Is this DAG node stochastic?
-        void                                                printStructureInfo(std::ostream &o) const;                                  //!< Print the structural information (e.g. name, value-type, distribution/function, children, parents, etc.)
-        void                                                redraw(void);                                                               //!< Redraw the current value of the node (applies only to stochastic nodes)
-        virtual void                                        reInitialized(void);                                                        //!< The DAG was re-initialized so maybe you want to reset some stuff (delegate to distribution)
-        virtual void                                        setValue(valueType *val, bool touch=true);                                  //!< Set the value of this node
-        virtual void                                        setValue(const valueType &val, bool touch=true);                            //!< Set the value of this node
-        void                                                setIgnoreRedraw(bool tf=true);
+public:
+ 
+    StochasticNode(const std::string &n, TypedDistribution<valueType> *d);
+    StochasticNode(const StochasticNode<valueType> &n);                                                                             //!< Copy constructor
+    virtual                                            ~StochasticNode(void);                                                       //!< Virtual destructor
 
-    protected:    
-        
-        virtual void                                        getAffected(std::set<DagNode *>& affected, DagNode* affecter);              //!< Mark and get affected nodes
-        virtual void                                        keepMe(DagNode* affecter);                                                  //!< Keep value of this and affected nodes
-        virtual void                                        restoreMe(DagNode *restorer);                                               //!< Restore value of this nodes
-        void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Swap the parameter of this node (needs overwriting in deterministic and stochastic nodes)
-        virtual void                                        touchMe(DagNode *toucher);                                                  //!< Tell affected nodes value is reset
-    
-        // protected members
-        bool                                                clamped;
-        bool                                                ignoreRedraw;
-        double                                              lnProb;                                                                     //!< Current log probability
-        bool                                                needsProbabilityRecalculation;                                              //!< Do we need recalculation of the ln prob?
-        double                                              storedLnProb;
-        TypedDistribution<valueType>*                       distribution;
-    
-    };
+    // pure virtual methods
+    virtual StochasticNode<valueType>*                  clone(void) const;
+    virtual void										extractValue(std::istream& is);
 
-    template<>
-    inline void StochasticNode<AbstractCharacterData>::extractValue(std::istream &is) {
-    	throw RbException("StochasticNode<AbstractCharacterData>::extractValue not implemented");
-    }
+    // methods    
+    void                                                clamp(valueType *val);                                                      //!< Clamp an observation to this random variable
+    virtual TypedDistribution<valueType>&               getDistribution(void);
+    virtual const TypedDistribution<valueType>&         getDistribution(void) const;
+    virtual double                                      getLnProbability(void);
+    virtual double                                      getLnProbabilityRatio(void);
+    valueType&                                          getValue(void);
+    const valueType&                                    getValue(void) const;
+    bool                                                isClamped(void) const;                                                      //!< Is this DAG node clamped?
+    bool                                                isStochastic(void) const;                                                   //!< Is this DAG node stochastic?
+    void                                                printStructureInfo(std::ostream &o) const;                                  //!< Print the structural information (e.g. name, value-type, distribution/function, children, parents, etc.)
+    void                                                redraw(void);                                                               //!< Redraw the current value of the node (applies only to stochastic nodes)
+    virtual void                                        reInitialized(void);                                                        //!< The DAG was re-initialized so maybe you want to reset some stuff (delegate to distribution)
+    virtual void                                        setValue(valueType *val, bool touch=true);                                  //!< Set the value of this node
+    virtual void                                        setValue(const valueType &val, bool touch=true);                            //!< Set the value of this node
+    void                                                setIgnoreRedraw(bool tf=true);
+
+protected:    
+    
+    virtual void                                        getAffected(std::set<DagNode *>& affected, DagNode* affecter);              //!< Mark and get affected nodes
+    virtual void                                        keepMe(DagNode* affecter);                                                  //!< Keep value of this and affected nodes
+    virtual void                                        restoreMe(DagNode *restorer);                                               //!< Restore value of this nodes
+    void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Swap the parameter of this node (needs overwriting in deterministic and stochastic nodes)
+    virtual void                                        touchMe(DagNode *toucher);                                                  //!< Tell affected nodes value is reset
+
+    // protected members
+    bool                                                clamped;
+    bool                                                ignoreRedraw;
+    double                                              lnProb;                                                                     //!< Current log probability
+    bool                                                needsProbabilityRecalculation;                                              //!< Do we need recalculation of the ln prob?
+    double                                              storedLnProb;
+    TypedDistribution<valueType>*                       distribution;
+
+};
+
+template<>
+inline void StochasticNode<BinaryCharacterData >::extractValue(std::istream &is) {
+    throw Exception("StochasticNode<BinaryCharacterData>::extractValue not implemented");
 }
 
 
-#include "RbConstants.h"
-#include "RbOptions.h"
+#include "../../utils/Constants.h"
+#include "../../utils/Options.h"
 #include "TypedDistribution.h"
 
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::extractValue(std::istream &is) {
-	if ( RbUtils::is_vector<valueType>::value )
+void StochasticNode<valueType>::extractValue(std::istream &is) {
+	if ( Utils::is_vector<valueType>::value )
 	{
-		size_t numElements = RbUtils::sub_vector<valueType>::size( getValue() );
+		size_t numElements = Utils::sub_vector<valueType>::size( getValue() );
 
 		valueType tmp(getValue());
 		is >> tmp;
@@ -109,7 +105,7 @@ void RevBayesCore::StochasticNode<valueType>::extractValue(std::istream &is) {
 }
 
 template<class valueType>
-RevBayesCore::StochasticNode<valueType>::StochasticNode( const std::string &n, TypedDistribution<valueType> *d ) : DynamicNode<valueType>( n ), clamped( false ), ignoreRedraw(false), lnProb( RbConstants::Double::neginf ), needsProbabilityRecalculation( true ), distribution( d ) {
+StochasticNode<valueType>::StochasticNode( const std::string &n, TypedDistribution<valueType> *d ) : DynamicNode<valueType>( n ), clamped( false ), ignoreRedraw(false), lnProb( Constants::Double::neginf ), needsProbabilityRecalculation( true ), distribution( d ) {
     
     this->type = DagNode::STOCHASTIC;
     
@@ -128,7 +124,7 @@ RevBayesCore::StochasticNode<valueType>::StochasticNode( const std::string &n, T
 
 
 template<class valueType>
-RevBayesCore::StochasticNode<valueType>::StochasticNode( const StochasticNode<valueType> &n ) : DynamicNode<valueType>( n ), clamped( n.clamped ), ignoreRedraw(n.ignoreRedraw), needsProbabilityRecalculation( true ), distribution( n.distribution->clone() ) {
+StochasticNode<valueType>::StochasticNode( const StochasticNode<valueType> &n ) : DynamicNode<valueType>( n ), clamped( n.clamped ), ignoreRedraw(n.ignoreRedraw), needsProbabilityRecalculation( true ), distribution( n.distribution->clone() ) {
     
     this->type = DagNode::STOCHASTIC;
     
@@ -138,14 +134,14 @@ RevBayesCore::StochasticNode<valueType>::StochasticNode( const StochasticNode<va
 
 
 template<class valueType>
-RevBayesCore::StochasticNode<valueType>::~StochasticNode( void ) {
+StochasticNode<valueType>::~StochasticNode( void ) {
     delete distribution;
 }
 
 
 
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::clamp(valueType *val) {
+void StochasticNode<valueType>::clamp(valueType *val) {
     // clamp the node with the value
     // we call set value because some derived classes might have special implementations for setting values (e.g. mixtures)
     setValue( val );
@@ -157,7 +153,7 @@ void RevBayesCore::StochasticNode<valueType>::clamp(valueType *val) {
 
 
 template<class valueType>
-RevBayesCore::StochasticNode<valueType>* RevBayesCore::StochasticNode<valueType>::clone( void ) const {
+StochasticNode<valueType>* StochasticNode<valueType>::clone( void ) const {
     
     return new StochasticNode<valueType>( *this );
 }
@@ -169,7 +165,7 @@ RevBayesCore::StochasticNode<valueType>* RevBayesCore::StochasticNode<valueType>
  * This call is started by the parent and since we don't have one this is a dummy implementation!
  */
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::getAffected(std::set<DagNode *> &affected, DagNode* affecter) {
+void StochasticNode<valueType>::getAffected(std::set<DagNode *> &affected, DagNode* affecter) {
     
     // insert this node as one of the affected
     affected.insert( this );
@@ -181,21 +177,21 @@ void RevBayesCore::StochasticNode<valueType>::getAffected(std::set<DagNode *> &a
 
 
 template<class valueType>
-RevBayesCore::TypedDistribution<valueType>& RevBayesCore::StochasticNode<valueType>::getDistribution( void ) {
+TypedDistribution<valueType>& StochasticNode<valueType>::getDistribution( void ) {
     
     return *distribution;
 }
 
 
 template<class valueType>
-const RevBayesCore::TypedDistribution<valueType>& RevBayesCore::StochasticNode<valueType>::getDistribution( void ) const {
+const TypedDistribution<valueType>& StochasticNode<valueType>::getDistribution( void ) const {
     
     return *distribution;
 }
 
 
 template<class valueType>
-double RevBayesCore::StochasticNode<valueType>::getLnProbability( void ) {
+double StochasticNode<valueType>::getLnProbability( void ) {
     
     if ( needsProbabilityRecalculation ) 
     {
@@ -212,35 +208,35 @@ double RevBayesCore::StochasticNode<valueType>::getLnProbability( void ) {
 
 
 template<class valueType>
-double RevBayesCore::StochasticNode<valueType>::getLnProbabilityRatio( void ) {
+double StochasticNode<valueType>::getLnProbabilityRatio( void ) {
     
     return this->heat * ( getLnProbability() - storedLnProb );
 }
 
 
 template<class valueType>
-valueType& RevBayesCore::StochasticNode<valueType>::getValue( void ) {
+valueType& StochasticNode<valueType>::getValue( void ) {
     
     return distribution->getValue();
 }
 
 
 template<class valueType>
-const valueType& RevBayesCore::StochasticNode<valueType>::getValue( void ) const {
+const valueType& StochasticNode<valueType>::getValue( void ) const {
     
     return distribution->getValue();
 }
 
 
 template<class valueType>
-bool RevBayesCore::StochasticNode<valueType>::isClamped( void ) const {
+bool StochasticNode<valueType>::isClamped( void ) const {
     
     return clamped;
 }
 
 
 template<class valueType>
-bool RevBayesCore::StochasticNode<valueType>::isStochastic( void ) const {
+bool StochasticNode<valueType>::isStochastic( void ) const {
     
     return true;
 }
@@ -251,7 +247,7 @@ bool RevBayesCore::StochasticNode<valueType>::isStochastic( void ) const {
  * At this point, we also need to make sure we update the stored ln probability.
  */
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::keepMe( DagNode* affecter ) {
+void StochasticNode<valueType>::keepMe( DagNode* affecter ) {
     
     if ( this->touched ) 
     {
@@ -279,7 +275,7 @@ void RevBayesCore::StochasticNode<valueType>::keepMe( DagNode* affecter ) {
 
 
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::printStructureInfo( std::ostream &o ) const
+void StochasticNode<valueType>::printStructureInfo( std::ostream &o ) const
 {
     o << "_variableType = Stochastic DAG node" << std::endl;
     o << "_distribution = " << "<unnamed>" << std::endl;
@@ -301,7 +297,7 @@ void RevBayesCore::StochasticNode<valueType>::printStructureInfo( std::ostream &
 
 
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::redraw( void ) {
+void StochasticNode<valueType>::redraw( void ) {
 
     // draw the value
     if (!ignoreRedraw)
@@ -314,7 +310,7 @@ void RevBayesCore::StochasticNode<valueType>::redraw( void ) {
 
 
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::reInitialized( void ) {
+void StochasticNode<valueType>::reInitialized( void ) {
     
     distribution->reInitialized();
         
@@ -323,7 +319,7 @@ void RevBayesCore::StochasticNode<valueType>::reInitialized( void ) {
 
 /** Restore the old value of the node and tell affected */
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::restoreMe(DagNode *restorer) {
+void StochasticNode<valueType>::restoreMe(DagNode *restorer) {
     
     if ( this->touched ) 
     {
@@ -349,7 +345,7 @@ void RevBayesCore::StochasticNode<valueType>::restoreMe(DagNode *restorer) {
 
 
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::setValue(valueType *val, bool forceTouch) {
+void StochasticNode<valueType>::setValue(valueType *val, bool forceTouch) {
     // set the value
     distribution->setValue( val );
 
@@ -363,7 +359,7 @@ void RevBayesCore::StochasticNode<valueType>::setValue(valueType *val, bool forc
 
 
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::setValue(const valueType &val, bool forceTouch) {
+void StochasticNode<valueType>::setValue(const valueType &val, bool forceTouch) {
     
     // set the value
     distribution->setValue( val );
@@ -377,13 +373,13 @@ void RevBayesCore::StochasticNode<valueType>::setValue(const valueType &val, boo
 }
 
 template <class valueType>
-void RevBayesCore::StochasticNode<valueType>::setIgnoreRedraw(bool tf)
+void StochasticNode<valueType>::setIgnoreRedraw(bool tf)
 {
     ignoreRedraw = tf;
 }
 
 template <class valueType>
-void RevBayesCore::StochasticNode<valueType>::swapParameter(const RevBayesCore::DagNode *oldP, const RevBayesCore::DagNode *newP) {
+void StochasticNode<valueType>::swapParameter(const DagNode *oldP, const DagNode *newP) {
     distribution->swapParameter(oldP, newP);
 }
 
@@ -391,7 +387,7 @@ void RevBayesCore::StochasticNode<valueType>::swapParameter(const RevBayesCore::
 
 /** touch this node for recalculation */
 template<class valueType>
-void RevBayesCore::StochasticNode<valueType>::touchMe( DagNode *toucher ) {
+void StochasticNode<valueType>::touchMe( DagNode *toucher ) {
     
     if (!this->touched) {
         

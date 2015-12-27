@@ -25,33 +25,29 @@
 #include "ContinuousDistribution.h"
 #include "TypedDagNode.h"
 
-namespace RevBayesCore {
+class UniformDistribution : public ContinuousDistribution {
     
-    class UniformDistribution : public ContinuousDistribution {
-        
-    public:
-        UniformDistribution(const TypedDagNode<double> *min, const TypedDagNode<double> *max);
-        UniformDistribution(const UniformDistribution &n);                                                                              //!< Copy constructor
-        virtual                                            ~UniformDistribution(void);                                                  //!< Virtual destructor
-        
-        // public member functions
-        double                                              cdf(void) const;                                                                  //!< Cummulative density function
-        UniformDistribution*                              clone(void) const;                                                          //!< Create an independent clone
-        double                                              computeLnProbability(void);
-        double                                              getMax(void) const;
-        double                                              getMin(void) const;
-        double                                              quantile(double p) const;                                                       //!< Qu
-        void                                                redrawValue(void);
-        void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
-        
-    private:
-        
-        // members
-        const TypedDagNode<double>*                          min;
-        const TypedDagNode<double>*                          max;
-        
-    };
+public:
+    UniformDistribution(const TypedDagNode<double> *min, const TypedDagNode<double> *max);
+    UniformDistribution(const UniformDistribution &n);                                                                              //!< Copy constructor
+    virtual                                            ~UniformDistribution(void);                                                  //!< Virtual destructor
     
-}
+    // public member functions
+    double                                              cdf(void) const;                                                                  //!< Cummulative density function
+    UniformDistribution*                              clone(void) const;                                                          //!< Create an independent clone
+    double                                              computeLnProbability(void);
+    double                                              getMax(void) const;
+    double                                              getMin(void) const;
+    double                                              quantile(double p) const;                                                       //!< Qu
+    void                                                redrawValue(void);
+    void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
+    
+private:
+    
+    // members
+    const TypedDagNode<double>*                          min;
+    const TypedDagNode<double>*                          max;
+    
+};
 
 #endif

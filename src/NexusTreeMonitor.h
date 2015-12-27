@@ -20,7 +20,7 @@
 #define NexusTreeMonitor_H
 
 #include "Monitor.h"
-#include "BranchLengthTree.h"
+#include "Tree.h"
 #include "TypedDagNode.h"
 
 #include <fstream>
@@ -28,41 +28,37 @@
 #include <string>
 #include <vector>
 
-namespace RevBayesCore {
+class NexusTreeMonitor : public Monitor {
     
-    class NexusTreeMonitor : public Monitor {
-        
-    public:
-        // Constructors and Destructors
-        NexusTreeMonitor(TypedDagNode<BranchLengthTree> *t, int g, const std::string &fname, bool ap=false);
-        NexusTreeMonitor(TypedDagNode<BranchLengthTree> *t, const std::set<TypedDagNode<std::vector<double> > *> &n, int g, const std::string &fname, bool ap=false);                                              //!< Constructor with set of DAG node
-        NexusTreeMonitor(const NexusTreeMonitor& f);
-        
-        // basic methods
-        NexusTreeMonitor*          clone(void) const;                                                  //!< Clone the object
-        
-        // Monitor functions
-        void                                monitor(long gen);                                                  //!< Monitor at generation gen
-        void                                swapNode(DagNode *oldN, DagNode *newN);
+public:
+    // Constructors and Destructors
+    NexusTreeMonitor(TypedDagNode<Tree> *t, int g, const std::string &fname, bool ap=false);
+    NexusTreeMonitor(TypedDagNode<Tree> *t, const std::set<TypedDagNode<std::vector<double> > *> &n, int g, const std::string &fname, bool ap=false);                                              //!< Constructor with set of DAG node
+    NexusTreeMonitor(const NexusTreeMonitor& f);
+    
+    // basic methods
+    NexusTreeMonitor*          clone(void) const;                                                  //!< Clone the object
+    
+    // Monitor functions
+    void                                monitor(long gen);                                                  //!< Monitor at generation gen
+    void                                swapNode(DagNode *oldN, DagNode *newN);
 
-        // FileMonitor functions
-        void                                closeStream(void);                                                  //!< Close stream after finish writing
-        void                                openStream(void);                                                   //!< Open the stream for writing
-        void                                printHeader(void);                                                  //!< Print header
-        
-    private:        
-        // the stream to print
-        std::fstream                        outStream;
-        
-        // parameters
-        TypedDagNode<BranchLengthTree>*      tree;
-        std::set<TypedDagNode<std::vector<double> > *>                 nodeVariables;
-        std::string                         filename;
-        bool                                append;
-        
-    };
+    // FileMonitor functions
+    void                                closeStream(void);                                                  //!< Close stream after finish writing
+    void                                openStream(void);                                                   //!< Open the stream for writing
+    void                                printHeader(void);                                                  //!< Print header
     
-}
+private:        
+    // the stream to print
+    std::fstream                        outStream;
+    
+    // parameters
+    TypedDagNode<Tree>*      tree;
+    std::set<TypedDagNode<std::vector<double> > *>                 nodeVariables;
+    std::string                         filename;
+    bool                                append;
+    
+};
 
 #endif
 

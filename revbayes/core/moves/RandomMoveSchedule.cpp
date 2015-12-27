@@ -3,8 +3,6 @@
 #include "RandomNumberGenerator.h"
 #include <iostream>
 
-using namespace RevBayesCore;
-
 RandomMoveSchedule::RandomMoveSchedule(const std::vector<Move*> &s) : MoveSchedule( s ) {
     
     movesPerIteration = 0.0;
@@ -39,7 +37,6 @@ Move* RandomMoveSchedule::nextMove( unsigned long gen ) {
             movesPerIteration += weights[i];
         }
     }
-    
     
     RandomNumberGenerator* rng = GLOBAL_RNG;
     double u = movesPerIteration * rng->uniform01();

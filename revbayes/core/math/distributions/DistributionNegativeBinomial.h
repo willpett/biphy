@@ -18,22 +18,19 @@
 #ifndef DistributionNegativeBinomial_H
 #define DistributionNegativeBinomial_H
 
-namespace RevBayesCore {
+class RandomNumberGenerator;
 
-    class RandomNumberGenerator;
+namespace Statistics {
 
-    namespace RbStatistics {
+    namespace NegativeBinomial {
     
-        namespace NegativeBinomial {
-        
-            double                      pdf(double n, double p, double x);                                    /*!< NegativeBinomial(n,p) probability density */
-            double                      pdf(double n, double p, double q, double x, bool log);                /*!< NegativeBinomial(n,p) probability density */
-            double                      lnPdf(double n, double p, double x);                                  /*!< NegativeBinomial(n,p) log_e probability density */
-            double                      cdf(double n, double p, double x);                                    /*!< NegativeBinomial(n,p) cumulative probability */
-            double                      quantile(double n, double p, double q);                               /*!< NegativeBinomial(n,p) quantile */
-            int                         rv(double n, double p, RandomNumberGenerator& rng);             /*!< NegativeBinomial(n,p) random variable */
-	        }
-    }
+        double                      pdf(double n, double p, double x);                                    /*!< NegativeBinomial(n,p) probability density */
+        double                      pdf(double n, double p, double q, double x, bool log);                /*!< NegativeBinomial(n,p) probability density */
+        double                      lnPdf(double n, double p, double x);                                  /*!< NegativeBinomial(n,p) log_e probability density */
+        double                      cdf(double n, double p, double x);                                    /*!< NegativeBinomial(n,p) cumulative probability */
+        double                      quantile(double n, double p, double q);                               /*!< NegativeBinomial(n,p) quantile */
+        int                         rv(double n, double p, RandomNumberGenerator& rng);             /*!< NegativeBinomial(n,p) random variable */
+        }
 }
 
 #endif

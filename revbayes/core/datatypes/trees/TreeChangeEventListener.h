@@ -23,22 +23,16 @@
 
 #include "TopologyNode.h"
 
-namespace RevBayesCore {
-    
-//    class TreeChangeEventHandler;
-    
-    class TreeChangeEventListener {
+class TreeChangeEventListener {
         
-    public:
-        // constructors and destructors
-        TreeChangeEventListener(void) {} 
-        virtual                                    ~TreeChangeEventListener(void) {}
-        
-        // public pure virtual methods
-        virtual void                                fireTreeChangeEvent(const TopologyNode &n) = 0;                                 //!< This node was changed in the tree
-        
-    };
+public:
+    // constructors and destructors
+    TreeChangeEventListener(void) {} 
+    virtual                                    ~TreeChangeEventListener(void) {}
     
-}
+    // public pure virtual methods
+    virtual void                                fireTreeChangeEvent(const TopologyNode &n) = 0;                                 //!< This node was changed in the tree
+    
+};
 
 #endif

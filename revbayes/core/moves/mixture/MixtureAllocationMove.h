@@ -23,33 +23,28 @@
 #include "MixtureDistribution.h"
 #include "SimpleMove.h"
 
-namespace RevBayesCore {
+template <class valueType>
+class MixtureAllocationMove : public SimpleMove {
 
-    template <class valueType>
-    class MixtureAllocationMove : public SimpleMove {
-    
-    public:
-        MixtureAllocationMove(StochasticNode<valueType>* node, double weight);                                                                      //!< Internal constructor
-    
-        // Basic utility functions
-        MixtureAllocationMove<valueType>*                       clone(void) const;                                                                  //!< Clone object
-        void                                                    swapNode(DagNode *oldN, DagNode *newN);
-    
-    protected:
-        const std::string&                                      getMoveName(void) const;                                                            //!< Get the name of the move for summary printing
-        double                                                  performSimpleMove(void);                                                            //!< Perform move
-        void                                                    rejectSimpleMove(void);
-    
-    private:
-    
-        StochasticNode<valueType>*                              variable;
-        size_t                                                  newCategory;
-        size_t                                                  oldCategory;
+public:
+    MixtureAllocationMove(StochasticNode<valueType>* node, double weight);                                                                      //!< Internal constructor
 
-    };
-    
-}
+    // Basic utility functions
+    MixtureAllocationMove<valueType>*                       clone(void) const;                                                                  //!< Clone object
+    void                                                    swapNode(DagNode *oldN, DagNode *newN);
 
+protected:
+    const std::string&                                      getMoveName(void) const;                                                            //!< Get the name of the move for summary printing
+    double                                                  performSimpleMove(void);                                                            //!< Perform move
+    void                                                    rejectSimpleMove(void);
+
+private:
+
+    StochasticNode<valueType>*                              variable;
+    size_t                                                  newCategory;
+    size_t                                                  oldCategory;
+
+};
 
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
@@ -57,14 +52,14 @@ namespace RevBayesCore {
 #include <cmath>
 
 template <class valueType>
-RevBayesCore::MixtureAllocationMove<valueType>::MixtureAllocationMove(StochasticNode<valueType> *v, double w) : SimpleMove( v, w ), variable( v ) {
+MixtureAllocationMove<valueType>::MixtureAllocationMove(StochasticNode<valueType> *v, double w) : SimpleMove( v, w ), variable( v ) {
     
 }
 
 
 /** Clone object */
 template <class valueType>
-RevBayesCore::MixtureAllocationMove<valueType>* RevBayesCore::MixtureAllocationMove<valueType>::clone( void ) const {
+MixtureAllocationMove<valueType>* MixtureAllocationMove<valueType>::clone( void ) const {
     
     return new MixtureAllocationMove<valueType>( *this );
 }
@@ -72,7 +67,7 @@ RevBayesCore::MixtureAllocationMove<valueType>* RevBayesCore::MixtureAllocationM
 
 
 template <class valueType>
-const std::string& RevBayesCore::MixtureAllocationMove<valueType>::getMoveName( void ) const {
+const std::string& MixtureAllocationMove<valueType>::getMoveName( void ) const {
     static std::string name = "Mixture-Reallocation";
     
     return name;
@@ -82,7 +77,7 @@ const std::string& RevBayesCore::MixtureAllocationMove<valueType>::getMoveName( 
 
 /** Perform the move */
 template <class valueType>
-double RevBayesCore::MixtureAllocationMove<valueType>::performSimpleMove( void ) {
+double MixtureAllocationMove<valueType>::performSimpleMove( void ) {
     
     // Get random number generator    
     RandomNumberGenerator* rng     = GLOBAL_RNG;
@@ -106,7 +101,7 @@ double RevBayesCore::MixtureAllocationMove<valueType>::performSimpleMove( void )
 
 
 template <class valueType>
-void RevBayesCore::MixtureAllocationMove<valueType>::rejectSimpleMove( void ) {
+void MixtureAllocationMove<valueType>::rejectSimpleMove( void ) {
     // just reset the index
 
     MixtureDistribution<valueType>& dist = static_cast<MixtureDistribution<valueType> &>( variable->getDistribution() );
@@ -116,7 +111,7 @@ void RevBayesCore::MixtureAllocationMove<valueType>::rejectSimpleMove( void ) {
 
 
 template <class valueType>
-void RevBayesCore::MixtureAllocationMove<valueType>::swapNode(DagNode *oldN, DagNode *newN) {
+void MixtureAllocationMove<valueType>::swapNode(DagNode *oldN, DagNode *newN) {
     // call the parent method
     SimpleMove::swapNode(oldN, newN);
     

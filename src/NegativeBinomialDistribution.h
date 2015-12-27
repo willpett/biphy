@@ -23,30 +23,25 @@
 #include "TypedDagNode.h"
 #include "TypedDistribution.h"
 
-namespace RevBayesCore {
+class NegativeBinomialDistribution : public TypedDistribution<int> {
     
-    class NegativeBinomialDistribution : public TypedDistribution<int> {
-        
-    public:
-        NegativeBinomialDistribution(const TypedDagNode<int> *n, const TypedDagNode<double> *p);
-        virtual                                            ~NegativeBinomialDistribution(void);                                             //!< Virtual destructor
-        
-        // public member functions
-        NegativeBinomialDistribution*                               clone(void) const;                                                      //!< Create an independent clone
-        double                                              computeLnProbability(void);
-        void                                                redrawValue(void);
-
-    protected:
-        // Parameter management functions
-        void                                                swapParameter(const DagNode *oldP, const DagNode *newP);        //!< Swap a parameter
-        
-    private:
-        
-        // members
-        const TypedDagNode<int>*                            r;
-        const TypedDagNode<double>*                         p;
-    };
+public:
+    NegativeBinomialDistribution(const TypedDagNode<int> *n, const TypedDagNode<double> *p);
+    virtual                                            ~NegativeBinomialDistribution(void);                                             //!< Virtual destructor
     
-}
+    // public member functions
+    NegativeBinomialDistribution*                               clone(void) const;                                                      //!< Create an independent clone
+    double                                              computeLnProbability(void);
+    void                                                redrawValue(void);
 
+protected:
+    // Parameter management functions
+    void                                                swapParameter(const DagNode *oldP, const DagNode *newP);        //!< Swap a parameter
+    
+private:
+    
+    // members
+    const TypedDagNode<int>*                            r;
+    const TypedDagNode<double>*                         p;
+};
 #endif

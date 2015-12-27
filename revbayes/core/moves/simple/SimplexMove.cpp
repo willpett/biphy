@@ -19,15 +19,11 @@
 #include "SimplexMove.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
-#include "RbConstants.h"
-#include "RbException.h"
-#include "RbStatisticsHelper.h"
-#include "RbUtil.h"
-
 #include <cmath>
 #include <ostream>
-
-using namespace RevBayesCore;
+#include "StatisticsHelper.h"
+#include "Constants.h"
+#include "Exception.h"
 
 SimplexMove::SimplexMove(StochasticNode<std::vector<double> > *v, double a, int nc, double o, bool t, double w, double k /*=0.0*/) : SimpleMove( v, w, t ), variable( v ), alpha( a ), nCategories( nc ), offset( o ), kappa( k ) {
     
@@ -79,11 +75,11 @@ double SimplexMove::performSimpleMove( void ) {
 	double lnProposalRatio = 0.0;
 	if ( nCategories > n ) {
 		// we can't update more elements than there are elements in the simplex
-		throw RbException( "Attempting to update too many simplex variables" );
+		throw Exception( "Attempting to update too many simplex variables" );
     }
 	else if ( nCategories < 1 ) {
 		// we also can't update 0 or a negative number of elements
-		throw RbException( "Attempting to update too few simplex variables" );
+		throw Exception( "Attempting to update too few simplex variables" );
     }
 	else if ( nCategories < n ) {
 		// we update a subset of the elements in the full simplex
@@ -93,7 +89,7 @@ double SimplexMove::performSimpleMove( void ) {
 		std::vector<int> tmpV;
 		for (int i=0; i<n; i++)
 			tmpV.push_back(i);
-		RbStatistics::Helper::randomlySelectFromVectorWithoutReplacement<int>(tmpV, indicesToUpdate, nCategories, *rng);
+		Statistics::Helper::randomlySelectFromVectorWithoutReplacement<int>(tmpV, indicesToUpdate, nCategories, *rng);
 		std::map<int,int> mapper;
 		for (size_t i=0; i<indicesToUpdate.size(); i++)
 			mapper.insert( std::make_pair(indicesToUpdate[i], i) );
@@ -119,7 +115,7 @@ double SimplexMove::performSimpleMove( void ) {
             alphaForward[i] = (x[i]+offset) * alpha + kappaV[i];
         
 		// draw a new value for the reduced vector
-		z = RbStatistics::Dirichlet::rv( alphaForward, *rng );
+		z = Statistics::Dirichlet::rv( alphaForward, *rng );
 		
 		// fill in the Dirichlet parameters for the reverse probability calculations
 		for (size_t i=0; i<z.size(); i++)
@@ -136,12 +132,12 @@ double SimplexMove::performSimpleMove( void ) {
             
             // test for 0-values
             if ( newVal[i] < 1E-100) {
-                return RbConstants::Double::neginf;
+                return Constants::Double::neginf;
             }
         }
         
 		// Hastings ratio
-		lnProposalRatio  = RbStatistics::Dirichlet::lnPdf(alphaReverse, x) - RbStatistics::Dirichlet::lnPdf(alphaForward, z); // Hastings Ratio
+		lnProposalRatio  = Statistics::Dirichlet::lnPdf(alphaReverse, x) - Statistics::Dirichlet::lnPdf(alphaForward, z); // Hastings Ratio
 		lnProposalRatio += (n - nCategories) * log(factor); // Jacobian
         
     }
@@ -155,12 +151,12 @@ double SimplexMove::performSimpleMove( void ) {
             // we need to check for 0 values
             if (alphaForward[i] < 1E-100) {
                 // very low proposal probability which will hopefully result into a rejected proposal
-                return RbConstants::Double::neginf;
+                return Constants::Double::neginf;
             }
         }
         
 		// then, we propose new values
-		newVal = RbStatistics::Dirichlet::rv( alphaForward, *rng );
+		newVal = Statistics::Dirichlet::rv( alphaForward, *rng );
 		
 		// and calculate the Dirichlet parameters for the (imagined) reverse move
 		std::vector<double> alphaReverse(newVal.size());
@@ -169,12 +165,12 @@ double SimplexMove::performSimpleMove( void ) {
             // we need to check for 0 values
             if (alphaReverse[i] < 1E-100) {
                 // very low proposal probability which will hopefully result into a rejected proposal
-                return RbConstants::Double::neginf;
+                return Constants::Double::neginf;
             }
         }
 		
 		// finally, we calculate the log of the Hastings ratio
-		lnProposalRatio = RbStatistics::Dirichlet::lnPdf(alphaReverse, curVal) - RbStatistics::Dirichlet::lnPdf(alphaForward, newVal);
+		lnProposalRatio = Statistics::Dirichlet::lnPdf(alphaReverse, curVal) - Statistics::Dirichlet::lnPdf(alphaForward, newVal);
     }
     
     variable->setValue( new std::vector<double>(newVal), false );

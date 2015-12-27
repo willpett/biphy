@@ -18,20 +18,17 @@
 #ifndef DistributionExponential_H
 #define DistributionExponential_H
 
-namespace RevBayesCore {
+class RandomNumberGenerator;
 
-    class RandomNumberGenerator;
+namespace Statistics {
 
-    namespace RbStatistics {
+    namespace Exponential {
     
-        namespace Exponential {
-        
-            double                      pdf(double lambda, double x);                                         /*!< Exponential(lambda) probability density */
-            double                      lnPdf(double lambda, double x);                                       /*!< Exponential(lambda) log_e probability density */
-            double                      cdf(double lambda, double x);                                         /*!< Exponential(lambda) cumulative probability */
-            double                      quantile(double lambda, double p);                                    /*!< Exponential(lambda) quantile */
-            double                      rv(double lambda, RandomNumberGenerator& rng);                        /*!< Exponential(lambda) random variable */
-        }
+        double                      pdf(double lambda, double x);                                         /*!< Exponential(lambda) probability density */
+        double                      lnPdf(double lambda, double x);                                       /*!< Exponential(lambda) log_e probability density */
+        double                      cdf(double lambda, double x);                                         /*!< Exponential(lambda) cumulative probability */
+        double                      quantile(double lambda, double p);                                    /*!< Exponential(lambda) quantile */
+        double                      rv(double lambda, RandomNumberGenerator& rng);                        /*!< Exponential(lambda) random variable */
     }
 }
 

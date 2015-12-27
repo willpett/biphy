@@ -27,30 +27,26 @@
 
 #include <vector>
 
-namespace RevBayesCore {
+class MeanFunction : public TypedFunction<double> {
     
-    class MeanFunction : public TypedFunction<double> {
-        
-    public:
-        MeanFunction(const TypedDagNode<std::vector<double> > * v);
-        MeanFunction(const MeanFunction &n);                                                                                        //!< Copy constructor
-        virtual                                            ~MeanFunction(void);                                                       //!< Virtual destructor
-        
-        // public member functions
-        MeanFunction*                                       clone(void) const;                                                          //!< Create an independent clone
-        void                                                update(void);
-        
-    protected:
-        void                                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);            //!< Implementation of swaping parameters
-        
-    private:
-        
-        // members
-        const TypedDagNode<std::vector<double> >*           vals;
-        
-    };
+public:
+    MeanFunction(const TypedDagNode<std::vector<double> > * v);
+    MeanFunction(const MeanFunction &n);                                                                                        //!< Copy constructor
+    virtual                                            ~MeanFunction(void);                                                       //!< Virtual destructor
     
-}
+    // public member functions
+    MeanFunction*                                       clone(void) const;                                                          //!< Create an independent clone
+    void                                                update(void);
+    
+protected:
+    void                                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);            //!< Implementation of swaping parameters
+    
+private:
+    
+    // members
+    const TypedDagNode<std::vector<double> >*           vals;
+    
+};
 
 
 #endif

@@ -22,42 +22,37 @@
 #ifndef VectorFunction_H
 #define VectorFunction_H
 
-#include "RbVector.h"
 #include "TypedFunction.h"
 
 #include <vector>
 
-namespace RevBayesCore {
+template <class valueType>
+class VectorFunction : public TypedFunction< std::vector<valueType> > {
     
-    template <class valueType>
-    class VectorFunction : public TypedFunction< std::vector<valueType> > {
-        
-    public:
-        VectorFunction(const std::vector<const TypedDagNode<valueType> *> &args);
-        VectorFunction(const VectorFunction &n);                                                                                        //!< Copy constructor
-        virtual                                            ~VectorFunction(void);                                                       //!< Virtual destructor
-        
-        // public member functions
-        VectorFunction*                                     clone(void) const;                                                          //!< Create an independent clone
-        void                                                keep(DagNode* affecter);
-        void                                                restore(DagNode *restorer);   
-        void                                                touch(DagNode *toucher );
-        void                                                update(void);
-        
-    protected:
-        void                                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);            //!< Implementation of swaping parameters
-        
-    private:
-        
-        // members
-        std::vector<const TypedDagNode<valueType>* >        parameters;
-        
-    };
+public:
+    VectorFunction(const std::vector<const TypedDagNode<valueType> *> &args);
+    VectorFunction(const VectorFunction &n);                                                                                        //!< Copy constructor
+    virtual                                            ~VectorFunction(void);                                                       //!< Virtual destructor
     
-}
+    // public member functions
+    VectorFunction*                                     clone(void) const;                                                          //!< Create an independent clone
+    void                                                keep(DagNode* affecter);
+    void                                                restore(DagNode *restorer);   
+    void                                                touch(DagNode *toucher );
+    void                                                update(void);
+    
+protected:
+    void                                                swapParameterInternal(const DagNode *oldP, const DagNode *newP);            //!< Implementation of swaping parameters
+    
+private:
+    
+    // members
+    std::vector<const TypedDagNode<valueType>* >        parameters;
+    
+};
 
 template <class valueType>
-RevBayesCore::VectorFunction<valueType>::VectorFunction(const std::vector<const TypedDagNode<valueType> *> &args) : TypedFunction< std::vector<valueType> >( new std::vector<valueType>() ), parameters( args ) {
+VectorFunction<valueType>::VectorFunction(const std::vector<const TypedDagNode<valueType> *> &args) : TypedFunction< std::vector<valueType> >( new std::vector<valueType>() ), parameters( args ) {
     // add the lambda parameter as a parent
     typename std::vector<const TypedDagNode<valueType>* >::iterator it;
     for (it = parameters.begin(); it != parameters.end(); ++it) {
@@ -69,7 +64,7 @@ RevBayesCore::VectorFunction<valueType>::VectorFunction(const std::vector<const 
 
 
 template <class valueType>
-RevBayesCore::VectorFunction<valueType>::VectorFunction(const VectorFunction<valueType> &n) : TypedFunction< std::vector<valueType> >( n ), parameters( n.parameters ) {
+VectorFunction<valueType>::VectorFunction(const VectorFunction<valueType> &n) : TypedFunction< std::vector<valueType> >( n ), parameters( n.parameters ) {
     // no need to add parameters, happens automatically
     
     update();
@@ -77,25 +72,25 @@ RevBayesCore::VectorFunction<valueType>::VectorFunction(const VectorFunction<val
 
 
 template <class valueType>
-RevBayesCore::VectorFunction<valueType>::~VectorFunction( void ) {
+VectorFunction<valueType>::~VectorFunction( void ) {
     // We don't delete the parameters, because they might be used somewhere else too. The model needs to do that!
 }
 
 
 
 template <class valueType>
-RevBayesCore::VectorFunction<valueType>* RevBayesCore::VectorFunction<valueType>::clone( void ) const {
+VectorFunction<valueType>* VectorFunction<valueType>::clone( void ) const {
     return new VectorFunction<valueType>( *this );
 }
 
 template <class valueType>
-void RevBayesCore::VectorFunction<valueType>::keep( DagNode *toucher ) {
+void VectorFunction<valueType>::keep( DagNode *toucher ) {
     this->dagNode->clearTouchedElementIndices();
 }
 
 
 template <class valueType>
-void RevBayesCore::VectorFunction<valueType>::restore( DagNode *toucher ) {
+void VectorFunction<valueType>::restore( DagNode *toucher ) {
     
     this->update();
     
@@ -105,7 +100,7 @@ void RevBayesCore::VectorFunction<valueType>::restore( DagNode *toucher ) {
 
 
 template <class valueType>
-void RevBayesCore::VectorFunction<valueType>::update( void ) {
+void VectorFunction<valueType>::update( void ) {
     
     bool updateAll = true;
     if ( this->dagNode != NULL )
@@ -137,7 +132,7 @@ void RevBayesCore::VectorFunction<valueType>::update( void ) {
 
 
 template <class valueType>
-void RevBayesCore::VectorFunction<valueType>::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
+void VectorFunction<valueType>::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
     
     for (size_t i = 0; i < parameters.size(); ++i) {
         if (oldP == parameters[i]) {
@@ -151,7 +146,7 @@ void RevBayesCore::VectorFunction<valueType>::swapParameterInternal(const DagNod
 
 
 template <class valueType>
-void RevBayesCore::VectorFunction<valueType>::touch( DagNode *toucher ) {
+void VectorFunction<valueType>::touch( DagNode *toucher ) {
     
     for (size_t i = 0; i < parameters.size(); ++i) 
     {

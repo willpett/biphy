@@ -1,14 +1,10 @@
 #include "Move.h"
 #include "DagNode.h"
-#include "RbException.h"
-
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <sstream>
-
-
-using namespace RevBayesCore;
+#include "Exception.h"
 
 Move::Move( DagNode *n, double w, bool t ) : weight( w ), numAccepted( 0 ), numTried( 0 ), autoTuning( t ) {
     nodes.insert( n );
@@ -223,7 +219,7 @@ void Move::resetCounters( void ) {
 void Move::swapNode(DagNode *oldN, DagNode *newN) {
     // error catching
     if ( nodes.find(oldN) == nodes.end() ) {
-        throw RbException("Cannot replace DAG node in this move because the move doesn't hold this DAG node.");
+        throw Exception("Cannot replace DAG node in this move because the move doesn't hold this DAG node.");
     }
     
     nodes.erase( oldN );

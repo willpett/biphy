@@ -19,14 +19,10 @@
 #include "BetaSimplexMove.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
-#include "RbConstants.h"
-#include "RbException.h"
-#include "RbStatisticsHelper.h"
-#include "RbUtil.h"
-
 #include <cmath>
-
-using namespace RevBayesCore;
+#include "StatisticsHelper.h"
+#include "Constants.h"
+#include "Exception.h"
 
 BetaSimplexMove::BetaSimplexMove(StochasticNode<double > *v, double a, bool t, double w) : SimpleMove( v, w, t ), variable( v ), alpha( a ) {
     
@@ -70,14 +66,14 @@ double BetaSimplexMove::performSimpleMove( void ) {
     double bf = alpha * (1.0-curVal) + 1.0;
     
     // then, we propose new values
-    newVal = RbStatistics::Beta::rv( af, bf, *rng );
+    newVal = Statistics::Beta::rv( af, bf, *rng );
     
     // and calculate the Dirichlet parameters for the (imagined) reverse move
     double ar = alpha * newVal + 1.0;
     double br = alpha * (1.0-newVal) + 1.0;
     
     // finally, we calculate the log of the Hastings ratio
-    lnProposalRatio = RbStatistics::Beta::lnPdf(ar, br, curVal) - RbStatistics::Beta::lnPdf(af, bf, newVal);
+    lnProposalRatio = Statistics::Beta::lnPdf(ar, br, curVal) - Statistics::Beta::lnPdf(af, bf, newVal);
     
     variable->setValue( new double(newVal) );
     

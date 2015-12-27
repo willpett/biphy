@@ -1,7 +1,7 @@
 #ifndef FastaWriter_H
 #define FastaWriter_H
 
-#include "AbstractCharacterData.h"
+#include "BinaryCharacterData.h"
 
 #include <iostream>
 #include <fstream>
@@ -9,29 +9,15 @@
 #include <sstream>
 #include <vector>
 
-namespace RevBayesCore {
+class FastaWriter {
     
-    /**
-     * This class represents the writer object of character data objects into files in Fasta format.
-     *
-     * This class currently has only one functionality,
-     * to write character data objects into a file in Fasta format.
-     *
-     * @copyright Copyright 2009-
-     * @author The RevBayes Development Core Team (Sebastian Hoehna)
-     * @since 2013-04-15, version 1.0
-     */
-    class FastaWriter {
-        
-    public:
-        FastaWriter();
-        
-        void                    writeData(const std::string& fn, const AbstractCharacterData &d, bool append = false);
-        
-        
-    };
+public:
+    FastaWriter();
     
-}
+    void                    writeData(const std::string& fn, const BinaryCharacterData &d, bool append = false);
+    
+    
+};
 
 
 #endif

@@ -1,11 +1,10 @@
 
 
 #include "DagNode.h"
-#include "DynamicNode.h"
-#include "RbException.h"
-#include "RbOptions.h"
 
-using namespace RevBayesCore;
+#include "Exception.h"
+#include "Options.h"
+#include "DynamicNode.h"
 
 DagNode::DagNode( const std::string &n ) : 
         children(),
@@ -160,7 +159,7 @@ DagNode* DagNode::cloneDownstreamDag( std::map<const DagNode*, DagNode* >& newNo
 }
 
 
-void DagNode::collectDownstreamGraph(std::set<RevBayesCore::DagNode *> &nodes) {
+void DagNode::collectDownstreamGraph(std::set<DagNode *> &nodes) {
     
     // for efficiency we check for multiple calls
     if ( nodes.find( this ) == nodes.end() ) {
@@ -170,6 +169,24 @@ void DagNode::collectDownstreamGraph(std::set<RevBayesCore::DagNode *> &nodes) {
         // now, perform a recursive call
         for (std::set<DagNode*>::iterator it = children.begin(); it != children.end(); ++it) {
             (*it)->collectDownstreamGraph( nodes );
+        }
+    }
+}
+
+void DagNode::collectDAG(std::set<const DagNode *> &nodes) const {
+    
+    // for efficiency we check for multiple calls
+    if ( nodes.find( this ) == nodes.end() ) {
+        // first, add myself
+        nodes.insert( this );
+        
+        // now, perform a recursive call
+        for (std::set<DagNode*>::iterator it = children.begin(); it != children.end(); ++it) {
+            (*it)->collectDAG( nodes );
+        }
+        
+        for (std::set<const DagNode*>::iterator it = parents.begin(); it != parents.end(); ++it) {
+            (*it)->collectDAG( nodes );
         }
     }
 }
@@ -451,7 +468,7 @@ void DagNode::setName(std::string const &n)
 void DagNode::swapParent( const DagNode *oldParent, const DagNode *newParent ) {
     
     if ( parents.find( oldParent ) == parents.end() )
-        throw RbException( "Node '" + oldParent->getName() + "' is not a parent" );
+        throw Exception( "Node '" + oldParent->getName() + "' is not a parent" );
     
     oldParent->removeChild( this );
     if ( newParent != NULL ) {

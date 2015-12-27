@@ -1,7 +1,5 @@
 #include "NormalizeVectorFunction.h"
 
-using namespace RevBayesCore;
-
 NormalizeVectorFunction::NormalizeVectorFunction(const TypedDagNode<std::vector<double> > *v) : TypedFunction< std::vector<double> >( new std::vector<double>(v->getValue().size(), 1.0) ), vals( v ) {
     // add the parameters as parents
     this->addParameter( vals );

@@ -22,23 +22,19 @@
 
 #include <iostream>
 
-namespace RevBayesCore {
+class ContinuousFunction : public TypedFunction<double> {
     
-    class ContinuousFunction : public TypedFunction<double> {
-        
-    public:
-        // constructors and destructor
-        virtual                            ~ContinuousFunction(void) {}
-                
-        // pure virtual public methors
-        virtual ContinuousFunction*         clone(void) const = 0;                                  //!< Clone the function
-        virtual void                        update(void) = 0;                                       //!< Clone the function
-        
-    protected:
-        ContinuousFunction(double *v, std::string revDecl = "");
-        
-    };
-        
-}
+public:
+    // constructors and destructor
+    virtual                            ~ContinuousFunction(void) {}
+            
+    // pure virtual public methors
+    virtual ContinuousFunction*         clone(void) const = 0;                                  //!< Clone the function
+    virtual void                        update(void) = 0;                                       //!< Clone the function
+    
+protected:
+    ContinuousFunction(double *v, std::string revDecl = "");
+    
+};
 
 #endif

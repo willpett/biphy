@@ -1,9 +1,8 @@
 #include "PoissonDistribution.h"
+
+#include "Constants.h"
 #include "DistributionPoisson.h"
 #include "RandomNumberFactory.h"
-#include "RbConstants.h"
-
-using namespace RevBayesCore;
 
 PoissonDistribution::PoissonDistribution(const TypedDagNode<double> *l) : TypedDistribution<int>( new int( 1 ) ),
     lambda( l )
@@ -13,7 +12,7 @@ PoissonDistribution::PoissonDistribution(const TypedDagNode<double> *l) : TypedD
     // this will also ensure that the parameters are not getting deleted before we do
     addParameter( lambda );
     
-    *value = RbStatistics::Poisson::rv(lambda->getValue(), *GLOBAL_RNG);
+    *value = Statistics::Poisson::rv(lambda->getValue(), *GLOBAL_RNG);
 }
 
 
@@ -35,15 +34,15 @@ double PoissonDistribution::computeLnProbability( void )
     // check that the value is inside the boundaries
     if ( v < 0.0 )
     {
-        return RbConstants::Double::neginf;
+        return Constants::Double::neginf;
     }
     
-    return RbStatistics::Poisson::lnPdf(lambda->getValue(), *value);
+    return Statistics::Poisson::lnPdf(lambda->getValue(), *value);
 }
 
 
 void PoissonDistribution::redrawValue( void ) {
-    *value = RbStatistics::Poisson::rv(lambda->getValue(), *GLOBAL_RNG);
+    *value = Statistics::Poisson::rv(lambda->getValue(), *GLOBAL_RNG);
 }
 
 

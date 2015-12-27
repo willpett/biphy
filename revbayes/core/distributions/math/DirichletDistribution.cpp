@@ -2,13 +2,11 @@
 #include "DistributionDirichlet.h"
 #include "RandomNumberFactory.h"
 
-using namespace RevBayesCore;
-
 DirichletDistribution::DirichletDistribution(const TypedDagNode< std::vector<double> > *a) : TypedDistribution< std::vector<double> >( new std::vector<double>() ), alpha( a ) {
     // add the lambda parameter as a parent
     addParameter( a );
     
-    *value = RbStatistics::Dirichlet::rv(alpha->getValue(), *GLOBAL_RNG);
+    *value = Statistics::Dirichlet::rv(alpha->getValue(), *GLOBAL_RNG);
 }
 
 
@@ -29,12 +27,12 @@ DirichletDistribution* DirichletDistribution::clone( void ) const {
 
 
 double DirichletDistribution::computeLnProbability( void ) {
-    return RbStatistics::Dirichlet::lnPdf(alpha->getValue(), *value);
+    return Statistics::Dirichlet::lnPdf(alpha->getValue(), *value);
 }
 
 
 void DirichletDistribution::redrawValue( void ) {
-    *value = RbStatistics::Dirichlet::rv(alpha->getValue(), *GLOBAL_RNG);
+    *value = Statistics::Dirichlet::rv(alpha->getValue(), *GLOBAL_RNG);
 }
 
 

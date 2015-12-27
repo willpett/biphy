@@ -18,19 +18,14 @@
 
 
 #include "CrossValidationScoreMonitor.h"
-#include "AbstractDiscreteCharacterData.h"
 #include "DagNode.h"
 #include "Model.h"
 #include "Monitor.h"
-#include "RbException.h"
-
-using namespace RevBayesCore;
+#include "Exception.h"
 
 /* Constructor */
-CrossValidationScoreMonitor::CrossValidationScoreMonitor(StochasticNode<AbstractCharacterData> *t, AbstractCharacterData* test, int g, const std::string &fname, bool ap) : Monitor(g,t), outStream(), data( t ), test( test ), filename( fname ), append(ap) {
-    if(dynamic_cast<AbstractDiscreteCharacterData*>(t->getValue().clone()) == 0){
-    	throw RbException("CrossValidationScoreMonitor requires DiscreteCharacterData");
-    }
+CrossValidationScoreMonitor::CrossValidationScoreMonitor(StochasticNode<BinaryCharacterData> *t, BinaryCharacterData* test, int g, const std::string &fname, bool ap) : Monitor(g,t), outStream(), data( t ), test( test ), filename( fname ), append(ap) {
+    
 }
 
 
@@ -63,7 +58,7 @@ void CrossValidationScoreMonitor::monitor(long gen) {
     int samplingFrequency = printgen;
     
     if (gen % samplingFrequency == 0) {
-    	AbstractCharacterData* learned = data->getValue().clone();
+        BinaryCharacterData* learned = data->getValue().clone();
     	data->clamp(test->clone());
     	double cvScore = data->getLnProbability();
     	outStream << gen << "\t" << cvScore << std::endl;
@@ -90,7 +85,7 @@ void CrossValidationScoreMonitor::printHeader() {
 
 void CrossValidationScoreMonitor::swapNode(DagNode *oldN, DagNode *newN) {
 	if ( oldN == data ) {
-		data = static_cast< StochasticNode<AbstractCharacterData> *>( newN );
+		data = static_cast< StochasticNode<BinaryCharacterData> *>( newN );
 	}
     // delegate to base class
     Monitor::swapNode(oldN, newN);

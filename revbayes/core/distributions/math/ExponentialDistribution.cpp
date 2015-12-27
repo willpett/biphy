@@ -1,9 +1,8 @@
 #include "ExponentialDistribution.h"
+
+#include "Constants.h"
 #include "DistributionExponential.h"
 #include "RandomNumberFactory.h"
-#include "RbConstants.h"
-
-using namespace RevBayesCore;
 
 
 ExponentialDistribution::ExponentialDistribution(const TypedDagNode<double> *l) : ContinuousDistribution( new double( 0.0 ) ),
@@ -44,7 +43,7 @@ ExponentialDistribution::~ExponentialDistribution( void )
 
 double ExponentialDistribution::cdf( void ) const 
 {
-    return RbStatistics::Exponential::cdf(lambda->getValue(), *value - (offset != NULL ? offset->getValue() : 0.0));
+    return Statistics::Exponential::cdf(lambda->getValue(), *value - (offset != NULL ? offset->getValue() : 0.0));
 }
 
 
@@ -59,16 +58,16 @@ double ExponentialDistribution::computeLnProbability( void )
     double v = *value - (offset != NULL ? offset->getValue() : 0.0);
     if ( v < 0.0 )
     {
-        return RbConstants::Double::neginf;
+        return Constants::Double::neginf;
     }
     
-    return RbStatistics::Exponential::lnPdf(lambda->getValue(), v);
+    return Statistics::Exponential::lnPdf(lambda->getValue(), v);
 }
 
 
 double ExponentialDistribution::getMax( void ) const 
 {
-    return RbConstants::Double::inf;
+    return Constants::Double::inf;
 }
 
 
@@ -80,15 +79,15 @@ double ExponentialDistribution::getMin( void ) const
 
 double ExponentialDistribution::quantile(double p) const 
 {
-    return RbStatistics::Exponential::quantile(lambda->getValue(), p) + (offset != NULL ? offset->getValue() : 0.0);
+    return Statistics::Exponential::quantile(lambda->getValue(), p) + (offset != NULL ? offset->getValue() : 0.0);
 }
 
 
 void ExponentialDistribution::redrawValue( void ) 
 {
-    *value = RbStatistics::Exponential::rv(lambda->getValue(), *GLOBAL_RNG) + (offset != NULL ? offset->getValue() : 0.0);
+    *value = Statistics::Exponential::rv(lambda->getValue(), *GLOBAL_RNG) + (offset != NULL ? offset->getValue() : 0.0);
     while(*value <= getMin() || *value >= getMax())
-    	*value = RbStatistics::Exponential::rv(lambda->getValue(), *GLOBAL_RNG) + (offset != NULL ? offset->getValue() : 0.0);
+    	*value = Statistics::Exponential::rv(lambda->getValue(), *GLOBAL_RNG) + (offset != NULL ? offset->getValue() : 0.0);
 }
 
 

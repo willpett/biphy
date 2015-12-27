@@ -39,51 +39,47 @@
 
 #include <iostream>
 
-namespace RevBayesCore {
+template <class valueType>
+class StochasticNode;
+
+template<class valueType>
+class TypedDistribution : public Distribution {
     
-    template <class valueType>
-    class StochasticNode;
+public:
+    // constructors and destructor
+    virtual                        ~TypedDistribution(void);
     
-    template<class valueType>
-    class TypedDistribution : public Distribution {
-        
-    public:
-        // constructors and destructor
-        virtual                        ~TypedDistribution(void);
-        
-        // public methods
-        valueType&                      getValue(void);                                                     //!< Get the current value (non-const)
-        const valueType&                getValue(void) const;                                               //!< Get the current value
-        void                            setStochasticNode(StochasticNode<valueType> *n);                    //!< Set the stochastic node holding this distribution
-        
-        // virtual methods
-        virtual void                    setValue(valueType *v);                                             //!< Set the current value, e.g. attach an observation (clamp)
-        virtual void                    setValue(const valueType &v);                                       //!< Set the current value, e.g. attach an observation (clamp)
-        
-        // pure virtual public methods
-        virtual TypedDistribution*      clone(void) const = 0;                                              //!< Clone the distribution
-        virtual double                  computeLnProbability(void) = 0;                                     //!< Clone the ln probability density
-        virtual void                    redrawValue(void) = 0;                                              //!< Draw a new random value from the distribution
-        virtual void                    swapParameter(const DagNode *oldP, const DagNode *newP) = 0;        //!< Exchange the parameter
-        
-    protected:
-        TypedDistribution(valueType *v);
-        TypedDistribution(const TypedDistribution &d);
-        
-        // overloaded operators
-        TypedDistribution&              operator=(const TypedDistribution &d); 
-        
-        // inheritable attributes
-        StochasticNode<valueType>*      dagNode;                                                            //!< The stochastic node holding this distribution. This is needed for delegated calls to the DAG, such as getAffected(), ...
-        valueType*                      value;
-        
-    };
+    // public methods
+    valueType&                      getValue(void);                                                     //!< Get the current value (non-const)
+    const valueType&                getValue(void) const;                                               //!< Get the current value
+    void                            setStochasticNode(StochasticNode<valueType> *n);                    //!< Set the stochastic node holding this distribution
     
-    // Global functions using the class
-    template <class valueType>
-    std::ostream&               operator<<(std::ostream& o, const TypedDistribution<valueType>& x);                                //!< Overloaded output operator
+    // virtual methods
+    virtual void                    setValue(valueType *v);                                             //!< Set the current value, e.g. attach an observation (clamp)
+    virtual void                    setValue(const valueType &v);                                       //!< Set the current value, e.g. attach an observation (clamp)
     
-}
+    // pure virtual public methods
+    virtual TypedDistribution*      clone(void) const = 0;                                              //!< Clone the distribution
+    virtual double                  computeLnProbability(void) = 0;                                     //!< Clone the ln probability density
+    virtual void                    redrawValue(void) = 0;                                              //!< Draw a new random value from the distribution
+    virtual void                    swapParameter(const DagNode *oldP, const DagNode *newP) = 0;        //!< Exchange the parameter
+    
+protected:
+    TypedDistribution(valueType *v);
+    TypedDistribution(const TypedDistribution &d);
+    
+    // overloaded operators
+    TypedDistribution&              operator=(const TypedDistribution &d); 
+    
+    // inheritable attributes
+    StochasticNode<valueType>*      dagNode;                                                            //!< The stochastic node holding this distribution. This is needed for delegated calls to the DAG, such as getAffected(), ...
+    valueType*                      value;
+    
+};
+
+// Global functions using the class
+template <class valueType>
+std::ostream&               operator<<(std::ostream& o, const TypedDistribution<valueType>& x);
 
 
 #include "Cloneable.h"
@@ -92,7 +88,7 @@ namespace RevBayesCore {
 
 
 template <class valueType>
-RevBayesCore::TypedDistribution<valueType>::TypedDistribution(valueType *v) : Distribution(), 
+TypedDistribution<valueType>::TypedDistribution(valueType *v) : Distribution(), 
     dagNode( NULL ), 
     value( v ) 
 {
@@ -100,7 +96,7 @@ RevBayesCore::TypedDistribution<valueType>::TypedDistribution(valueType *v) : Di
 }
 
 template <class valueType>
-RevBayesCore::TypedDistribution<valueType>::TypedDistribution(const TypedDistribution &d) : Distribution(d), 
+TypedDistribution<valueType>::TypedDistribution(const TypedDistribution &d) : Distribution(d), 
     dagNode( NULL ), 
     value( Cloner<valueType, IsDerivedFrom<valueType, Cloneable>::Is >::createClone( *d.value ) ) 
 {
@@ -108,7 +104,7 @@ RevBayesCore::TypedDistribution<valueType>::TypedDistribution(const TypedDistrib
 }
 
 template <class valueType>
-RevBayesCore::TypedDistribution<valueType>::~TypedDistribution( void ) {
+TypedDistribution<valueType>::~TypedDistribution( void ) {
     
     delete value;
     
@@ -117,7 +113,7 @@ RevBayesCore::TypedDistribution<valueType>::~TypedDistribution( void ) {
 
 
 template <class valueType>
-RevBayesCore::TypedDistribution<valueType>& RevBayesCore::TypedDistribution<valueType>::operator=(const TypedDistribution &d) {
+TypedDistribution<valueType>& TypedDistribution<valueType>::operator=(const TypedDistribution &d) {
     
     if ( this != &d ) 
     {
@@ -134,25 +130,25 @@ RevBayesCore::TypedDistribution<valueType>& RevBayesCore::TypedDistribution<valu
 
 
 template <class valueType>
-valueType& RevBayesCore::TypedDistribution<valueType>::getValue(void) {
+valueType& TypedDistribution<valueType>::getValue(void) {
     
     return *value;
 }
 
 template <class valueType>
-const valueType& RevBayesCore::TypedDistribution<valueType>::getValue(void) const {
+const valueType& TypedDistribution<valueType>::getValue(void) const {
     
     return *value;
 }
 
 template <class valueType>
-void RevBayesCore::TypedDistribution<valueType>::setStochasticNode( StochasticNode<valueType> *n ) {
+void TypedDistribution<valueType>::setStochasticNode( StochasticNode<valueType> *n ) {
     
     dagNode = n;
 }
 
 template <class valueType>
-void RevBayesCore::TypedDistribution<valueType>::setValue( valueType *v ) {
+void TypedDistribution<valueType>::setValue( valueType *v ) {
     
 	// free memory
     delete value;
@@ -161,7 +157,7 @@ void RevBayesCore::TypedDistribution<valueType>::setValue( valueType *v ) {
 }
 
 template <class valueType>
-void RevBayesCore::TypedDistribution<valueType>::setValue( const valueType &v ) {
+void TypedDistribution<valueType>::setValue( const valueType &v ) {
     
     // free memory
     delete value;
@@ -171,7 +167,7 @@ void RevBayesCore::TypedDistribution<valueType>::setValue( const valueType &v ) 
 
 
 template <class valueType>
-std::ostream& RevBayesCore::operator<<(std::ostream& o, const TypedDistribution<valueType>& f) {
+std::ostream& operator<<(std::ostream& o, const TypedDistribution<valueType>& f) {
     
     o << "Distribution()";
     

@@ -25,32 +25,28 @@
 #include "ContinuousDistribution.h"
 #include "TypedDagNode.h"
 
-namespace RevBayesCore {
+class BetaDistribution : public ContinuousDistribution {
     
-    class BetaDistribution : public ContinuousDistribution {
-        
-    public:
-        BetaDistribution(const TypedDagNode<double> *a, const TypedDagNode<double> *b);
-        virtual                                            ~BetaDistribution(void);                                                  //!< Virtual destructor
-        
-        // public member functions
-        double                                              cdf(void) const;                                                                  //!< Cummulative density function
-        BetaDistribution*                                   clone(void) const;                                                          //!< Create an independent clone
-        double                                              computeLnProbability(void);
-        double                                              getMax(void) const;
-        double                                              getMin(void) const;
-        double                                              quantile(double p) const;                                                       //!< Qu
-        void                                                redrawValue(void);
-        void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
-        
-    private:
-        
-        // members
-        const TypedDagNode<double>*                          alpha;
-        const TypedDagNode<double>*                          beta;
-        
-    };
+public:
+    BetaDistribution(const TypedDagNode<double> *a, const TypedDagNode<double> *b);
+    virtual                                            ~BetaDistribution(void);                                                  //!< Virtual destructor
     
-}
+    // public member functions
+    double                                              cdf(void) const;                                                                  //!< Cummulative density function
+    BetaDistribution*                                   clone(void) const;                                                          //!< Create an independent clone
+    double                                              computeLnProbability(void);
+    double                                              getMax(void) const;
+    double                                              getMin(void) const;
+    double                                              quantile(double p) const;                                                       //!< Qu
+    void                                                redrawValue(void);
+    void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                    //!< Implementation of swaping parameters
+    
+private:
+    
+    // members
+    const TypedDagNode<double>*                          alpha;
+    const TypedDagNode<double>*                          beta;
+    
+};
 
 #endif

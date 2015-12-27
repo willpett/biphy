@@ -9,7 +9,7 @@
 #include "QuantileFunction.h"
 
 
-RevBayesCore::QuantileFunction::QuantileFunction(const TypedDagNode<double> *q, ContinuousDistribution* d) : ContinuousFunction( new double(0.0) ), p( q ), dist( d ) {
+QuantileFunction::QuantileFunction(const TypedDagNode<double> *q, ContinuousDistribution* d) : ContinuousFunction( new double(0.0) ), p( q ), dist( d ) {
     
     addParameter( p );
     
@@ -22,24 +22,24 @@ RevBayesCore::QuantileFunction::QuantileFunction(const TypedDagNode<double> *q, 
 }
 
 
-RevBayesCore::QuantileFunction::QuantileFunction(const QuantileFunction &qf) : ContinuousFunction( qf ), p( qf.p ), dist( qf.dist->clone() ) {
+QuantileFunction::QuantileFunction(const QuantileFunction &qf) : ContinuousFunction( qf ), p( qf.p ), dist( qf.dist->clone() ) {
     
 }
 
-RevBayesCore::QuantileFunction::~QuantileFunction(void) {
+QuantileFunction::~QuantileFunction(void) {
     
     delete dist;
 
 }
 
 
-RevBayesCore::QuantileFunction* RevBayesCore::QuantileFunction::clone( void ) const {
+QuantileFunction* QuantileFunction::clone( void ) const {
     
     return new QuantileFunction(*this);
 }
 
 
-void RevBayesCore::QuantileFunction::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
+void QuantileFunction::swapParameterInternal(const DagNode *oldP, const DagNode *newP) {
     
     if (oldP == p) 
     {
@@ -52,7 +52,7 @@ void RevBayesCore::QuantileFunction::swapParameterInternal(const DagNode *oldP, 
     
 }
 
-void RevBayesCore::QuantileFunction::update( void ) {
+void QuantileFunction::update( void ) {
     
     *value = dist->quantile( p->getValue() );
 }

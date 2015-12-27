@@ -1,11 +1,9 @@
-#include "RbFileManager.h"
 #include "DelimitedDataReader.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cstdlib>
-
-using namespace RevBayesCore;
+#include "FileManager.h"
 
 DelimitedDataReader::DelimitedDataReader(const std::string &fn, char d) : 
     filename(fn), 
@@ -24,7 +22,7 @@ void DelimitedDataReader::readData(void)
     
     // open file
     std::ifstream readStream;
-    RbFileManager* f = new RbFileManager(filename);
+    FileManager* f = new FileManager(filename);
     if (!f->openFile(readStream))
         std::cout << "ERROR: Could not open file " << filename << "\n";
     

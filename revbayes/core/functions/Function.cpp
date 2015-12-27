@@ -1,10 +1,7 @@
 #include "DagNode.h"
 #include "Function.h"
-#include "RbException.h"
 
-using namespace RevBayesCore;
-
-
+#include "Exception.h"
 
 Function::Function(void)  : parameters() 
 {
@@ -38,7 +35,7 @@ void Function::keep( DagNode* affecter ) {
 }
 
 
-void Function::removeParameter(const RevBayesCore::DagNode *p)
+void Function::removeParameter(const DagNode *p)
 {
     std::set<const DagNode *>::iterator it = parameters.find( p );
     if ( it != parameters.end() )
@@ -64,7 +61,7 @@ void Function::swapParameter(const DagNode *oldP, const DagNode *newP) {
     } 
     else 
     {
-        throw RbException("Could not find the parameter to be swapped.");
+        throw Exception("Could not find the parameter to be swapped.");
     }
     
 }
@@ -75,7 +72,7 @@ void Function::touch( DagNode *toucher ) {
     // do nothing
 }
 
-std::ostream& RevBayesCore::operator<<(std::ostream& o, const Function& f) {
+std::ostream& operator<<(std::ostream& o, const Function& f) {
     
     o << "f(x)";
     

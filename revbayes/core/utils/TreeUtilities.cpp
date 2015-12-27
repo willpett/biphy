@@ -6,15 +6,13 @@
 //  Copyright 2012 __MyCompanyName__. All rights reserved.
 //
 
-#include "BranchLengthTree.h"
-#include "TimeTree.h"
-#include "Topology.h"
+#include "Tree.h"
 #include "TreeUtilities.h"
 
 #include <algorithm>
 #include <iostream>
 
-void RevBayesCore::TreeUtilities::constructTimeTreeRecursively(TopologyNode *tn, const TopologyNode &n, std::vector<TopologyNode*> &nodes, std::vector<double> &ages, double depth) {
+void TreeUtilities::constructTimeTreeRecursively(TopologyNode *tn, const TopologyNode &n, std::vector<TopologyNode*> &nodes, std::vector<double> &ages, double depth) {
     
     // set the name
     tn->setName( n.getName() );
@@ -45,69 +43,31 @@ void RevBayesCore::TreeUtilities::constructTimeTreeRecursively(TopologyNode *tn,
 }
 
 
-RevBayesCore::TimeTree* RevBayesCore::TreeUtilities::convertTree(const Tree &t) {
-    // create time tree object (topology + times)
-    TimeTree *tt = new TimeTree();
-    
-    // the topology object
-    Topology *tau = new Topology();
-    
-    // clock trees should always be rooted
-    tau->setRooted( true );
-    
-    // get the root of the original tree
-    const TopologyNode& bln = t.getRoot();
-    
-    TopologyNode* root = new TopologyNode();
-    
-    std::vector<double> ages;
-    std::vector<TopologyNode*> nodes;
-    
-    double maxDepth = bln.getMaxDepth();
-    
-    // recursive creation of the tree
-    constructTimeTreeRecursively(root, bln, nodes, ages, maxDepth);
-    
-    // add the root which creates the topology
-    tau->setRoot( root );
-    
-    // connect the topology to the tree
-    tt->setTopology( tau, true );
-    
-    // set the ages
-    for (size_t i = 0; i < nodes.size(); ++i) {
-        tt->setAge(nodes[i]->getIndex(), ages[i]);
-    }
-    
-    return tt;
-}
-
-
-void RevBayesCore::TreeUtilities::rescaleSubtree(TimeTree *t, TopologyNode *n, double factor) {
+void TreeUtilities::rescaleSubtree(TopologyNode *n, double factor) {
     // we only rescale internal nodes
     if ( !n->isTip() ) {
         // rescale the age of the node
         double newAge = n->getAge() * factor;
-        t->setAge(n->getIndex(), newAge);
+        n->setAge(newAge);
         
         // assertion that we have binary trees
 #ifdef ASSERTIONS_TREE
         if ( n->getNumberOfChildren() != 2 ) {
-            throw RbException("NNI is only implemented for binary trees!");
+            throw Exception("NNI is only implemented for binary trees!");
         }
 #endif
         
         // rescale both children
-        rescaleSubtree( t, &n->getChild(0), factor);
-        rescaleSubtree( t, &n->getChild(1), factor);
+        rescaleSubtree( &n->getChild(0), factor);
+        rescaleSubtree( &n->getChild(1), factor);
     }
 }
 
 
-void RevBayesCore::TreeUtilities::rescaleTree(TimeTree *t, TopologyNode *n, double factor) {
+void TreeUtilities::rescaleTree(TopologyNode *n, double factor) {
     // rescale the time of the node
     double newAge = n->getAge() * factor;
-    t->setAge( n->getIndex(), newAge);
+    n->setAge( newAge);
     
     // recursive call for internal nodes
     if ( !n->isTip() ) {
@@ -115,25 +75,25 @@ void RevBayesCore::TreeUtilities::rescaleTree(TimeTree *t, TopologyNode *n, doub
         // assertion that we have binary trees
 #ifdef ASSERTIONS_TREE
         if ( n->getNumberOfChildren() != 2 ) {
-            throw RbException("NNI is only implemented for binary trees!");
+            throw Exception("NNI is only implemented for binary trees!");
         }
 #endif
         
         // rescale both children
-        rescaleTree( t, &n->getChild(0), factor);
-        rescaleTree( t, &n->getChild(1), factor);
+        rescaleTree( &n->getChild(0), factor);
+        rescaleTree( &n->getChild(1), factor);
     }
 }
 
 
 
-std::string RevBayesCore::TreeUtilities::uniqueNewickTopology(const Tree &t) 
+std::string TreeUtilities::uniqueNewickTopology(const Tree &t) 
 {
     return uniqueNewickTopologyRecursive( t.getRoot() );
 }
 
 
-std::string RevBayesCore::TreeUtilities::uniqueNewickTopologyRecursive(const TopologyNode &n) 
+std::string TreeUtilities::uniqueNewickTopologyRecursive(const TopologyNode &n) 
 {
     // check whether this is an internal node
     if ( n.isTip() ) 

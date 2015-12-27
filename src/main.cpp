@@ -1,9 +1,11 @@
-#include "RbException.h"
 #include <iostream>
 #include <stdlib.h>
 #include <fstream>
-#include "util.h"
-#include "BiphyFreeTopology.h"
+
+#include "Exception.h"
+#include "Biphy.h"
+#include "BinarySubstitutionModel.h"
+#include "StringUtilities.h"
 
 using namespace std;
 
@@ -15,18 +17,18 @@ int main (int argc, const char * argv[])
 	string outgroupfile = "None";
 	string name = "";
 
-	BiphyFreeTopology::ModelType modeltype = BiphyFreeTopology::HOMOGENEOUS;
+	ModelPrior::Type modeltype = ModelPrior::HOMOGENEOUS;
 	int mixture = 0;
 
-	BiphyFreeTopology::BranchPrior branchprior = BiphyFreeTopology::EXPONENTIAL;
+	BranchPrior::Type branchprior = BranchPrior::DEFAULT;
 
 	int dgam = 4;
 
-	BiphyFreeTopology::RootPrior rootprior = BiphyFreeTopology::FREE;
+	RootPrior::Type rootprior = RootPrior::FREE;
 	double rootmin = 0.0;
 	double rootmax = 1.0;
 
-	int correction = RevBayesCore::NONE;
+	int correction = AscertainmentBias::ALL;
 
 	int every = 1;
 	int until = -1;
@@ -41,7 +43,9 @@ int main (int argc, const char * argv[])
 	bool nexus = false;
 	bool ppred = false;
 	bool dolloMapping = false;
-	//bool IIDmissing = false;
+	bool persite = false;
+	bool ancestral = false;
+	bool pasta = false;
 
 	Biphy *chain = NULL;
 
@@ -56,7 +60,7 @@ int main (int argc, const char * argv[])
 				exit(1);
 			}
 
-			chain = new BiphyFreeTopology(name);
+			chain = new Biphy(name);
 		}else if (argc == 1){
 			throw(0);
 		}else{
@@ -68,7 +72,11 @@ int main (int argc, const char * argv[])
 				if (s == "-d")	{
 					i++;
 					datafile = argv[i];
-				}else if (s == "-f")	{
+				}else if (s == "-p") {
+                    i++;
+                    pasta = true;
+                    datafile = argv[i];
+                }else if (s == "-f")	{
 					overwrite = true;
 				}
 				else if ((s == "-t") || (s == "-T"))	{
@@ -84,7 +92,9 @@ int main (int argc, const char * argv[])
 					outgroupfile = argv[i];
 				}else if (s == "-s"){
 					saveall = true;
-				}else if (s == "-dgam"){
+				}else if (s == "-a"){
+                    ancestral = true;
+                }else if (s == "-dgam"){
 					i++;
 					if (i == argc)	{
 						cerr << "error in command: -dgam <int>\n\n";
@@ -97,27 +107,29 @@ int main (int argc, const char * argv[])
 					}
 					dgam = atoi(argv[i]);
 				}else if (s == "-rigid"){
-					rootprior = BiphyFreeTopology::RIGID;
+					rootprior = RootPrior::RIGID;
 				}
 				else if (s == "-nh")	{
-					modeltype = BiphyFreeTopology::HIERARCHICAL;
+					modeltype = ModelPrior::HIERARCHICAL;
 				}
 				else if (s == "-e")	{
 					nexus = true;
-				}/*else if (s == "-i")	{
-					IIDmissing = true;
-				}*/else if (s == "-dollo"){
-					modeltype = BiphyFreeTopology::DOLLO;
+				}else if (s == "-site")	{
+					persite = true;
+				}else if (s == "-dollo"){
+					modeltype = ModelPrior::DOLLO;
 				}else if (s == "-map"){
 					dolloMapping = true;
 				}else if (s == "-h")	{
-					modeltype = BiphyFreeTopology::HOMOGENEOUS;
-				}else if (s == "-dpp")	{
-					modeltype = BiphyFreeTopology::DPP;
+					modeltype = ModelPrior::HOMOGENEOUS;
 				}else if (s == "-ldir")	{
-					branchprior = BiphyFreeTopology::DIRICHLET;
+					branchprior = BranchPrior::DIRICHLET;
 				}else if (s == "-lexp")	{
-					branchprior = BiphyFreeTopology::EXPONENTIAL;
+					branchprior = BranchPrior::EXPONENTIAL;
+				}else if (s == "-lfixed")	{
+					branchprior = BranchPrior::FIXED;
+				}else if (s == "-lstrict")	{
+					branchprior = BranchPrior::STRICT;
 				}else if (s == "-n")	{
 					i++;
 					if (i == argc)	{
@@ -141,30 +153,30 @@ int main (int argc, const char * argv[])
 						cerr << "error in command: -u <int>\n\n";
 						exit(1);
 					}
-					correction = static_cast<RevBayesCore::CorrectionType>(atoi(argv[i]));
+					correction = AscertainmentBias::Coding(atoi(argv[i]));
 					if(correction < 0 || correction > 15)	{
 						cerr << "error in command: -u <int>\n\n";
 						exit(1);
 					}
-				}else if (s == "-m")	{
+				}/*else if (s == "-m")	{
 					i++;
 					if (i == argc)	{
 						cerr << "error in command: -m <int>\n\n";
 						exit(1);
 					}
 					s = argv[i];
-					if (! IsInt(s))	{
+					if (! StringUtilities::IsInt(s))	{
 						cerr << "error in command: -m <int>\n\n";
 						exit(1);
 					}
 					mixture = atoi(argv[i]);
 					if(mixture > 1){
-						modeltype = BiphyFreeTopology::MIXTURE;
+						modeltype = Biphy::MIXTURE;
 					}else{
-						modeltype = BiphyFreeTopology::HOMOGENEOUS;
+						modeltype = Biphy::HOMOGENEOUS;
 						mixture = 0;
 					}
-				}
+				}*/
 				else if (s == "-delta")	{
 					i++;
 					if (i == argc)	{
@@ -210,7 +222,7 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					s = argv[i];
-					if (! IsInt(s))	{
+					if (!IsInt(s))	{
 						cerr << "error in command: -x <every> <until>\n\n";
 						exit(1);
 					}
@@ -232,7 +244,7 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					s = argv[i];
-					if (! IsFloat(s))	{
+					if (!IsFloat(s))	{
 						cerr << "error in command: -rp <min> <max>\n\n";
 						exit(1);
 					}
@@ -243,7 +255,7 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					s = argv[i];
-					if (! IsFloat(s))	{
+					if (!IsFloat(s))	{
 						cerr << "error in command: -rp <min> <max>\n\n";
 						exit(1);
 					}
@@ -252,7 +264,7 @@ int main (int argc, const char * argv[])
 						cerr << "error in command: -rp <min> <max>\n\n";
 						exit(1);
 					}
-					rootprior = BiphyFreeTopology::TRUNCATED;
+					rootprior = RootPrior::TRUNCATED;
 				}else if (s == "-ppred")	{
 					ppred = true;
 				}else{
@@ -269,21 +281,36 @@ int main (int argc, const char * argv[])
 				exit(1);
 			}
 
-			if(mixture > 1 && modeltype != BiphyFreeTopology::MIXTURE)
-				throw(0);
+			//if(mixture > 1 && modeltype != Biphy::MIXTURE)
+			//	throw(0);
 
-			if(rootprior == BiphyFreeTopology::TRUNCATED && (modeltype > BiphyFreeTopology::HIERARCHICAL || modeltype == BiphyFreeTopology::DOLLO)){
+			if(rootprior == RootPrior::TRUNCATED && (modeltype > ModelPrior::HIERARCHICAL || modeltype == ModelPrior::DOLLO)){
 				cerr << "error: truncated root frequency only applies to -h or -nh\n\n";
 				exit(1);
 			}
-			if(rootprior == BiphyFreeTopology::RIGID && (modeltype < BiphyFreeTopology::HIERARCHICAL))
-				rootprior = BiphyFreeTopology::FREE;
+			if(rootprior == RootPrior::RIGID && (modeltype < ModelPrior::HIERARCHICAL))
+				rootprior = RootPrior::FREE;
 
-			if(modeltype == BiphyFreeTopology::DOLLO)
-				correction = (RevBayesCore::CorrectionType)(correction | RevBayesCore::NO_ABSENT_SITES);
+			if((branchprior == BranchPrior::FIXED || branchprior == BranchPrior::STRICT) && treefile == "None")
+			{
+				cerr << "error: ";
+				if(branchprior == BranchPrior::FIXED)
+					cerr << "fixed branch length";
+				else if(branchprior == BranchPrior::STRICT)
+					cerr << "strict clock";
+				cerr << " prior is used only with fixed input tree file\n\n";
+				exit(1);
+			}
+			else if(branchprior == BranchPrior::DEFAULT)
+			{
+				if(treefile == "None")
+					branchprior = BranchPrior::EXPONENTIAL;
+				else
+					branchprior = BranchPrior::FIXED;
+			}
 		}
 	}
-	catch(RbException &e){
+	catch(Exception &e){
 		throw(e);
 	}catch(...){
 
@@ -292,15 +319,17 @@ int main (int argc, const char * argv[])
 		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n";
 
 		cerr << "\nBranch frequency prior:\n";
-		cerr << "\t-dollo\t\tstochastic dollo model (enables -u 1)\n";
-		cerr << "\t-h\t\ttime-homogeneous beta model (default)\n";
-		cerr << "\t-nh\t\thierarchical beta model\n";
-		cerr << "\t-m <int>\tmixture with <int> beta components\n";
-		cerr << "\t-dpp\t\tdirichlet process prior\n";
+		cerr << "\t-h\t\thomogeneous reversible model (default)\n";
+		cerr << "\t-nh\t\tbranch-heterogeneous reversible model\n";
+		cerr << "\t-dollo\t\tstochastic dollo model\n";
+		//cerr << "\t-m <int>\tmixture with <int> beta components\n";
 
 		cerr << "\nBranch length prior:\n";
 		cerr << "\t-lexp\t\thierarchical exponential prior (default)\n";
-		cerr << "\t-ldir\t\tcompound dirichlet prior\n";
+
+		cerr << "\nClock models (require fixed input branch lengths via -t option):\n";
+		cerr << "\t-lfixed\t\tfix the branch lengths at their input values (default)\n";
+		cerr << "\t-lstrict\tstrict clock. same as -cfixed, but with a tree-length multiplier\n\n";
 
 		cerr << "\nRates across sites prior:\n";
 		cerr << "\t-dgam <int>\tdiscrete gamma model with <int> categories (default: 4)\n";
@@ -308,15 +337,15 @@ int main (int argc, const char * argv[])
 
 		cerr << "\nCorrections for unobservable site patterns:\n";
 		cerr << "\t-u <int>\twhere <int> is one of:\n";
-		cerr << "\t\t0 = no site patterns have been omitted (default)\n";
-		cerr << "\t\t1 = constant absence sites have been removed\n";
-		cerr << "\t\t2 = constant presence sites have been removed\n";
-		cerr << "\t\t4 = singleton gains have been removed\n";
-		cerr << "\t\t8 = singleton losses have been removed\n";
+		cerr << "\t\t0 = all site patterns are observable (default)\n";
+		cerr << "\t\t1 = no constant absence sites\n";
+		cerr << "\t\t2 = no constant presence sites\n";
+		cerr << "\t\t4 = no singleton presence sites\n";
+		cerr << "\t\t8 = no singleton absence sites\n";
 
 		cerr << "\tcombinations are achieved by adding the above values\n";
-		cerr << "\te.g.  3 = constant sites have been removed\n";
-		cerr << "\t     15 = uninformative sites have been removed\n";
+		cerr << "\te.g.  3 = no constant sites\n";
+		cerr << "\t     15 = no uninformative sites\n";
 
 		cerr << "\nOptional constraints:\n";
 		cerr << "\t-t <file>\tfixed tree filename\n";
@@ -367,7 +396,7 @@ int main (int argc, const char * argv[])
 					remove((name+".treelist.nex").c_str());
 			}
 
-			chain = new BiphyFreeTopology(name,datafile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
+			chain = new Biphy(name,datafile,cvfile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
 		}else{
 			if(!fexists(name+".stream")){
 				cerr << "run '" << name << "' does not exist\n";
@@ -380,9 +409,13 @@ int main (int argc, const char * argv[])
 				remove((name+".ppred").c_str());
 			if(cvfile != "None")
 				remove((name+".cv").c_str());
+			if(persite)
+			    remove((name+".lnprobs").c_str());
 			if(dolloMapping)
 				remove((name+".dollo.fa").c_str());
-			chain = new BiphyFreeTopology(name,cvfile,ppred,dolloMapping);
+			if(ancestral)
+			    remove((name+".mapping").c_str());
+			chain = new Biphy(name,cvfile,ppred,dolloMapping,persite,ancestral);
 		}
 
 	try
@@ -390,11 +423,11 @@ int main (int argc, const char * argv[])
 		chain->init();
 		chain->run();
 	}
-	catch (RbException& e)
+	catch (Exception& e)
 	{
 		cerr << "Error:\t" << e.getMessage() << '\n';
 		exit(1);
 	}
     
-    return 0;
+    exit(0);
 }

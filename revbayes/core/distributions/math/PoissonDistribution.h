@@ -25,30 +25,26 @@
 #include "TypedDistribution.h"
 #include "TypedDagNode.h"
 
-namespace RevBayesCore {
+class PoissonDistribution : public TypedDistribution<int> {
     
-    class PoissonDistribution : public TypedDistribution<int> {
-        
-    public:
-        PoissonDistribution(const TypedDagNode<double> *l);
-        virtual                                            ~PoissonDistribution(void);                                                  //!< Virtual destructor
-        
-        // public member functions
-        PoissonDistribution*                                clone(void) const;                                                          //!< Create an independent clone
-        double                                              computeLnProbability(void);
-        void                                                redrawValue(void);
-        
-    protected:
-        // Parameter management functions
-        void                                                swapParameter(const DagNode *oldP, const DagNode *newP);            //!< Swap a parameter
-        
-    private:
-        
-        // members
-        const TypedDagNode<double>*                         lambda;
-        
-    };
+public:
+    PoissonDistribution(const TypedDagNode<double> *l);
+    virtual                                            ~PoissonDistribution(void);                                                  //!< Virtual destructor
     
-}
+    // public member functions
+    PoissonDistribution*                                clone(void) const;                                                          //!< Create an independent clone
+    double                                              computeLnProbability(void);
+    void                                                redrawValue(void);
+    
+protected:
+    // Parameter management functions
+    void                                                swapParameter(const DagNode *oldP, const DagNode *newP);            //!< Swap a parameter
+    
+private:
+    
+    // members
+    const TypedDagNode<double>*                         lambda;
+    
+};
 
 #endif

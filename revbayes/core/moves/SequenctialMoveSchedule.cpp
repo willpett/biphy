@@ -10,8 +10,6 @@
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
 
-using namespace RevBayesCore;
-
 SequentialMoveSchedule::SequentialMoveSchedule(const std::vector<Move*> &s) : MoveSchedule( s ), currentMove( 0 ), usedPropOfCurrentMove( 0 ) {
     
     movesPerIteration = 0.0;

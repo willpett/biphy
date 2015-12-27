@@ -25,33 +25,28 @@
 #include "StochasticNode.h"
 #include "SimpleMove.h"
 
-namespace RevBayesCore {
+class BetaSimplexMove : public SimpleMove {
     
-    class BetaSimplexMove : public SimpleMove {
-        
-    public:
-        BetaSimplexMove(StochasticNode<double>* node, double a, bool tuning, double weight);                           //!< Internal constructor
-        
-        // Basic utility functions
-        BetaSimplexMove*                        clone(void) const;                                                                  //!< Clone object
-        void                                    swapNode(DagNode *oldN, DagNode *newN);
-        
-    protected:
-        const std::string&                      getMoveName(void) const;                                                            //!< Get the name of the move for summary printing
-        double                                  performSimpleMove(void);                                                            //!< Perform move
-        void                                    printParameterSummary(std::ostream &o) const;
-        void                                    rejectSimpleMove(void);
-        void                                    tune(void);
-        
-    private:
-        
-        StochasticNode<double>*                 variable;
-        double                                  alpha;
-        double                                  storedValue;
-        
-    };
+public:
+    BetaSimplexMove(StochasticNode<double>* node, double a, bool tuning, double weight);                           //!< Internal constructor
     
-}
-
+    // Basic utility functions
+    BetaSimplexMove*                        clone(void) const;                                                                  //!< Clone object
+    void                                    swapNode(DagNode *oldN, DagNode *newN);
+    
+protected:
+    const std::string&                      getMoveName(void) const;                                                            //!< Get the name of the move for summary printing
+    double                                  performSimpleMove(void);                                                            //!< Perform move
+    void                                    printParameterSummary(std::ostream &o) const;
+    void                                    rejectSimpleMove(void);
+    void                                    tune(void);
+    
+private:
+    
+    StochasticNode<double>*                 variable;
+    double                                  alpha;
+    double                                  storedValue;
+    
+};
 #endif
 

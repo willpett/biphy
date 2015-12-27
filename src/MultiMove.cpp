@@ -2,12 +2,9 @@
 #include "ConstantNode.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
-#include "RbException.h"
-
 #include <cmath>
 #include <iostream>
-
-using namespace RevBayesCore;
+#include "Exception.h"
 
 /** 
  * Constructor

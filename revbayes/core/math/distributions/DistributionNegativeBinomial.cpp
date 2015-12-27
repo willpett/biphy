@@ -21,13 +21,12 @@
 #include "DistributionGamma.h"
 #include "DistributionPoisson.h"
 #include "DistributionNegativeBinomial.h"
-#include "RbConstants.h"
-#include "RbException.h"
-#include "RbMathFunctions.h"
-#include "RbMathHelper.h"
-#include "RbMathLogic.h"
 
-using namespace RevBayesCore;
+#include "Constants.h"
+#include "Exception.h"
+#include "MathFunctions.h"
+#include "MathHelper.h"
+#include "MathLogic.h"
 
 /*!
  * This function calculates the probability density 
@@ -40,13 +39,13 @@ using namespace RevBayesCore;
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::NegativeBinomial::cdf(double r, double p, double x) {
+double Statistics::NegativeBinomial::cdf(double r, double p, double x) {
 
-    if(RbMath::isInt(r))
+    if(Math::isInt(r))
         {
         std::ostringstream s;
         s << "Cannot compute cdf of the binomial distribution because r = " << r << " is not an interger";
-        throw (RbException(s));
+        throw (Exception(s));
         }
     r = int(r);
     /* PR#8560: r=1 is a valid value */
@@ -54,7 +53,7 @@ double RbStatistics::NegativeBinomial::cdf(double r, double p, double x) {
         {
         std::ostringstream s;
         s << "Cannot compute cdf of the binomial distribution for r = " << r << " and p = " << p;
-        throw (RbException(s));
+        throw (Exception(s));
         }
     
     if (x < 0) 
@@ -62,7 +61,7 @@ double RbStatistics::NegativeBinomial::cdf(double r, double p, double x) {
     
     x = floor(x + 1e-7);
     
-    return 1.0 - RbStatistics::Beta::cdf(p, x + 1, r);
+    return 1.0 - Statistics::Beta::cdf(p, x + 1, r);
 }
 
 /*!
@@ -76,7 +75,7 @@ double RbStatistics::NegativeBinomial::cdf(double r, double p, double x) {
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::NegativeBinomial::lnPdf(double n, double p, double x) {
+double Statistics::NegativeBinomial::lnPdf(double n, double p, double x) {
 
     double q = 1.0 - p;
     return pdf(n, p, q, x, true);
@@ -93,7 +92,7 @@ double RbStatistics::NegativeBinomial::lnPdf(double n, double p, double x) {
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::NegativeBinomial::pdf(double n, double p, double x) {
+double Statistics::NegativeBinomial::pdf(double n, double p, double x) {
 
     double q = 1.0 - p;
     return pdf(n,p,q,x,false);
@@ -120,9 +119,9 @@ double RbStatistics::NegativeBinomial::pdf(double n, double p, double x) {
  * \return Returns the probability density.
  * \throws Does not throw an error.
  */
-double RbStatistics::NegativeBinomial::pdf(double r, double p, double q, double x, bool asLog) {
+double Statistics::NegativeBinomial::pdf(double r, double p, double q, double x, bool asLog) {
 
-	double binom = RbStatistics::Binomial::pdf(x + r - 1, p , q , x, asLog);
+	double binom = Statistics::Binomial::pdf(x + r - 1, p , q , x, asLog);
 
     return (asLog ? binom + log(q) : binom*q);
 }
@@ -150,8 +149,8 @@ double RbStatistics::NegativeBinomial::pdf(double r, double p, double q, double 
  */
 #include "DistributionNormal.h"
 
-double RbStatistics::NegativeBinomial::quantile(double p, double n, double pr) {
-    throw RbException("Quantiles not implemented for NegBinomial");
+double Statistics::NegativeBinomial::quantile(double p, double n, double pr) {
+    throw Exception("Quantiles not implemented for NegBinomial");
 }
 
 /*!
@@ -190,12 +189,12 @@ double RbStatistics::NegativeBinomial::quantile(double p, double n, double pr) {
 
 #define repeat for(;;)
 
-int RbStatistics::NegativeBinomial::rv(double nin, double pp, RevBayesCore::RandomNumberGenerator &rng)
+int Statistics::NegativeBinomial::rv(double nin, double pp, RandomNumberGenerator &rng)
 {
-	double y = RbStatistics::Gamma::rv(nin,(1-pp)/pp,rng);
+	double y = Statistics::Gamma::rv(nin,(1-pp)/pp,rng);
 	if(y > 2.0e9)
-		return RbConstants::Integer::inf;
-	return RbStatistics::Poisson::rv(y,rng);
+		return Constants::Integer::inf;
+	return Statistics::Poisson::rv(y,rng);
 }
 
 

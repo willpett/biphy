@@ -23,60 +23,56 @@
 #include "TypedDagNode.h"
 #include <set>
 
-namespace RevBayesCore {
-    
-    template<class valueType>
-    class DynamicNode : public TypedDagNode<valueType> {
-    
-    public:
-    
-        DynamicNode(const std::string &n);
-        DynamicNode(const DynamicNode &n);
-        virtual                                            ~DynamicNode(void);                                                              //!< Virtual destructor
+template<class valueType>
+class DynamicNode : public TypedDagNode<valueType> {
 
-        // pure virtual methods
-        virtual DynamicNode<valueType>*                     clone(void) const = 0;
-        virtual double                                      getLnProbability(void) = 0;
-        virtual double                                      getLnProbabilityRatio(void) = 0;
+public:
 
-        // public methods
-        DagNode*                                            cloneDAG(std::map<const DagNode*, DagNode*> &nodesMap) const;                   //!< Clone the entire DAG which is connected to this node
+    DynamicNode(const std::string &n);
+    DynamicNode(const DynamicNode &n);
+    virtual                                            ~DynamicNode(void);                                                              //!< Virtual destructor
 
-    protected:
-        virtual void                                        keepMe(DagNode* affecter);                                                      //!< Keep value of this and affected nodes
-        virtual void                                        restoreMe(DagNode *restorer);                                                   //!< Restore value of this nodes
-        virtual void                                        touchMe(DagNode *toucher);                                                      //!< Tell affected nodes value is reset
+    // pure virtual methods
+    virtual DynamicNode<valueType>*                     clone(void) const = 0;
+    virtual double                                      getLnProbability(void) = 0;
+    virtual double                                      getLnProbabilityRatio(void) = 0;
 
-    
-        // members
-        bool                                                touched;                                                                        //!< Is touched by move?
-    };
+    // public methods
+    DagNode*                                            cloneDAG(std::map<const DagNode*, DagNode*> &nodesMap) const;                   //!< Clone the entire DAG which is connected to this node
 
-}
+protected:
+    virtual void                                        keepMe(DagNode* affecter);                                                      //!< Keep value of this and affected nodes
+    virtual void                                        restoreMe(DagNode *restorer);                                                   //!< Restore value of this nodes
+    virtual void                                        touchMe(DagNode *toucher);                                                      //!< Tell affected nodes value is reset
 
-#include "RbException.h"
+
+    // members
+    bool                                                touched;                                                                        //!< Is touched by move?
+};
+
+#include "Exception.h"
 
 template<class valueType>
-RevBayesCore::DynamicNode<valueType>::DynamicNode( const std::string &n ) : TypedDagNode<valueType>( n ), touched( true ) {
+DynamicNode<valueType>::DynamicNode( const std::string &n ) : TypedDagNode<valueType>( n ), touched( true ) {
     // nothing to do here
 }
 
 
 template<class valueType>
-RevBayesCore::DynamicNode<valueType>::DynamicNode( const DynamicNode<valueType> &n ) : TypedDagNode<valueType>( n ), touched( true ) {
+DynamicNode<valueType>::DynamicNode( const DynamicNode<valueType> &n ) : TypedDagNode<valueType>( n ), touched( true ) {
     // nothing to do here
 }
 
 
 template<class valueType>
-RevBayesCore::DynamicNode<valueType>::~DynamicNode( void ) {
+DynamicNode<valueType>::~DynamicNode( void ) {
     // We don't own the parents and hence we don't delete them. The owner of the graph needs to do that. Just tell them we are gone forever ... :(
 }
 
 
 /** Clone the entire graph: clone children, swap parents */
 template<class valueType>
-RevBayesCore::DagNode* RevBayesCore::DynamicNode<valueType>::cloneDAG( std::map<const DagNode*, DagNode* >& newNodes ) const {
+DagNode* DynamicNode<valueType>::cloneDAG( std::map<const DagNode*, DagNode* >& newNodes ) const {
     
     if ( newNodes.find( this ) != newNodes.end() )
         return ( newNodes[ this ] );
@@ -127,7 +123,7 @@ RevBayesCore::DagNode* RevBayesCore::DynamicNode<valueType>::cloneDAG( std::map<
  * At this point, we also need to make sure we update the stored ln probability.
  */
 template<class valueType>
-void RevBayesCore::DynamicNode<valueType>::keepMe( DagNode* affecter ) {
+void DynamicNode<valueType>::keepMe( DagNode* affecter ) {
     
     if ( touched ) 
     {
@@ -140,7 +136,7 @@ void RevBayesCore::DynamicNode<valueType>::keepMe( DagNode* affecter ) {
 
 /** Restore the old value of the node and tell affected */
 template<class valueType>
-void RevBayesCore::DynamicNode<valueType>::restoreMe(DagNode *restorer) {
+void DynamicNode<valueType>::restoreMe(DagNode *restorer) {
     
     if ( touched ) 
     {
@@ -151,7 +147,7 @@ void RevBayesCore::DynamicNode<valueType>::restoreMe(DagNode *restorer) {
 
 /** touch this node for recalculation */
 template<class valueType>
-void RevBayesCore::DynamicNode<valueType>::touchMe( DagNode *toucher ) {
+void DynamicNode<valueType>::touchMe( DagNode *toucher ) {
     
     if (!touched) 
     {

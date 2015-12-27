@@ -1,13 +1,13 @@
 #include "ParallelMcmcmc.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
-#include "RbException.h"
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <sstream>
 #include <limits>
 #include <stdlib.h>
+#include "../../utils/Exception.h"
 
 #if defined (USE_LIB_OPENMP)
     #include <omp.h>
@@ -15,9 +15,7 @@
  
 #define DEBUG_PMC3 0
 
-using namespace RevBayesCore;
-
-ParallelMcmcmc::ParallelMcmcmc(const Model& m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string fn, std::string sT, int ev, int nc, int np, int si, double dt, double st, double sh, bool saveall) : Cloneable( ),
+ParallelMcmcmc::ParallelMcmcmc(Model* m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string fn, std::string sT, int ev, int nc, int np, int si, double dt, double st, double sh, bool saveall) : Cloneable( ),
 			filename(fn),
 			numChains(nc),
 			numProcesses(np),
@@ -357,7 +355,7 @@ void ParallelMcmcmc::fromStream(std::istream& is, bool keep, bool keepCold){
 		if(numChains > 1){
 			is >> index;
 			if(!is)
-				throw(RbException("premature end of stream"));
+				throw(Exception("premature end of stream"));
 		}
 
 		chains[index]->fromStream(is, keep || (keepCold && i == 0));
@@ -397,7 +395,7 @@ void ParallelMcmcmc::readStream(size_t generations)
     {
 		stream >> currentGeneration;
 		if(!stream)
-			throw(RbException("premature end of stream"));
+			throw(Exception("premature end of stream"));
 
 		fromStream(stream, false, true);
 		chains[chainIdxByHeat[0]]->monitor(currentGeneration);

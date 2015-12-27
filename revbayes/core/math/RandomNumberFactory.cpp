@@ -20,13 +20,11 @@
 
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
-#include "RbException.h"
-#include "RbOptions.h"
 #include <ctime>
 #include <climits>
 #include <climits>
-
-using namespace RevBayesCore;
+#include "Exception.h"
+#include "Options.h"
 
 /** Default constructor */
 RandomNumberFactory::RandomNumberFactory(void) {
@@ -74,9 +72,9 @@ RandomNumberGenerator* RandomNumberFactory::getRandomNumberGenerator(void) {
 RandomNumberGenerator* RandomNumberFactory::getRandomNumberGenerator(std::vector<unsigned int> s) {
 
     if (s.size() < 2)
-        throw(RbException("Problem returning random number generator: Too few seeds."));
+        throw(Exception("Problem returning random number generator: Too few seeds."));
     if (s.size() > 2)
-        throw(RbException("Problem returning random number generator: Too many seeds."));
+        throw(Exception("Problem returning random number generator: Too many seeds."));
     RandomNumberGenerator* r = new RandomNumberGenerator( s );
     allocatedRandomNumbers.insert( r );
     return r;

@@ -9,6 +9,6 @@
 #include "ContinuousDistribution.h"
 
 
-RevBayesCore::ContinuousDistribution::ContinuousDistribution(double *val) : TypedDistribution<double>( val ){
+ContinuousDistribution::ContinuousDistribution(double *val) : TypedDistribution<double>( val ){
     
 }

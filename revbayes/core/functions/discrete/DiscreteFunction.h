@@ -22,29 +22,25 @@
 
 #include <iostream>
 
-namespace RevBayesCore {
+template <class valueType>
+class DiscreteFunction : public TypedFunction<valueType> {
     
-    template <class valueType>
-    class DiscreteFunction : public TypedFunction<valueType> {
-        
-    public:
-        // constructors and destructor
-        virtual                            ~DiscreteFunction(void) {}
-        
-        // pure virtual public methors
-        virtual DiscreteFunction*           clone(void) const = 0;                                  //!< Clone the function
-        virtual void                        update(void) = 0;                                       //!< Clone the function
-        
-    protected:
-        DiscreteFunction(valueType *v);
-        
-    };
+public:
+    // constructors and destructor
+    virtual                            ~DiscreteFunction(void) {}
     
-}
+    // pure virtual public methors
+    virtual DiscreteFunction*           clone(void) const = 0;                                  //!< Clone the function
+    virtual void                        update(void) = 0;                                       //!< Clone the function
+    
+protected:
+    DiscreteFunction(valueType *v);
+    
+};
 
 
 template <class valueType>
-RevBayesCore::DiscreteFunction<valueType>::DiscreteFunction( valueType *v ) : TypedFunction<valueType>( v ) {
+DiscreteFunction<valueType>::DiscreteFunction( valueType *v ) : TypedFunction<valueType>( v ) {
     
 }
 

@@ -1,9 +1,5 @@
-#include "AbstractTaxonData.h"
-#include "CharacterState.h"
+#include "BinaryCharacterData.h"
 #include "FastaWriter.h"
-
-using namespace RevBayesCore;
-
 
 /**
  * Default constructor.
@@ -22,7 +18,7 @@ FastaWriter::FastaWriter( void )
  * \param[in]   fileName    The name of the file into which the objects is to be written.
  * \param[in]   data        The character data object which is written out.
  */
-void FastaWriter::writeData(std::string const &fileName, const AbstractCharacterData &data, bool append)
+void FastaWriter::writeData(std::string const &fileName, const BinaryCharacterData &data, bool append)
 {
     
     // the filestream object
@@ -38,12 +34,11 @@ void FastaWriter::writeData(std::string const &fileName, const AbstractCharacter
     for (std::vector<std::string>::const_iterator it = taxonNames.begin();  it != taxonNames.end(); ++it) 
     {
         outStream << ">" << *it << std::endl;
-        const AbstractTaxonData &taxon = data.getTaxonData( *it );
-        size_t nChars = taxon.getNumberOfCharacters();
+        const BinaryTaxonData* taxon = data.getTaxonData( *it );
+        size_t nChars = taxon->getNumberOfCharacters();
         for (size_t i = 0; i < nChars; ++i) 
         {
-            const CharacterState &c = taxon.getCharacter( i );  
-            outStream << c.getStringValue();
+            outStream << taxon->getCharacter( i );
         }
         outStream << std::endl;
     }

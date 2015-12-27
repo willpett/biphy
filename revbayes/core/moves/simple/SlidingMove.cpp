@@ -18,13 +18,11 @@
 #include "SlidingMove.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
-#include "RbException.h"
 #include "TypedDagNode.h"
 
 #include <cmath>
 #include <cassert>
-
-using namespace RevBayesCore;
+#include "Exception.h"
 
 /* Constructor with value */
 SlidingMove::SlidingMove( ContinuousStochasticNode *n, double d, bool t, double w ) : SimpleMove( n, w, t ), delta( d ), variable( n ),storedValue( 0.0 ) {

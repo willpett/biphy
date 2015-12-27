@@ -1,7 +1,5 @@
 #include "MeanFunction.h"
 
-using namespace RevBayesCore;
-
 MeanFunction::MeanFunction(const TypedDagNode<std::vector<double> > *v) : TypedFunction<double>( new double(0.0) ), vals( v ) {
     // add the parameters as parents
     this->addParameter( vals );
