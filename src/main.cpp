@@ -30,7 +30,7 @@ int main (int argc, const char * argv[])
 
 	int correction = AscertainmentBias::ALL;
 
-	int every = 1;
+	int every = 1000;
 	int until = -1;
 	bool overwrite = false;
 
