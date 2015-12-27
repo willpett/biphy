@@ -363,12 +363,11 @@ int main (int argc, const char * argv[])
 		cerr << "\t-s\t\tsave entire output (default: disabled)\n";
 		cerr << "\t-e\t\tsave nexus treefile (default: disabled)\n";
 
-		cerr << "\nModel-checking options:\n";
+		cerr << "\nStream-reading options:\n";
 		cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
 		cerr << "\t-cv <file>\tcross-validation test alignment\n";
+		cerr << "\t-a\t\tsimulate ancestral states\n";
 
-		//cerr << "\nOther options:\n";
-		//cerr << "\t-i\t\tIID missing data proportions across taxa (default: disabled)\n";
 		exit(1);
 	}
 
