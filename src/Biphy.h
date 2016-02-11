@@ -35,7 +35,7 @@
 #include "Tree.h"
 
 struct ModelPrior {
-    enum Type {DOLLO, HOMOGENEOUS, HIERARCHICAL};
+    enum Type {DOLLO, HOMOGENEOUS, HIERARCHICAL, MIXTURE};
 };
 
 struct RootPrior {

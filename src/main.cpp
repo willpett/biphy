@@ -158,25 +158,25 @@ int main (int argc, const char * argv[])
 						cerr << "error in command: -u <int>\n\n";
 						exit(1);
 					}
-				}/*else if (s == "-m")	{
+				}else if (s == "-mix")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -m <int>\n\n";
+						cerr << "error in command: -mix <int>\n\n";
 						exit(1);
 					}
 					s = argv[i];
-					if (! StringUtilities::IsInt(s))	{
-						cerr << "error in command: -m <int>\n\n";
+					if (! IsInt(s))	{
+						cerr << "error in command: -mix <int>\n\n";
 						exit(1);
 					}
 					mixture = atoi(argv[i]);
 					if(mixture > 1){
-						modeltype = Biphy::MIXTURE;
+						modeltype = ModelPrior::MIXTURE;
 					}else{
-						modeltype = Biphy::HOMOGENEOUS;
+						modeltype = ModelPrior::HOMOGENEOUS;
 						mixture = 0;
 					}
-				}*/
+				}
 				else if (s == "-delta")	{
 					i++;
 					if (i == argc)	{
@@ -284,10 +284,6 @@ int main (int argc, const char * argv[])
 			//if(mixture > 1 && modeltype != Biphy::MIXTURE)
 			//	throw(0);
 
-			if(rootprior == RootPrior::TRUNCATED && (modeltype > ModelPrior::HIERARCHICAL || modeltype == ModelPrior::DOLLO)){
-				cerr << "error: truncated root frequency only applies to -h or -nh\n\n";
-				exit(1);
-			}
 			if(rootprior == RootPrior::RIGID && (modeltype < ModelPrior::HIERARCHICAL))
 				rootprior = RootPrior::FREE;
 
@@ -322,7 +318,7 @@ int main (int argc, const char * argv[])
 		cerr << "\t-h\t\thomogeneous reversible model (default)\n";
 		cerr << "\t-nh\t\tbranch-heterogeneous reversible model\n";
 		cerr << "\t-dollo\t\tstochastic dollo model\n";
-		//cerr << "\t-m <int>\tmixture with <int> beta components\n";
+		cerr << "\t-mix <int>\tbeta mixture with <int> components\n";
 
 		cerr << "\nBranch length prior:\n";
 		cerr << "\t-lexp\t\thierarchical exponential prior (default)\n";

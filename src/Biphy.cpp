@@ -15,6 +15,8 @@
 #include "GammaDistribution.h"
 #include "MappingMonitor.h"
 #include "MeanFunction.h"
+#include "MixtureDistribution.h"
+#include "MixtureAllocationMove.h"
 #include "NexusTreeMonitor.h"
 #include "NewickTreeMonitor.h"
 #include "NewickTreeReader.h"
@@ -464,30 +466,38 @@ void Biphy::initModel( void ) {
                 pi_stat.push_back(new StochasticNode<double>( pi_name.str(), new BetaDistribution(beta1,beta2) ) );
         }
         pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
-    }/*else if(modeltype == MIXTURE){
-        ConstantNode<std::vector<double> > *probs = new ConstantNode<std::vector<double> >("probs", new std::vector<double>(mixture,1.0/mixture) );
-        for(size_t i = 0; i < mixture; i++){
-            std::ostringstream pi_name;
-            pi_name << "pi(" << std::setfill('0') << std::setw(w) << i << ")";
-            pi_cats.push_back(new StochasticNode<double >( pi_name.str(), new BetaDistribution(beta1,beta2) ) );
+    }
+    else if(modeltype == ModelPrior::MIXTURE)
+    {
+        ConstantNode<std::vector<double> > *probs = new ConstantNode<std::vector<double> >("probs", new std::vector<double>(mixture, 1.0/mixture) );
+        for(size_t cat = 0; cat < mixture; cat++){
+        	std::stringstream name;
+			std::stringstream q_name;
+			name << "pi(" << cat+1 << ")";
+			q_name << name.str() << "_q";
+            //pi_cats.push_back( new DeterministicNode<double>(name.str(), new QuantileFunction(new ConstantNode<double>(q_name.str(), new double((cat+1.0/2.0)/mixture) ), new BetaDistribution(beta1,beta2) ) ));
+            pi_cats.push_back(new StochasticNode<double >( name.str(), new BetaDistribution(beta1,beta2) ) );
         }
         pi_mix = new DeterministicNode< std::vector< double > >( "pi_mix", new VectorFunction< double >( pi_cats ) );
 
-        delete phi;
-        phi = new StochasticNode<double>( "phi", new MixtureDistribution<double>(pi_mix,probs) );
+        if(rootprior != RootPrior::TRUNCATED)
+        {
+        	if(rootprior == RootPrior::RIGID)
+        		delete phi;
+        	phi = new StochasticNode<double>( "phi", new MixtureDistribution<double>(pi_mix,probs) );
+        }
 
         for (size_t i = 0 ; i < numBranches ; i++ ) {
             std::ostringstream q_name;
             q_name << "q(" << std::setfill('0') << std::setw(w) << i << ")";
-            if((i == left || i == right) && rootprior == RIGID){
+            if( ((i == left || i == right) && rootprior == RootPrior::RIGID) || (i == rootIndex && (rootprior == RootPrior::RIGID || rootprior == RootPrior::TRUNCATED)) )
                 pi_stat.push_back(new DeterministicNode<double>( q_name.str()+"_pi", new ConstantFunction< double >( phi ) ));
-            }else{
+            else
                 pi_stat.push_back(new StochasticNode<double>( q_name.str()+"_pi", new MixtureDistribution<double>(pi_mix,probs) ));
-            }
         }
 
         pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
-    }*/
+    }
 
     // branch length hyperprior
 
@@ -575,10 +585,10 @@ void Biphy::initModel( void ) {
         for (size_t i = 0 ; i < numBranches ; i ++ )
         {
             if(!(i == left || i == right) || rootprior == RootPrior::FREE)
-                if(modeltype == ModelPrior::HIERARCHICAL){
+                if(modeltype == ModelPrior::HIERARCHICAL)
                     moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 100.0, true, 0.5*0.0096/float(numBranches) ) );
-                }//else if(modeltype == MIXTURE)
-                //  moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 2.0 ) );
+                else if(modeltype == ModelPrior::MIXTURE)
+                	moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 0.02 ) );
             if(branchprior == BranchPrior::EXPONENTIAL)
             {
                 moves.push_back( new ScaleMove(branchRates_nonConst[i], 1.0, true, 0.3846/float(numBranches) ) );
@@ -608,14 +618,14 @@ void Biphy::initModel( void ) {
     }
 
     if(modeltype == ModelPrior::HOMOGENEOUS || (modeltype > ModelPrior::HOMOGENEOUS && (rootprior == RootPrior::TRUNCATED || rootprior == RootPrior::RIGID)) )
-    {//})&& modeltype < MIXTURE){
-        /*if(modeltype == MIXTURE)
-            moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 2.0 ) );
-        else*/
+    {
+    	if(modeltype == ModelPrior::MIXTURE)
+            moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 0.02 ) );
+        else
             moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1000.0, true, 0.02 ) );
+
+    	monitoredNodes.push_back( phi );
     }
-    if(modeltype == ModelPrior::HOMOGENEOUS || (modeltype > ModelPrior::HOMOGENEOUS && (rootprior == RootPrior::TRUNCATED || rootprior == RootPrior::RIGID)) )
-        monitoredNodes.push_back( phi );
 
     DeterministicNode<double>* meanpi;
     if(modeltype > ModelPrior::HOMOGENEOUS)
@@ -631,16 +641,16 @@ void Biphy::initModel( void ) {
 
         moves.push_back( new ScaleMove(beta2, 0.3, true, 0.0096/4) );
         monitoredNodes.push_back( beta2 );
-/*
-        if(modeltype == MIXTURE){
-            std::vector<Move*> mixmoves;
+
+        if(modeltype == ModelPrior::MIXTURE){
+            //std::vector<Move*> mixmoves;
             for (size_t i = 0 ; i < mixture; i ++ ) {
                 //mixmoves.push_back( new ScaleMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
-                moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
+                moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 1000.0, true, 0.02 ) );
                 monitoredNodes.push_back((StochasticNode<double>*)pi_cats[i]);
             }
             //moves.push_back(new MultiMove(mixmoves,one,2.0,true));
-        }*/
+        }
     }
     
     if(dgam > 1)

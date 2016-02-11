@@ -39,7 +39,7 @@
  * \throws Does not throw an error.
  */
 double Math::beta(double a, double b) {
-	std::cerr << "Math::beta\n";
+	//std::cerr << "Math::beta\n";
 	return ( exp(Math::lnGamma(a) + Math::lnGamma(b) - Math::lnGamma(a + b)) );
 }
 
