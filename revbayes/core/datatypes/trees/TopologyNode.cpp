@@ -357,7 +357,14 @@ std::string TopologyNode::buildNewickString( void )
         o << "]";
     }
         
-    o << ":" << getBranchLength();
+    if ( rootNode == true )
+    {
+    	o << ":0";
+    }
+    else
+	{
+    	o << ":" << getBranchLength();
+	}
     
     if ( branchComments.size() > 0 )
     {
