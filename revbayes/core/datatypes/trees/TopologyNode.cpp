@@ -14,7 +14,7 @@
 /** Default constructor (interior node, no name). Give the node an optional index ID */
 TopologyNode::TopologyNode(size_t indx) :
     age( Constants::Double::nan ),
-    branchLength( -1 ),
+    branchLength( 0.0 ),
     children(),
     parent( NULL ),
     tree( NULL ),
@@ -33,7 +33,7 @@ TopologyNode::TopologyNode(size_t indx) :
 /** Constructor of node with name. Give the node an optional index ID */
 TopologyNode::TopologyNode(const std::string& t, size_t indx) :
     age( Constants::Double::nan ),
-    branchLength( -1 ),
+    branchLength( 0.0 ),
     children(),
     parent( NULL ),
     tree( NULL ),
