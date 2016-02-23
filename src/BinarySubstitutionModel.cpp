@@ -537,7 +537,8 @@ double BinarySubstitutionModel::computeLnProbability( void )
         }
         else
         {
-            throw Exception("The root node has an unexpected number of children. Only 2 (for rooted trees) or 3 (for unrooted trees) are allowed.");
+            std::cerr << root.getNumberOfChildren() << std::endl;
+        	throw Exception("The root node has an unexpected number of children. Only 2 (for rooted trees) or 3 (for unrooted trees) are allowed.");
         }
 
 
@@ -605,8 +606,8 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
         mrf0 = _mm256_broadcast_ss (&rf0);
         mrf1 = _mm256_broadcast_ss (&rf1);
 #else
-        mrf0 = _mm_load1_ps (&rf0);
-        mrf1 = _mm_load1_ps (&rf1);
+        mrf0 = _mm_load1_pX (&rf0);
+        mrf1 = _mm_load1_pX (&rf1);
 #endif
     }
 #endif
@@ -669,46 +670,46 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
             if(node.isRoot())
                 p_site_mixture[1] = _mm256_mul_ps (mrf1, p_site_mixture[1]);
 #else
-            m1 = _mm_load1_ps (&t_left[0]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_left[0]);
+            m1 = _mm_load1_pX (&t_left[0]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
             
-            m2 = _mm_load1_ps (&t_left[1]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_left[1]);
+            m2 = _mm_load1_pX (&t_left[1]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
             
-            m3 = _mm_add_ps (m1, m2);
+            m3 = _mm_add_pX (m1, m2);
             
-            m1 = _mm_load1_ps (&t_right[0]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_right[0]);
+            m1 = _mm_load1_pX (&t_right[0]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
             
-            m2 = _mm_load1_ps (&t_right[1]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_right[1]);
+            m2 = _mm_load1_pX (&t_right[1]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
             
-            m1 = _mm_add_ps (m1, m2);
-            p_site_mixture[0] = _mm_mul_ps (m1, m3);
-            
-            if(node.isRoot())
-                p_site_mixture[0] = _mm_mul_ps (mrf0, p_site_mixture[0]);
-            
-            m1 = _mm_load1_ps (&t_left[2]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm_load1_ps (&t_left[3]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm_add_ps (m1, m2);
-            
-            
-            m1 = _mm_load1_ps (&t_right[2]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm_load1_ps (&t_right[3]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm_add_ps (m1, m2);
-            p_site_mixture[1] = _mm_mul_ps (m1, m3);
+            m1 = _mm_add_pX (m1, m2);
+            p_site_mixture[0] = _mm_mul_pX (m1, m3);
             
             if(node.isRoot())
-                p_site_mixture[1] = _mm_mul_ps (mrf1, p_site_mixture[1]);
+                p_site_mixture[0] = _mm_mul_pX (mrf0, p_site_mixture[0]);
+            
+            m1 = _mm_load1_pX (&t_left[2]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
+            
+            m2 = _mm_load1_pX (&t_left[3]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
+            
+            m3 = _mm_add_pX (m1, m2);
+            
+            
+            m1 = _mm_load1_pX (&t_right[2]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
+            
+            m2 = _mm_load1_pX (&t_right[3]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
+            
+            m1 = _mm_add_pX (m1, m2);
+            p_site_mixture[1] = _mm_mul_pX (m1, m3);
+            
+            if(node.isRoot())
+                p_site_mixture[1] = _mm_mul_pX (mrf1, p_site_mixture[1]);
 #endif
 #else   
         // compute the per site probabilities
@@ -763,8 +764,8 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
         mrf0 = _mm256_broadcast_ss (&rf0);
         mrf1 = _mm256_broadcast_ss (&rf1);
 #else
-        mrf0 = _mm_load1_ps (&rf0);
-        mrf1 = _mm_load1_ps (&rf1);
+        mrf0 = _mm_load1_pX (&rf0);
+        mrf1 = _mm_load1_pX (&rf1);
 #endif
     }
 #endif    
@@ -852,67 +853,67 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
             if(node.isRoot())
                 p_site_mixture[1] = _mm256_mul_ps (mrf1, p_site_mixture[1]);
 #else
-            m1 = _mm_load1_ps (&t_left[0]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_left[0]);
+            m1 = _mm_load1_pX (&t_left[0]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
             
-            m2 = _mm_load1_ps (&t_left[1]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_left[1]);
+            m2 = _mm_load1_pX (&t_left[1]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
             
-            m3 = _mm_add_ps (m1, m2);
+            m3 = _mm_add_pX (m1, m2);
             
             
-            m1 = _mm_load1_ps (&t_right[0]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_right[0]);
+            m1 = _mm_load1_pX (&t_right[0]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
             
-            m2 = _mm_load1_ps (&t_right[1]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_right[1]);
+            m2 = _mm_load1_pX (&t_right[1]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
             
-            m1 = _mm_add_ps (m1, m2);
-            m3 = _mm_mul_ps (m1, m3);
+            m1 = _mm_add_pX (m1, m2);
+            m3 = _mm_mul_pX (m1, m3);
            
                         
-            m1 = _mm_load1_ps (&t_middle[0]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_middle[0]);
+            m1 = _mm_load1_pX (&t_middle[0]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_middle[0]);
             
-            m2 = _mm_load1_ps (&t_middle[1]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_middle[1]);
+            m2 = _mm_load1_pX (&t_middle[1]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_middle[1]);
             
-            m1 = _mm_add_ps (m1, m2);
-            p_site_mixture[0] = _mm_mul_ps (m1, m3);
+            m1 = _mm_add_pX (m1, m2);
+            p_site_mixture[0] = _mm_mul_pX (m1, m3);
             
             if(node.isRoot())
-                p_site_mixture[0] = _mm_mul_ps (mrf0, p_site_mixture[0]);
+                p_site_mixture[0] = _mm_mul_pX (mrf0, p_site_mixture[0]);
 
-            m1 = _mm_load1_ps (&t_left[2]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_left[0]);
+            m1 = _mm_load1_pX (&t_left[2]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
             
-            m2 = _mm_load1_ps (&t_left[3]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_left[1]);
+            m2 = _mm_load1_pX (&t_left[3]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
             
-            m3 = _mm_add_ps (m1, m2);
+            m3 = _mm_add_pX (m1, m2);
             
             
-            m1 = _mm_load1_ps (&t_right[2]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_right[0]);
+            m1 = _mm_load1_pX (&t_right[2]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
             
-            m2 = _mm_load1_ps (&t_right[3]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_right[1]);
+            m2 = _mm_load1_pX (&t_right[3]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
             
-            m1 = _mm_add_ps (m1, m2);
-            m3 = _mm_mul_ps (m1, m3);
+            m1 = _mm_add_pX (m1, m2);
+            m3 = _mm_mul_pX (m1, m3);
             
                         
-            m1 = _mm_load1_ps (&t_middle[2]);
-            m1 = _mm_mul_ps (m1, p_site_mixture_middle[0]);
+            m1 = _mm_load1_pX (&t_middle[2]);
+            m1 = _mm_mul_pX (m1, p_site_mixture_middle[0]);
             
-            m2 = _mm_load1_ps (&t_middle[3]);
-            m2 = _mm_mul_ps (m2, p_site_mixture_middle[1]);
+            m2 = _mm_load1_pX (&t_middle[3]);
+            m2 = _mm_mul_pX (m2, p_site_mixture_middle[1]);
             
-            m1 = _mm_add_ps (m1, m2);
-            p_site_mixture[1] = _mm_mul_ps (m1, m3);
+            m1 = _mm_add_pX (m1, m2);
+            p_site_mixture[1] = _mm_mul_pX (m1, m3);
             
             if(node.isRoot())
-                p_site_mixture[1] = _mm_mul_ps (mrf1, p_site_mixture[1]);
+                p_site_mixture[1] = _mm_mul_pX (mrf1, p_site_mixture[1]);
 #endif
 #else        
         // compute the per site probabilities
@@ -1148,19 +1149,19 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
                 
                 for(size_t j = 0; j < 8; j++)
                 {
-                    mA1 = (j & 1) ? _mm_mul_ps(m1a,m2a) : _mm_mul_ps(m3a,m4a);
-                    mA2 = (j & 2) ? _mm_mul_ps(m1b,m2b) : _mm_mul_ps(m3b,m4b);
-                    mA3 = (j & 4) ? _mm_mul_ps(m1c,m2c) : _mm_mul_ps(m3c,m4c);
-                    mA =  _mm_mul_ps(mA1,mA2);
-                    mA =  _mm_mul_ps(mA,mA3);
-                    *rC_i = _mm_add_ps(*rC_i,mA);
+                    mA1 = (j & 1) ? _mm_mul_pX(m1a,m2a) : _mm_mul_pX(m3a,m4a);
+                    mA2 = (j & 2) ? _mm_mul_pX(m1b,m2b) : _mm_mul_pX(m3b,m4b);
+                    mA3 = (j & 4) ? _mm_mul_pX(m1c,m2c) : _mm_mul_pX(m3c,m4c);
+                    mA =  _mm_mul_pX(mA1,mA2);
+                    mA =  _mm_mul_pX(mA,mA3);
+                    *rC_i = _mm_add_pX(*rC_i,mA);
                 }
             }
             
             if(node.isRoot())
             {
-                *uC_i = _mm_mul_ps(*uC_i,mrf);
-                *uI_i = _mm_mul_ps(*uI_i,mrf);
+                *uC_i = _mm_mul_pX(*uC_i,mrf);
+                *uI_i = _mm_mul_pX(*uI_i,mrf);
             }
 #else
             RealVector::iterator               u_i = p_node   + offset;
@@ -1300,17 +1301,17 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
                 
                 for(size_t j = 0; j < 4; j++)
                 {
-                    mA1 = (j & 1) ? _mm_mul_ps(m1a,m2a) : _mm_mul_ps(m3a,m4a);
-                    mA2 = (j & 2) ? _mm_mul_ps(m1b,m2b) : _mm_mul_ps(m3b,m4b);
-                    mA =  _mm_mul_ps(mA1,mA2);
-                    *rC_i = _mm_add_ps(*rC_i,mA);
+                    mA1 = (j & 1) ? _mm_mul_pX(m1a,m2a) : _mm_mul_pX(m3a,m4a);
+                    mA2 = (j & 2) ? _mm_mul_pX(m1b,m2b) : _mm_mul_pX(m3b,m4b);
+                    mA =  _mm_mul_pX(mA1,mA2);
+                    *rC_i = _mm_add_pX(*rC_i,mA);
                 }
             }
             
             if(node.isRoot())
             {
-                *uC_i = _mm_mul_ps(*uC_i,mrf);
-                *uI_i = _mm_mul_ps(*uI_i,mrf);
+                *uC_i = _mm_mul_pX(*uC_i,mrf);
+                *uI_i = _mm_mul_pX(*uI_i,mrf);
             }
 #else
             RealVector::iterator               u_i = p_node  + offset;
@@ -1462,15 +1463,15 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
             // invert the probability
             prob = 1.0 - prob;
             
-            // correct rounding errors
-            if(prob < 0)
-                prob = 0;
+            // impose a boundary
+            if(prob <= 0)
+            	prob = std::numeric_limits<RealNumber>::infinity();
         
             perMixtureCorrections[mixture*numCorrectionMasks + mask] = prob;
             
             perMaskCorrections[mask] += prob;
         }
-        
+
         // normalize the log-probability
         perMaskCorrections[mask] = log(perMaskCorrections[mask]) - log(RealNumber(numSiteRates));
         
@@ -1511,7 +1512,7 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
 #ifdef AVX_ENABLED
             *mTotals = _mm256_add_ps(*mTotals, _mm256_add_ps(p_site_mixture[0], p_site_mixture[1]));
 #else
-            *mTotals = _mm_add_ps(*mTotals, _mm_add_ps(p_site_mixture[0], p_site_mixture[1]));
+            *mTotals = _mm_add_pX(*mTotals, _mm_add_pX(p_site_mixture[0], p_site_mixture[1]));
 #endif
             
             mTotals++;
@@ -1612,19 +1613,39 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
                 else
                     max = _mm256_max_ps(max, tmp);
 #else
-                SIMDRegister tmp = _mm_max_ps(p_site_mixture[0],p_site_mixture[1]);
+                SIMDRegister tmp = _mm_max_pX(p_site_mixture[0],p_site_mixture[1]);
                 if(mixture == 0)
                     max = tmp;
                 else
-                    max = _mm_max_ps(max, tmp);
+                    max = _mm_max_pX(max, tmp);
 #endif
             }
 #ifdef AVX_ENABLED
             p_scaler[site] = _mm256_add_ps(p_scaler_left[site],p_scaler_right[site]);
-            p_scaler[site] = _mm256_add_ps(p_scaler[site], log256_ps(max));
+#ifdef DOUBLE_PRECISION
+            SIMDRegister tmp = max;
+            double* ptmp = (double*)&tmp;
+            double* pmax = (double*)&max;
+            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
+            	ptmp[i] = log(pmax[i]);
+
+            p_scaler[site] = _mm256_add_pX(p_scaler[site], tmp);
 #else
-            p_scaler[site] = _mm_add_ps(p_scaler_left[site],p_scaler_right[site]);
-            p_scaler[site] = _mm_add_ps(p_scaler[site], log_ps(max));
+            p_scaler[site] = _mm256_add_pX(p_scaler[site], log256_ps(max));
+#endif
+#else
+            p_scaler[site] = _mm_add_pX(p_scaler_left[site],p_scaler_right[site]);
+#ifdef DOUBLE_PRECISION
+            SIMDRegister tmp = max;
+            double* ptmp = (double*)&tmp;
+            double* pmax = (double*)&max;
+            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
+            	ptmp[i] = log(pmax[i]);
+
+            p_scaler[site] = _mm_add_pX(p_scaler[site], tmp);
+#else
+            p_scaler[site] = _mm_add_pX(p_scaler[site], log_ps(max));
+#endif
 #endif
 
             // compute the per site probabilities
@@ -1638,8 +1659,8 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
                 p_site_mixture[0] = _mm256_div_ps(p_site_mixture[0], max);
                 p_site_mixture[1] = _mm256_div_ps(p_site_mixture[1], max);
 #else
-                p_site_mixture[0] = _mm_div_ps(p_site_mixture[0], max);
-                p_site_mixture[1] = _mm_div_ps(p_site_mixture[1], max);
+                p_site_mixture[0] = _mm_div_pX(p_site_mixture[0], max);
+                p_site_mixture[1] = _mm_div_pX(p_site_mixture[1], max);
 #endif
 
             }
@@ -1698,7 +1719,7 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
 #ifdef AVX_ENABLED
             p_scaler[site] = _mm256_add_ps(p_scaler_left[site],p_scaler_right[site]);
 #else
-            p_scaler[site] = _mm_add_ps(p_scaler_left[site],p_scaler_right[site]);
+            p_scaler[site] = _mm_add_pX(p_scaler_left[site],p_scaler_right[site]);
 #endif
         }
 #else
@@ -1751,21 +1772,41 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
                 else
                     max = _mm256_max_ps(max, tmp);
 #else
-                SIMDRegister tmp = _mm_max_ps(p_site_mixture[0],p_site_mixture[1]);
+                SIMDRegister tmp = _mm_max_pX(p_site_mixture[0],p_site_mixture[1]);
                 if(mixture == 0)
                     max = tmp;
                 else
-                    max = _mm_max_ps(max, tmp);
+                    max = _mm_max_pX(max, tmp);
 #endif
             }
 #ifdef AVX_ENABLED
             p_scaler[site] = _mm256_add_ps(p_scaler_left[site], p_scaler_right[site]);
             p_scaler[site] = _mm256_add_ps(p_scaler[site], p_scaler_middle[site]);
-            p_scaler[site] = _mm256_add_ps(p_scaler[site], log256_ps(max));
+#ifdef DOUBLE_PRECISION
+            SIMDRegister tmp = max;
+            double* ptmp = (double*)&tmp;
+            double* pmax = (double*)&max;
+            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
+            	ptmp[i] = log(pmax[i]);
+
+            p_scaler[site] = _mm256_add_pX(p_scaler[site], tmp);
 #else
-            p_scaler[site] = _mm_add_ps(p_scaler_left[site], p_scaler_right[site]);
-            p_scaler[site] = _mm_add_ps(p_scaler[site], p_scaler_middle[site]);
-            p_scaler[site] = _mm_add_ps(p_scaler[site], log_ps(max));
+            p_scaler[site] = _mm256_add_pX(p_scaler[site], log256_ps(max));
+#endif
+#else
+            p_scaler[site] = _mm_add_pX(p_scaler_left[site], p_scaler_right[site]);
+            p_scaler[site] = _mm_add_pX(p_scaler[site], p_scaler_middle[site]);
+#ifdef DOUBLE_PRECISION
+            SIMDRegister tmp = max;
+            double* ptmp = (double*)&tmp;
+            double* pmax = (double*)&max;
+            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
+            	ptmp[i] = log(pmax[i]);
+
+            p_scaler[site] = _mm_add_pX(p_scaler[site], tmp);
+#else
+            p_scaler[site] = _mm_add_pX(p_scaler[site], log_ps(max));
+#endif
 #endif
 
             // compute the per site probabilities
@@ -1779,8 +1820,8 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
                 p_site_mixture[0] = _mm256_div_ps(p_site_mixture[0], max);
                 p_site_mixture[1] = _mm256_div_ps(p_site_mixture[1], max);
 #else
-                p_site_mixture[0] = _mm_div_ps(p_site_mixture[0], max);
-                p_site_mixture[1] = _mm_div_ps(p_site_mixture[1], max);
+                p_site_mixture[0] = _mm_div_pX(p_site_mixture[0], max);
+                p_site_mixture[1] = _mm_div_pX(p_site_mixture[1], max);
 #endif
 
             }
@@ -1840,8 +1881,8 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
             p_scaler[site] = _mm256_add_ps(p_scaler_left[site], p_scaler_right[site]);
             p_scaler[site] = _mm256_add_ps(p_scaler[site], p_scaler_middle[site]);
 #else
-            p_scaler[site] = _mm_add_ps(p_scaler_left[site], p_scaler_right[site]);
-            p_scaler[site] = _mm_add_ps(p_scaler[site], p_scaler_middle[site]);
+            p_scaler[site] = _mm_add_pX(p_scaler_left[site], p_scaler_right[site]);
+            p_scaler[site] = _mm_add_pX(p_scaler[site], p_scaler_middle[site]);
 #endif
         }
 #else
@@ -1883,24 +1924,18 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
                 else
                     max = _mm256_max_ps(max, *u_i);
 #else
-                SIMDRegister tmp = _mm_max_ps(u_i[0],u_i[1]);
+                SIMDRegister tmp = _mm_max_pX(u_i[0],u_i[1]);
                 if(mixture == 0)
                     max = tmp;
                 else
-                    max = _mm_max_ps(max, tmp);
+                    max = _mm_max_pX(max, tmp);
 #endif
             }
             
             RealNumber maximum = 0.0;
             
-#ifdef AVX_ENABLED
-            __m128* m = (__m128*)&max;
-            
-            m[0] = _mm_max_ps(m[0], m[1]);
-            RealNumber* tmp = (RealNumber*)m;
-#else
             RealNumber* tmp = (RealNumber*)&max;
-#endif
+
             for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
                 maximum = std::max(maximum, tmp[i]);
 
@@ -1909,7 +1944,7 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
 #ifdef AVX_ENABLED
             max = _mm256_broadcast_ss(&maximum);
 #else
-            max = _mm_load1_ps(&maximum);
+            max = _mm_load1_pX(&maximum);
 #endif
             
             // compute the per site probabilities
@@ -1922,8 +1957,8 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
 #ifdef AVX_ENABLED
                 *u_i = _mm256_div_ps(*u_i, max);
 #else
-                u_i[0] = _mm_div_ps(u_i[0], max);
-                u_i[1] = _mm_div_ps(u_i[1], max);
+                u_i[0] = _mm_div_pX(u_i[0], max);
+                u_i[1] = _mm_div_pX(u_i[1], max);
 #endif
             }
         }
@@ -2017,24 +2052,18 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
                 else
                     max = _mm256_max_ps(max, *u_i);
 #else
-                SIMDRegister tmp = _mm_max_ps(u_i[0],u_i[1]);
+                SIMDRegister tmp = _mm_max_pX(u_i[0],u_i[1]);
                 if(mixture == 0)
                     max = tmp;
                 else
-                    max = _mm_max_ps(max, tmp);
+                    max = _mm_max_pX(max, tmp);
 #endif
             }
             
             RealNumber maximum = 0.0;
             
-#ifdef AVX_ENABLED
-            __m128* m = (__m128*)&max;
-            
-            m[0] = _mm_max_ps(m[0], m[1]);
-            RealNumber* tmp = (RealNumber*)m;
-#else
             RealNumber* tmp = (RealNumber*)&max;
-#endif
+
             for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
                 maximum = std::max(maximum, tmp[i]);
 
@@ -2043,7 +2072,7 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
 #ifdef AVX_ENABLED
             max = _mm256_broadcast_ss(&maximum);
 #else
-            max = _mm_load1_ps(&maximum);
+            max = _mm_load1_pX(&maximum);
 #endif
             
             // compute the per site probabilities
@@ -2056,8 +2085,8 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
 #ifdef AVX_ENABLED
                 *u_i = _mm256_div_ps(*u_i, max);
 #else
-                u_i[0] = _mm_div_ps(u_i[0], max);
-                u_i[1] = _mm_div_ps(u_i[1], max);
+                u_i[0] = _mm_div_pX(u_i[0], max);
+                u_i[1] = _mm_div_pX(u_i[1], max);
 #endif
             }
         }
@@ -2265,10 +2294,9 @@ void BinarySubstitutionModel::touchSpecialization( DagNode* affecter) {
         
         if(indices.empty())
         {
-            for (size_t index = 0; index < dirtyNodes.size(); ++index) 
+            for (size_t index = 0; index < nodes.size(); ++index)
             {
-                if(!nodes[index]->isRoot())
-                    nodes[index]->setBranchLength(branchLengths->getValue()[index]);
+            	nodes[index]->setBranchLength(branchLengths->getValue()[index]);
                 
                 activeProbability[index] = (activeProbability[index] ? 0 : 1);
                 touchedNodes.insert(index);
@@ -2278,9 +2306,9 @@ void BinarySubstitutionModel::touchSpecialization( DagNode* affecter) {
         {
             for (std::set<size_t>::iterator it = indices.begin(); it != indices.end(); ++it)
             {
-                nodes[*it]->setBranchLength(branchLengths->getValue()[*it]);
+            	nodes[*it]->setBranchLength(branchLengths->getValue()[*it]);
                 
-                if ( touchedNodes.find(*it) == touchedNodes.end() ) 
+                if ( touchedNodes.find(*it) == touchedNodes.end() )
                 {
                     activeProbability[*it] = (activeProbability[*it] ? 0 : 1);
                     touchedNodes.insert(*it);
@@ -2294,11 +2322,12 @@ void BinarySubstitutionModel::touchSpecialization( DagNode* affecter) {
     
     if ( indices.size() != 0 )
     {
-        const std::vector<TopologyNode *> &nodes = tau->getValue().getNodes();
+    	const std::vector<TopologyNode*> nodes = tau->getValue().getNodes();
+
         // flag recomputation only for the nodes
         for (std::set<size_t>::iterator it = indices.begin(); it != indices.end(); ++it)
         {
-            if ( touchedNodes.find(*it) == touchedNodes.end() ) 
+        	if ( touchedNodes.find(*it) == touchedNodes.end() )
             {
                 activeProbability[*it] = (activeProbability[*it] ? 0 : 1);
                 touchedNodes.insert(*it);
@@ -2309,8 +2338,6 @@ void BinarySubstitutionModel::touchSpecialization( DagNode* affecter) {
     }
     else if ( affecter != tau && affecter != branchLengths)
     {
-        const std::vector<TopologyNode*> nodes = tau->getValue().getNodes();
-        
         // flip the active likelihood pointers
         for (size_t index = 0; index < dirtyNodes.size(); ++index) 
         {
@@ -2553,9 +2580,9 @@ void BinarySubstitutionModel::setSiteRates(const TypedDagNode< std::vector< doub
 
 RealNumber BinarySubstitutionModel::getStationaryFrequency( size_t nodeIndex ) {
     
-    if ( branchHeterogeneousFrequencies ) 
+	if ( branchHeterogeneousFrequencies )
     {
-        return heterogeneousFrequencies->getValue()[nodeIndex];
+		return heterogeneousFrequencies->getValue()[nodeIndex];
     } 
     else if ( homogeneousFrequency != NULL ) 
     {
@@ -2575,7 +2602,7 @@ double BinarySubstitutionModel::getClockRate( size_t nodeIndex ) {
     
     if ( branchHeterogeneousClockRates == true )
     {
-        rate = heterogeneousClockRates->getValue()[nodeIndex];
+    	rate = heterogeneousClockRates->getValue()[nodeIndex];
     }
     else if(homogeneousClockRate != NULL)
     {
@@ -2588,7 +2615,7 @@ double BinarySubstitutionModel::getClockRate( size_t nodeIndex ) {
 
 double BinarySubstitutionModel::getBranchLength( size_t nodeIndex ) {
     
-    // second, get the clock rate for the branch
+	// second, get the clock rate for the branch
     double brlen = 1.0;
     
     if ( branchLengths != NULL )
@@ -2597,9 +2624,7 @@ double BinarySubstitutionModel::getBranchLength( size_t nodeIndex ) {
     }
     else
     {
-        const TopologyNode* node = tau->getValue().getNodes()[nodeIndex];
-        
-        brlen = node->getBranchLength();
+        brlen = tau->getValue().getNode(nodeIndex).getBranchLength();
     }
     
     return brlen;

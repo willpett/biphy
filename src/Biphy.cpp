@@ -142,7 +142,7 @@ void Biphy::open( void ) {
     branchprior = static_cast<BranchPrior::Type>(i);
     is >> i;
     rootprior = static_cast<RootPrior::Type>(i);
-    is >> mixture;
+    //is >> mixture;
     is >> rootmin;
     is >> rootmax;
     is >> nexus;
@@ -171,7 +171,7 @@ void Biphy::save( void ) {
     os << modeltype << "\n";
     os << branchprior << "\n";
     os << rootprior << "\n";
-    os << mixture << "\n";
+    //os << mixture << "\n";
     os << rootmin << "\n";
     os << rootmax << "\n";
     os << nexus << "\n";
@@ -374,9 +374,9 @@ void Biphy::initModel( void ) {
             value_name << name.str() << "_value";
             gamma_rates.push_back( new DeterministicNode<double>(value_name.str(), new QuantileFunction(new ConstantNode<double>(name.str(), new double((cat+1.0/2.0)/dgam) ), new GammaDistribution(shape, shape) ) ));
         }
-        //DeterministicNode<std::vector<double> >* site_rates_unnorm = new DeterministicNode<std::vector<double> >( "site_rates_unnorm", new VectorFunction<double>(gamma_rates) );
-        //site_rates = new DeterministicNode<std::vector<double> >( "site_rates", new NormalizeVectorFunction(site_rates_unnorm) );
-        site_rates = new DeterministicNode<std::vector<double> >( "site_rates", new VectorFunction<double>(gamma_rates) );
+        DeterministicNode<std::vector<double> >* site_rates_unnorm = new DeterministicNode<std::vector<double> >( "site_rates_unnorm", new VectorFunction<double>(gamma_rates) );
+        site_rates = new DeterministicNode<std::vector<double> >( "site_rates", new NormalizeVectorFunction(site_rates_unnorm) );
+        //site_rates = new DeterministicNode<std::vector<double> >( "site_rates", new VectorFunction<double>(gamma_rates) );
     }
 
     // constant nodes
@@ -467,7 +467,7 @@ void Biphy::initModel( void ) {
         }
         pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
     }
-    else if(modeltype == ModelPrior::MIXTURE)
+    /*else if(modeltype == ModelPrior::MIXTURE)
     {
         ConstantNode<std::vector<double> > *probs = new ConstantNode<std::vector<double> >("probs", new std::vector<double>(mixture, 1.0/mixture) );
         for(size_t cat = 0; cat < mixture; cat++){
@@ -497,7 +497,7 @@ void Biphy::initModel( void ) {
         }
 
         pi_vector = new DeterministicNode< std::vector< double > >( "pi", new VectorFunction<double>( pi_stat ) );
-    }
+    }*/
 
     // branch length hyperprior
 
@@ -587,8 +587,8 @@ void Biphy::initModel( void ) {
             if(!(i == left || i == right) || rootprior == RootPrior::FREE)
                 if(modeltype == ModelPrior::HIERARCHICAL)
                     moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 100.0, true, 0.5*0.0096/float(numBranches) ) );
-                else if(modeltype == ModelPrior::MIXTURE)
-                	moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 0.02 ) );
+                //else if(modeltype == ModelPrior::MIXTURE)
+                //	moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 0.02 ) );
             if(branchprior == BranchPrior::EXPONENTIAL)
             {
                 moves.push_back( new ScaleMove(branchRates_nonConst[i], 1.0, true, 0.3846/float(numBranches) ) );
@@ -619,9 +619,9 @@ void Biphy::initModel( void ) {
 
     if(modeltype == ModelPrior::HOMOGENEOUS || (modeltype > ModelPrior::HOMOGENEOUS && (rootprior == RootPrior::TRUNCATED || rootprior == RootPrior::RIGID)) )
     {
-    	if(modeltype == ModelPrior::MIXTURE)
+    	/*if(modeltype == ModelPrior::MIXTURE)
             moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 0.02 ) );
-        else
+        else*/
             moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1000.0, true, 0.02 ) );
 
     	monitoredNodes.push_back( phi );
@@ -642,7 +642,7 @@ void Biphy::initModel( void ) {
         moves.push_back( new ScaleMove(beta2, 0.3, true, 0.0096/4) );
         monitoredNodes.push_back( beta2 );
 
-        if(modeltype == ModelPrior::MIXTURE){
+       /* if(modeltype == ModelPrior::MIXTURE){
             //std::vector<Move*> mixmoves;
             for (size_t i = 0 ; i < mixture; i ++ ) {
                 //mixmoves.push_back( new ScaleMove((StochasticNode<double>*)pi_cats[i], 1.0, true, 2.0 ) );
@@ -650,7 +650,7 @@ void Biphy::initModel( void ) {
                 monitoredNodes.push_back((StochasticNode<double>*)pi_cats[i]);
             }
             //moves.push_back(new MultiMove(mixmoves,one,2.0,true));
-        }
+        }*/
     }
     
     if(dgam > 1)

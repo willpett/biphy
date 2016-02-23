@@ -158,7 +158,7 @@ int main (int argc, const char * argv[])
 						cerr << "error in command: -u <int>\n\n";
 						exit(1);
 					}
-				}else if (s == "-mix")	{
+				}/*else if (s == "-mix")	{
 					i++;
 					if (i == argc)	{
 						cerr << "error in command: -mix <int>\n\n";
@@ -176,7 +176,7 @@ int main (int argc, const char * argv[])
 						modeltype = ModelPrior::HOMOGENEOUS;
 						mixture = 0;
 					}
-				}
+				}*/
 				else if (s == "-delta")	{
 					i++;
 					if (i == argc)	{
@@ -318,7 +318,7 @@ int main (int argc, const char * argv[])
 		cerr << "\t-h\t\thomogeneous reversible model (default)\n";
 		cerr << "\t-nh\t\tbranch-heterogeneous reversible model\n";
 		cerr << "\t-dollo\t\tstochastic dollo model\n";
-		cerr << "\t-mix <int>\tbeta mixture with <int> components\n";
+		//cerr << "\t-mix <int>\tbeta mixture with <int> components\n";
 
 		cerr << "\nBranch length prior:\n";
 		cerr << "\t-lexp\t\thierarchical exponential prior (default)\n";

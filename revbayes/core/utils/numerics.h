@@ -25,27 +25,74 @@
 #ifdef DOUBLE_PRECISION
     typedef double RealNumber;
 #else
+#ifdef SIMD_ENABLED
+#define SSE_CORRECTION_ENABLED
+#endif
     typedef float RealNumber;
 #endif
     
 #ifdef SSE_ENABLED
+
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include <pmmintrin.h>
 #include "sse_mathfun.h"
+
+#ifdef DOUBLE_PRECISION
+    typedef __m128d SIMDRegister;
+#define       _mm_load1_pX(A) _mm_load1_pd(A)
+#define        _mm_set1_pX(A)  _mm_set1_pd(A)
+#define       _mm_mul_pX(A,B) _mm_mul_pd(A,B)
+#define       _mm_add_pX(A,B) _mm_add_pd(A,B)
+#define       _mm_max_pX(A,B) _mm_max_pd(A,B)
+#define       _mm_div_pX(A,B) _mm_div_pd(A,B)
+#define _mm_cmpneq_pX(A,B) _mm_cmpneq_pd(A,B)
+#define    _mm_and_pX(A,B)    _mm_and_pd(A,B)
+#else
     typedef __m128 SIMDRegister;
+#define       _mm_load1_pX(A) _mm_load1_ps(A)
+#define        _mm_set1_pX(A)  _mm_set1_ps(A)
+#define       _mm_mul_pX(A,B) _mm_mul_ps(A,B)
+#define       _mm_add_pX(A,B) _mm_add_ps(A,B)
+#define       _mm_max_pX(A,B) _mm_max_ps(A,B)
+#define       _mm_div_pX(A,B) _mm_div_ps(A,B)
+#define          log_pX(A)          log_ps(A)
+#define _mm_cmpneq_pX(A,B) _mm_cmpneq_ps(A,B)
+#define    _mm_and_pX(A,B)    _mm_and_ps(A,B)
+#endif
+
 #elif defined AVX_ENABLED
+
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include <pmmintrin.h>
 #include <immintrin.h>
 #include "avx_mathfun.h"
+
+#ifdef DOUBLE_PRECISION
+    typedef __m256d SIMDRegister;
+#define _mm256_broadcast_sX(A) _mm256_broadcast_sd(A)
+#define     _mm256_mul_pX(A,B)     _mm256_mul_pd(A,B)
+#define     _mm256_add_pX(A,B)     _mm256_add_pd(A,B)
+#define     _mm256_max_pX(A,B)     _mm256_max_pd(A,B)
+#define     _mm256_div_pX(A,B)     _mm256_div_pd(A,B)
+#define   _mm256_cmp_pX(A,B,C)   _mm256_cmp_pd(A,B,C)
+#define     _mm256_and_pX(A,B)     _mm256_and_pd(A,B)
+#else
     typedef __m256 SIMDRegister;
+#define _mm256_broadcast_sX(A) _mm256_broadcast_ss(A)
+#define     _mm256_mul_pX(A,B)     _mm256_mul_ps(A,B)
+#define     _mm256_add_pX(A,B)     _mm256_add_ps(A,B)
+#define     _mm256_max_pX(A,B)     _mm256_max_ps(A,B)
+#define     _mm256_div_pX(A,B)     _mm256_div_ps(A,B)
+#define           log256_pX(A)           log256_ps(A)
+#define   _mm256_cmp_pX(A,B,C)   _mm256_cmp_ps(A,B,C)
+#define     _mm256_and_pX(A,B)     _mm256_and_ps(A,B)
+#endif
+
 #endif
     
 #ifdef SIMD_ENABLED
-    
-#define SSE_CORRECTION_ENABLED
     
 const size_t REALS_PER_SIMD_REGISTER = sizeof(SIMDRegister)/sizeof(RealNumber);
     
