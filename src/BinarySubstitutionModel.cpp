@@ -2294,26 +2294,27 @@ void BinarySubstitutionModel::touchSpecialization( DagNode* affecter) {
         
         if(indices.empty())
         {
-            for (size_t index = 0; index < nodes.size(); ++index)
-            {
-            	nodes[index]->setBranchLength(branchLengths->getValue()[index]);
-                
-                activeProbability[index] = (activeProbability[index] ? 0 : 1);
-                touchedNodes.insert(index);
-            }
+        	for (size_t index = 0; index < dirtyNodes.size(); ++index)
+			{
+				if(!nodes[index]->isRoot())
+					nodes[index]->setBranchLength(branchLengths->getValue()[index]);
+
+				activeProbability[index] = (activeProbability[index] ? 0 : 1);
+				touchedNodes.insert(index);
+			}
         }
         else
         {
-            for (std::set<size_t>::iterator it = indices.begin(); it != indices.end(); ++it)
-            {
-            	nodes[*it]->setBranchLength(branchLengths->getValue()[*it]);
-                
-                if ( touchedNodes.find(*it) == touchedNodes.end() )
-                {
-                    activeProbability[*it] = (activeProbability[*it] ? 0 : 1);
-                    touchedNodes.insert(*it);
-                }
-            }
+        	for (std::set<size_t>::iterator it = indices.begin(); it != indices.end(); ++it)
+			{
+				nodes[*it]->setBranchLength(branchLengths->getValue()[*it]);
+
+				if ( touchedNodes.find(*it) == touchedNodes.end() )
+				{
+					activeProbability[*it] = (activeProbability[*it] ? 0 : 1);
+					touchedNodes.insert(*it);
+				}
+			}
             
             indices.clear();
         }

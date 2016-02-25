@@ -147,6 +147,7 @@ ${REVBAYES_DIR}/core/functions/continuous/bivariate/BinarySubtraction.h
 ${REVBAYES_DIR}/core/functions/continuous/bivariate/BinaryMultiplication.h
 ${REVBAYES_DIR}/core/functions/continuous/ContinuousFunction.cpp
 ${REVBAYES_DIR}/core/functions/continuous/ContinuousFunction.h
+${REVBAYES_DIR}/core/functions/continuous/LogitFunction.h
 ${REVBAYES_DIR}/core/functions/TypedFunction.h
 ${REVBAYES_DIR}/core/functions/Function.h
 ${REVBAYES_DIR}/core/functions/VectorFunction.h
@@ -230,6 +231,8 @@ ${REVBAYES_DIR}/core/distributions/math/DirichletDistribution.cpp
 ${REVBAYES_DIR}/core/distributions/math/ExponentialDistribution.cpp
 ${REVBAYES_DIR}/core/distributions/math/BetaDistribution.h
 ${REVBAYES_DIR}/core/distributions/math/BetaDistribution.cpp
+${REVBAYES_DIR}/core/distributions/math/NormalDistribution.h
+${REVBAYES_DIR}/core/distributions/math/NormalDistribution.cpp
 ${REVBAYES_DIR}/core/distributions/Distribution.h
 ${REVBAYES_DIR}/core/distributions/Distribution.cpp
 ${REVBAYES_DIR}/core/distributions/MixtureDistribution.h

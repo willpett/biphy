@@ -13,6 +13,7 @@
 #include "ExponentialDistribution.h"
 #include "FileMonitor.h"
 #include "GammaDistribution.h"
+#include "LogitFunction.h"
 #include "MappingMonitor.h"
 #include "MeanFunction.h"
 #include "MixtureDistribution.h"
@@ -20,6 +21,7 @@
 #include "NexusTreeMonitor.h"
 #include "NewickTreeMonitor.h"
 #include "NewickTreeReader.h"
+#include "NormalDistribution.h"
 #include "NormalizeVectorFunction.h"
 #include "PerSiteLnProbMonitor.h"
 #include "PosteriorPredictiveStateFrequencyMonitor.h"
@@ -29,6 +31,7 @@
 #include "ScaleMove.h"
 #include "Settings.h"
 #include "SimplexSingleElementScale.h"
+#include "SlidingMove.h"
 #include "SubtreePruneRegraft.h"
 #include "SumFunction.h"
 #include "TruncatedDistributionUnnormalized.h"
@@ -409,6 +412,7 @@ void Biphy::initModel( void ) {
     StochasticNode<double> *beta2;
 
     // base frequencies prior
+    ContinuousStochasticNode* logit;
     TypedDagNode<double> *phi;
     if(modeltype != ModelPrior::DOLLO)
     {
@@ -436,7 +440,11 @@ void Biphy::initModel( void ) {
             }
             else
             {
-                phi = new StochasticNode<double>( "phi", new BetaDistribution( one,one ) );
+            	/*ConstantNode<double>* var = new ConstantNode<double>("var", new double(1.66378) );
+            	logit = new ContinuousStochasticNode("logit", new NormalDistribution(zero, var));
+            	phi = new DeterministicNode<double>( "phi", new LogitFunction( logit, true ) );*/
+
+            	phi = new StochasticNode<double>( "phi", new BetaDistribution( one,one ) );
             }
         }
     }
@@ -555,6 +563,9 @@ void Biphy::initModel( void ) {
         charModel = new BinarySubstitutionModel(tau, AscertainmentBias::Coding(correction));
     }
     
+    if(cvdata != NULL)
+    	charModel->setVerbose(false);
+
     if(branchprior == BranchPrior::EXPONENTIAL || branchprior == BranchPrior::DIRICHLET)
     {
         charModel->setBranchLengths(br_vector);
@@ -613,7 +624,7 @@ void Biphy::initModel( void ) {
     }
     else if(branchprior == BranchPrior::STRICT)
     {
-        moves.push_back( new ScaleMove(mu, 0.3, true, 0.02) );
+        moves.push_back( new ScaleMove(mu, 0.2, true, 0.02) );
         monitoredNodes.push_back( mu );
     }
 
@@ -623,6 +634,7 @@ void Biphy::initModel( void ) {
             moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 0.02 ) );
         else*/
             moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1000.0, true, 0.02 ) );
+    	//moves.push_back( new SlidingMove(logit, 0.5, true, 0.02 ) );
 
     	monitoredNodes.push_back( phi );
     }
