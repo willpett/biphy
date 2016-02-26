@@ -137,6 +137,8 @@ ${REVBAYES_DIR}/core/functions/builtin/MeanFunction.h
 ${REVBAYES_DIR}/core/functions/builtin/NormalizeVectorFunction.h
 ${REVBAYES_DIR}/core/functions/Function.cpp
 ${REVBAYES_DIR}/core/functions/distribution
+${REVBAYES_DIR}/core/functions/distribution/DiscreteBetaValuesFunction.h
+${REVBAYES_DIR}/core/functions/distribution/DiscreteBetaValuesFunction.cpp
 ${REVBAYES_DIR}/core/functions/distribution/QuantileFunction.h
 ${REVBAYES_DIR}/core/functions/distribution/QuantileFunction.cpp
 ${REVBAYES_DIR}/core/functions/continuous

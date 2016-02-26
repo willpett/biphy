@@ -18,6 +18,7 @@ BinarySubstitutionModel::BinarySubstitutionModel(const TypedDagNode<Tree> *t, As
     numTaxa( t->getValue().getNumberOfTips() ),
     numSites( 0 ),
     numSiteRates( 1 ),
+	numSiteFrequencies( 1 ),
     tau( t ),
     activeLikelihood( std::vector<bool>(numNodes, false) ),
     activeProbability( std::vector<bool>(numNodes, false) ),
@@ -50,6 +51,7 @@ BinarySubstitutionModel::BinarySubstitutionModel(const TypedDagNode<Tree> *t, As
     branchHeterogeneousClockRates   = false;
     branchHeterogeneousFrequencies  = false;
     rateVariationAcrossSites        = false;
+    frequencyVariationAcrossSites   = false;
 }
 
 
@@ -67,11 +69,13 @@ BinarySubstitutionModel::BinarySubstitutionModel(const BinarySubstitutionModel &
 #endif
     numPatterns( n.numPatterns ),
     numSiteRates(n.numSiteRates),
+	numSiteFrequencies(n.numSiteFrequencies),
     numNodes(n.numNodes),
     numSites( n.numSites ),
     numTaxa(n.numTaxa),
     
     nodeOffset(n.nodeOffset),
+	rateOffset(n.rateOffset),
     mixtureOffset(n.mixtureOffset),
     siteOffset(n.siteOffset),
     activeLikelihoodOffset(n.activeLikelihoodOffset),
@@ -95,17 +99,20 @@ BinarySubstitutionModel::BinarySubstitutionModel(const BinarySubstitutionModel &
     
     branchHeterogeneousFrequencies(n.branchHeterogeneousFrequencies),
     rateVariationAcrossSites(n.rateVariationAcrossSites),
+	frequencyVariationAcrossSites(n.frequencyVariationAcrossSites),
 
     activeProbability( n.activeProbability ),
     transitionProbabilities( n.transitionProbabilities ),
     tActiveOffset(n.tActiveOffset),
     tNodeOffset(n.tNodeOffset),
-    tMixtureOffset(n.tMixtureOffset),
+    tRateOffset(n.tRateOffset),
+	tMixtureOffset(n.tMixtureOffset),
     
     N(n.N),
     numCorrectionMasks(n.numCorrectionMasks),
     activeCorrectionOffset(n.activeCorrectionOffset),
     correctionNodeOffset(n.correctionNodeOffset),
+	correctionRateOffset(n.correctionRateOffset),
     correctionMixtureOffset(n.correctionMixtureOffset),
     correctionMaskMatrix(n.correctionMaskMatrix),
     correctionMaskCounts(n.correctionMaskCounts),
@@ -138,12 +145,13 @@ void BinarySubstitutionModel::resizeLikelihoodVectors( void ) {
     // we resize the partial likelihood vectors to the new dimensions
     if(coding != AscertainmentBias::ALL)
     {
-        correctionMixtureOffset = numCorrectionMasks*8;
-        correctionNodeOffset    = numSiteRates*correctionMixtureOffset;
-        activeCorrectionOffset  = numNodes*correctionNodeOffset;
+        correctionRateOffset 		= numCorrectionMasks*8;
+        correctionMixtureOffset 	= numSiteRates*correctionRateOffset;
+        correctionNodeOffset    	= numSiteFrequencies*correctionMixtureOffset;
+        activeCorrectionOffset  	= numNodes*correctionNodeOffset;
 
         correctionLikelihoods = RealVector(2*activeCorrectionOffset, 0.0);
-        perMixtureCorrections = RealVector(numSiteRates*numCorrectionMasks, 0.0);
+        perMixtureCorrections = RealVector(numSiteRates*numSiteFrequencies*numCorrectionMasks, 0.0);
         perMaskCorrections    = RealVector(numCorrectionMasks, 0.0);
         
         if(useScaling)
@@ -164,16 +172,18 @@ void BinarySubstitutionModel::resizeLikelihoodVectors( void ) {
 #ifdef SIMD_ENABLED
     numSIMDBlocks               = size_t((numPatterns - 1)/REALS_PER_SIMD_REGISTER) + 1;
     siteOffset                  = 2*REALS_PER_SIMD_REGISTER;
-    mixtureOffset               = numSIMDBlocks*siteOffset;
+    rateOffset               	= numSIMDBlocks*siteOffset;
+    mixtureOffset				= numSiteRates*rateOffset;
     
     numAllocatedPatterns        = numSIMDBlocks*REALS_PER_SIMD_REGISTER;
 #else
     siteOffset                  = 2;
-    mixtureOffset               = numPatterns*siteOffset;
+    rateOffset               	= numPatterns*siteOffset;
+    mixtureOffset               = numSiteRates*rateOffset;
     
     size_t numAllocatedPatterns = numPatterns;
 #endif
-    nodeOffset                  = numSiteRates*mixtureOffset;
+    nodeOffset                  = numSiteFrequencies*mixtureOffset;
     activeLikelihoodOffset      = numNodes*nodeOffset;
     
     partialLikelihoods   = RealVector(2 * activeLikelihoodOffset, 0.0);
@@ -190,9 +200,10 @@ void BinarySubstitutionModel::resizeLikelihoodVectors( void ) {
     }
     
     // reset the transitionProbability vector
-    tMixtureOffset = 4;
-    tNodeOffset = numSiteRates*tMixtureOffset;
-    tActiveOffset = (numNodes - 1)*tNodeOffset;
+    tRateOffset    	= 4;
+    tMixtureOffset 	= numSiteRates*4;
+    tNodeOffset 	= numSiteFrequencies*tMixtureOffset;
+    tActiveOffset 	= (numNodes - 1)*tNodeOffset;
     
     transitionProbabilities = RealVector(2 * tActiveOffset, 0.0);
     
@@ -585,11 +596,6 @@ void BinarySubstitutionModel::fillLikelihoodVector(const TopologyNode &node, siz
 
 void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, size_t nodeIndex, size_t left, size_t right)
 {   
-    // get the root frequencies
-    
-    RealNumber rf1 = getStationaryFrequency(nodeIndex);
-    RealNumber rf0 = 1.0 - rf1;
-        
     // get the pointers to the partial likelihoods for this node and the two descendant subtrees
     RealVector::const_iterator  p_left  = partialLikelihoods.begin() + activeLikelihood[left]*activeLikelihoodOffset      + left*nodeOffset;
     RealVector::const_iterator  p_right = partialLikelihoods.begin() + activeLikelihood[right]*activeLikelihoodOffset     + right*nodeOffset;
@@ -600,152 +606,158 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
 
 #ifdef SIMD_ENABLED
     SIMDRegister          m1, m2, m3, mrf0, mrf1;
-    if(node.isRoot())
+#endif
+
+    for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
     {
-#ifdef AVX_ENABLED
-        mrf0 = _mm256_broadcast_ss (&rf0);
-        mrf1 = _mm256_broadcast_ss (&rf1);
-#else
-        mrf0 = _mm_load1_pX (&rf0);
-        mrf1 = _mm_load1_pX (&rf1);
-#endif
-    }
-#endif
-    
-    // iterate over all mixture categories
-    for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
-    {   
-        size_t tOffset = mixture*tMixtureOffset;
-        
-        RealVector::iterator    t_left   = pi_left  + tOffset;
-        RealVector::iterator    t_right  = pi_right + tOffset;
+    	// get the root frequencies
+		RealNumber rf1 = getStationaryFrequency(nodeIndex, freq);
+		RealNumber rf0 = 1.0 - rf1;
 
 #ifdef SIMD_ENABLED
-        for (size_t site = 0; site < numSIMDBlocks ; ++site)
-        {
-            size_t offset = mixture*mixtureOffset + site*siteOffset;
-            
-            SIMDRegister *          p_site_mixture    = (SIMDRegister *)&*(p_node  + offset);
-            SIMDRegister *     p_site_mixture_left    = (SIMDRegister *)&*(p_left  + offset);
-            SIMDRegister *    p_site_mixture_right    = (SIMDRegister *)&*(p_right + offset);
+		if(node.isRoot())
+		{
 #ifdef AVX_ENABLED
-            m1 = _mm256_broadcast_ss (&t_left[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_left[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm256_add_ps (m1, m2);
-            
-            m1 = _mm256_broadcast_ss (&t_right[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_right[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm256_add_ps (m1, m2);
-            p_site_mixture[0] = _mm256_mul_ps (m1, m3);
-            
-            if(node.isRoot())
-                p_site_mixture[0] = _mm256_mul_ps (mrf0, p_site_mixture[0]);
-            
-            m1 = _mm256_broadcast_ss (&t_left[2]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_left[3]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm256_add_ps (m1, m2);
-            
-            
-            m1 = _mm256_broadcast_ss (&t_right[2]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_right[3]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm256_add_ps (m1, m2);
-            p_site_mixture[1] = _mm256_mul_ps (m1, m3);
-            
-            if(node.isRoot())
-                p_site_mixture[1] = _mm256_mul_ps (mrf1, p_site_mixture[1]);
+			mrf0 = _mm256_broadcast_ss (&rf0);
+			mrf1 = _mm256_broadcast_ss (&rf1);
 #else
-            m1 = _mm_load1_pX (&t_left[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm_load1_pX (&t_left[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm_add_pX (m1, m2);
-            
-            m1 = _mm_load1_pX (&t_right[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm_load1_pX (&t_right[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm_add_pX (m1, m2);
-            p_site_mixture[0] = _mm_mul_pX (m1, m3);
-            
-            if(node.isRoot())
-                p_site_mixture[0] = _mm_mul_pX (mrf0, p_site_mixture[0]);
-            
-            m1 = _mm_load1_pX (&t_left[2]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm_load1_pX (&t_left[3]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm_add_pX (m1, m2);
-            
-            
-            m1 = _mm_load1_pX (&t_right[2]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm_load1_pX (&t_right[3]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm_add_pX (m1, m2);
-            p_site_mixture[1] = _mm_mul_pX (m1, m3);
-            
-            if(node.isRoot())
-                p_site_mixture[1] = _mm_mul_pX (mrf1, p_site_mixture[1]);
+			mrf0 = _mm_load1_pX (&rf0);
+			mrf1 = _mm_load1_pX (&rf1);
+#endif
+		}
+#endif
+    
+		// iterate over all mixture categories
+		for (size_t rate = 0; rate < numSiteRates; ++rate)
+		{
+			size_t tOffset = rate*tRateOffset + freq*tMixtureOffset;
+
+			RealVector::iterator    t_left   = pi_left  + tOffset;
+			RealVector::iterator    t_right  = pi_right + tOffset;
+
+#ifdef SIMD_ENABLED
+			for (size_t site = 0; site < numSIMDBlocks ; ++site)
+			{
+				size_t offset = rate*rateOffset + freq*tMixtureOffset + site*siteOffset;
+
+				SIMDRegister *          p_site_mixture    = (SIMDRegister *)&*(p_node  + offset);
+				SIMDRegister *     p_site_mixture_left    = (SIMDRegister *)&*(p_left  + offset);
+				SIMDRegister *    p_site_mixture_right    = (SIMDRegister *)&*(p_right + offset);
+#ifdef AVX_ENABLED
+				m1 = _mm256_broadcast_ss (&t_left[0]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
+
+				m2 = _mm256_broadcast_ss (&t_left[1]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
+
+				m3 = _mm256_add_ps (m1, m2);
+
+				m1 = _mm256_broadcast_ss (&t_right[0]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
+
+				m2 = _mm256_broadcast_ss (&t_right[1]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
+
+				m1 = _mm256_add_ps (m1, m2);
+				p_site_mixture[0] = _mm256_mul_ps (m1, m3);
+
+				if(node.isRoot())
+					p_site_mixture[0] = _mm256_mul_ps (mrf0, p_site_mixture[0]);
+
+				m1 = _mm256_broadcast_ss (&t_left[2]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
+
+				m2 = _mm256_broadcast_ss (&t_left[3]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
+
+				m3 = _mm256_add_ps (m1, m2);
+
+
+				m1 = _mm256_broadcast_ss (&t_right[2]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
+
+				m2 = _mm256_broadcast_ss (&t_right[3]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
+
+				m1 = _mm256_add_ps (m1, m2);
+				p_site_mixture[1] = _mm256_mul_ps (m1, m3);
+
+				if(node.isRoot())
+					p_site_mixture[1] = _mm256_mul_ps (mrf1, p_site_mixture[1]);
+#else
+				m1 = _mm_load1_pX (&t_left[0]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
+
+				m2 = _mm_load1_pX (&t_left[1]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
+
+				m3 = _mm_add_pX (m1, m2);
+
+				m1 = _mm_load1_pX (&t_right[0]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
+
+				m2 = _mm_load1_pX (&t_right[1]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
+
+				m1 = _mm_add_pX (m1, m2);
+				p_site_mixture[0] = _mm_mul_pX (m1, m3);
+
+				if(node.isRoot())
+					p_site_mixture[0] = _mm_mul_pX (mrf0, p_site_mixture[0]);
+
+				m1 = _mm_load1_pX (&t_left[2]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
+
+				m2 = _mm_load1_pX (&t_left[3]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
+
+				m3 = _mm_add_pX (m1, m2);
+
+
+				m1 = _mm_load1_pX (&t_right[2]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
+
+				m2 = _mm_load1_pX (&t_right[3]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
+
+				m1 = _mm_add_pX (m1, m2);
+				p_site_mixture[1] = _mm_mul_pX (m1, m3);
+
+				if(node.isRoot())
+					p_site_mixture[1] = _mm_mul_pX (mrf1, p_site_mixture[1]);
 #endif
 #else   
-        // compute the per site probabilities
-        for (size_t site = 0; site < numPatterns ; ++site)
-        {
-            size_t offset = mixture*mixtureOffset + site*siteOffset;
-            
-            RealVector::iterator          p_site_mixture          = p_node + offset;
-            RealVector::const_iterator    p_site_mixture_left     = p_left + offset;
-            RealVector::const_iterator    p_site_mixture_right    = p_right + offset;
-            
-            p_site_mixture[0] = ( p_site_mixture_left[0]  * t_left[0]  + p_site_mixture_left[1]  * t_left[1] )
-                              * ( p_site_mixture_right[0] * t_right[0] + p_site_mixture_right[1] * t_right[1]);
-            
-            p_site_mixture[1] = ( p_site_mixture_left[0]  * t_left[2]  + p_site_mixture_left[1]  * t_left[3] )
-                              * ( p_site_mixture_right[0] * t_right[2] + p_site_mixture_right[1] * t_right[3]);
-
-            if(node.isRoot())
+			// compute the per site probabilities
+			for (size_t site = 0; site < numPatterns ; ++site)
 			{
-				p_site_mixture[0] *= rf0;
-				p_site_mixture[1] *= rf1;
-			}
+				size_t offset = rate*rateOffset + freq*frequencyOffset + site*siteOffset;
+
+				RealVector::iterator          p_site_mixture          = p_node + offset;
+				RealVector::const_iterator    p_site_mixture_left     = p_left + offset;
+				RealVector::const_iterator    p_site_mixture_right    = p_right + offset;
+
+				p_site_mixture[0] = ( p_site_mixture_left[0]  * t_left[0]  + p_site_mixture_left[1]  * t_left[1] )
+								  * ( p_site_mixture_right[0] * t_right[0] + p_site_mixture_right[1] * t_right[1]);
+
+				p_site_mixture[1] = ( p_site_mixture_left[0]  * t_left[2]  + p_site_mixture_left[1]  * t_left[3] )
+								  * ( p_site_mixture_right[0] * t_right[2] + p_site_mixture_right[1] * t_right[3]);
+
+				if(node.isRoot())
+				{
+					p_site_mixture[0] *= rf0;
+					p_site_mixture[1] *= rf1;
+				}
 #endif            
-        } // end-for over all sites (=patterns)
-        
-    } // end-for over all mixtures (=rate-categories)
-    
+			} // end-for over all sites (=patterns)
+
+		} // end-for over all mixtures (=rate-categories)
+	}
 }
 
 
 
 void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, size_t nodeIndex, size_t left, size_t right, size_t middle)
 {
-    RealNumber rf1 = getStationaryFrequency(nodeIndex);
-    RealNumber rf0 = 1.0 - rf1;
-    
     // get the pointers to the partial likelihoods for this node and the two descendant subtrees
     RealVector::const_iterator   p_left   = partialLikelihoods.begin() + activeLikelihood[left]*activeLikelihoodOffset + left*nodeOffset;
     RealVector::const_iterator   p_right  = partialLikelihoods.begin() + activeLikelihood[right]*activeLikelihoodOffset + right*nodeOffset;
@@ -758,192 +770,200 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
     
 #ifdef SIMD_ENABLED
     SIMDRegister          m1, m2, m3, mrf0, mrf1;
-    if(node.isRoot())
-    {
-#ifdef AVX_ENABLED
-        mrf0 = _mm256_broadcast_ss (&rf0);
-        mrf1 = _mm256_broadcast_ss (&rf1);
-#else
-        mrf0 = _mm_load1_pX (&rf0);
-        mrf1 = _mm_load1_pX (&rf1);
 #endif
-    }
+
+    for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
+    {
+    	RealNumber rf1 = getStationaryFrequency(nodeIndex, freq);
+		RealNumber rf0 = 1.0 - rf1;
+
+#ifdef SIMD_ENABLED
+		if(node.isRoot())
+		{
+#ifdef AVX_ENABLED
+			mrf0 = _mm256_broadcast_ss (&rf0);
+			mrf1 = _mm256_broadcast_ss (&rf1);
+#else
+			mrf0 = _mm_load1_pX (&rf0);
+			mrf1 = _mm_load1_pX (&rf1);
+#endif
+		}
 #endif    
     
-    // iterate over all mixture categories
-    for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
-    {   
-        size_t tOffset = mixture*tMixtureOffset;
-                
-        RealVector::iterator    t_left   = pi_left   + tOffset;
-        RealVector::iterator    t_right  = pi_right  + tOffset;
-        RealVector::iterator    t_middle = pi_middle + tOffset;
-        
-#ifdef SIMD_ENABLED
-        
-        for (size_t site = 0; site < numSIMDBlocks ; ++site)
-        {
-            size_t offset = mixture*mixtureOffset + site*siteOffset;
-            
-            SIMDRegister *          p_site_mixture    = (SIMDRegister *)&*(p_node  + offset);
-            SIMDRegister *     p_site_mixture_left    = (SIMDRegister *)&*(p_left  + offset);
-            SIMDRegister *    p_site_mixture_right    = (SIMDRegister *)&*(p_right + offset);
-            SIMDRegister *   p_site_mixture_middle    = (SIMDRegister *)&*(p_middle + offset);
-            
-#ifdef AVX_ENABLED
-            m1 = _mm256_broadcast_ss (&t_left[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_left[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm256_add_ps (m1, m2);
-            
-            
-            m1 = _mm256_broadcast_ss (&t_right[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_right[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm256_add_ps (m1, m2);
-            m3 = _mm256_mul_ps (m1, m3);
-           
-                        
-            m1 = _mm256_broadcast_ss (&t_middle[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_middle[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_middle[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_middle[1]);
-            
-            m1 = _mm256_add_ps (m1, m2);
-            p_site_mixture[0] = _mm256_mul_ps (m1, m3);
-            
-            if(node.isRoot())
-                p_site_mixture[0] = _mm256_mul_ps (mrf0, p_site_mixture[0]);
+		// iterate over all mixture categories
+		for (size_t rate = 0; rate < numSiteRates; ++rate)
+		{
+			size_t tOffset = rate*tRateOffset + freq*tMixtureOffset;
 
-            m1 = _mm256_broadcast_ss (&t_left[2]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_left[3]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm256_add_ps (m1, m2);
-            
-            
-            m1 = _mm256_broadcast_ss (&t_right[2]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_right[3]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm256_add_ps (m1, m2);
-            m3 = _mm256_mul_ps (m1, m3);
-            
-                        
-            m1 = _mm256_broadcast_ss (&t_middle[2]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_middle[0]);
-            
-            m2 = _mm256_broadcast_ss (&t_middle[3]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_middle[1]);
-            
-            m1 = _mm256_add_ps (m1, m2);
-            p_site_mixture[1] = _mm256_mul_ps (m1, m3);
-            
-            if(node.isRoot())
-                p_site_mixture[1] = _mm256_mul_ps (mrf1, p_site_mixture[1]);
-#else
-            m1 = _mm_load1_pX (&t_left[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm_load1_pX (&t_left[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm_add_pX (m1, m2);
-            
-            
-            m1 = _mm_load1_pX (&t_right[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm_load1_pX (&t_right[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm_add_pX (m1, m2);
-            m3 = _mm_mul_pX (m1, m3);
-           
-                        
-            m1 = _mm_load1_pX (&t_middle[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_middle[0]);
-            
-            m2 = _mm_load1_pX (&t_middle[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_middle[1]);
-            
-            m1 = _mm_add_pX (m1, m2);
-            p_site_mixture[0] = _mm_mul_pX (m1, m3);
-            
-            if(node.isRoot())
-                p_site_mixture[0] = _mm_mul_pX (mrf0, p_site_mixture[0]);
+			RealVector::iterator    t_left   = pi_left   + tOffset;
+			RealVector::iterator    t_right  = pi_right  + tOffset;
+			RealVector::iterator    t_middle = pi_middle + tOffset;
 
-            m1 = _mm_load1_pX (&t_left[2]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm_load1_pX (&t_left[3]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm_add_pX (m1, m2);
-            
-            
-            m1 = _mm_load1_pX (&t_right[2]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm_load1_pX (&t_right[3]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm_add_pX (m1, m2);
-            m3 = _mm_mul_pX (m1, m3);
-            
-                        
-            m1 = _mm_load1_pX (&t_middle[2]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_middle[0]);
-            
-            m2 = _mm_load1_pX (&t_middle[3]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_middle[1]);
-            
-            m1 = _mm_add_pX (m1, m2);
-            p_site_mixture[1] = _mm_mul_pX (m1, m3);
-            
-            if(node.isRoot())
-                p_site_mixture[1] = _mm_mul_pX (mrf1, p_site_mixture[1]);
-#endif
-#else        
-        // compute the per site probabilities
-        for (size_t site = 0; site < numPatterns ; ++site)
-        {
-            size_t offset = mixture*mixtureOffset + site*siteOffset;
-            
-            RealVector::iterator          p_site_mixture          = p_node   + offset;
-            RealVector::const_iterator    p_site_mixture_left     = p_left   + offset;
-            RealVector::const_iterator    p_site_mixture_right    = p_right  + offset;
-            RealVector::const_iterator    p_site_mixture_middle   = p_middle + offset;
-            
-            p_site_mixture[0] = ( p_site_mixture_left[0]   * t_left[0]    + p_site_mixture_left[1]   * t_left[1]  )
-                              * ( p_site_mixture_right[0]  * t_right[0]   + p_site_mixture_right[1]  * t_right[1] )
-                              * ( p_site_mixture_middle[0] * pi_middle[0] + p_site_mixture_middle[1] * pi_middle[1]);
-            
-            p_site_mixture[1] = ( p_site_mixture_left[0]   * t_left[2]   + p_site_mixture_left[1]   * t_left[3]  )
-                              * ( p_site_mixture_right[0]  * t_right[2]  + p_site_mixture_right[1]  * t_right[3] )
-                              * ( p_site_mixture_middle[0] * t_middle[2] + p_site_mixture_middle[1] * t_middle[3]);
-            
-            if(node.isRoot())
-            {
-                p_site_mixture[0] *= rf0;
-                p_site_mixture[1] *= rf1;
-            }
-#endif            
-        } // end-for over all sites (=patterns)
-        
-    } // end-for over all mixtures (=rate-categories)
-    
+	#ifdef SIMD_ENABLED
+
+			for (size_t site = 0; site < numSIMDBlocks ; ++site)
+			{
+				size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
+
+				SIMDRegister *          p_site_mixture    = (SIMDRegister *)&*(p_node  + offset);
+				SIMDRegister *     p_site_mixture_left    = (SIMDRegister *)&*(p_left  + offset);
+				SIMDRegister *    p_site_mixture_right    = (SIMDRegister *)&*(p_right + offset);
+				SIMDRegister *   p_site_mixture_middle    = (SIMDRegister *)&*(p_middle + offset);
+
+	#ifdef AVX_ENABLED
+				m1 = _mm256_broadcast_ss (&t_left[0]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
+
+				m2 = _mm256_broadcast_ss (&t_left[1]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
+
+				m3 = _mm256_add_ps (m1, m2);
+
+
+				m1 = _mm256_broadcast_ss (&t_right[0]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
+
+				m2 = _mm256_broadcast_ss (&t_right[1]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
+
+				m1 = _mm256_add_ps (m1, m2);
+				m3 = _mm256_mul_ps (m1, m3);
+
+
+				m1 = _mm256_broadcast_ss (&t_middle[0]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_middle[0]);
+
+				m2 = _mm256_broadcast_ss (&t_middle[1]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_middle[1]);
+
+				m1 = _mm256_add_ps (m1, m2);
+				p_site_mixture[0] = _mm256_mul_ps (m1, m3);
+
+				if(node.isRoot())
+					p_site_mixture[0] = _mm256_mul_ps (mrf0, p_site_mixture[0]);
+
+				m1 = _mm256_broadcast_ss (&t_left[2]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
+
+				m2 = _mm256_broadcast_ss (&t_left[3]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
+
+				m3 = _mm256_add_ps (m1, m2);
+
+
+				m1 = _mm256_broadcast_ss (&t_right[2]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
+
+				m2 = _mm256_broadcast_ss (&t_right[3]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
+
+				m1 = _mm256_add_ps (m1, m2);
+				m3 = _mm256_mul_ps (m1, m3);
+
+
+				m1 = _mm256_broadcast_ss (&t_middle[2]);
+				m1 = _mm256_mul_ps (m1, p_site_mixture_middle[0]);
+
+				m2 = _mm256_broadcast_ss (&t_middle[3]);
+				m2 = _mm256_mul_ps (m2, p_site_mixture_middle[1]);
+
+				m1 = _mm256_add_ps (m1, m2);
+				p_site_mixture[1] = _mm256_mul_ps (m1, m3);
+
+				if(node.isRoot())
+					p_site_mixture[1] = _mm256_mul_ps (mrf1, p_site_mixture[1]);
+	#else
+				m1 = _mm_load1_pX (&t_left[0]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
+
+				m2 = _mm_load1_pX (&t_left[1]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
+
+				m3 = _mm_add_pX (m1, m2);
+
+
+				m1 = _mm_load1_pX (&t_right[0]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
+
+				m2 = _mm_load1_pX (&t_right[1]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
+
+				m1 = _mm_add_pX (m1, m2);
+				m3 = _mm_mul_pX (m1, m3);
+
+
+				m1 = _mm_load1_pX (&t_middle[0]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_middle[0]);
+
+				m2 = _mm_load1_pX (&t_middle[1]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_middle[1]);
+
+				m1 = _mm_add_pX (m1, m2);
+				p_site_mixture[0] = _mm_mul_pX (m1, m3);
+
+				if(node.isRoot())
+					p_site_mixture[0] = _mm_mul_pX (mrf0, p_site_mixture[0]);
+
+				m1 = _mm_load1_pX (&t_left[2]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
+
+				m2 = _mm_load1_pX (&t_left[3]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
+
+				m3 = _mm_add_pX (m1, m2);
+
+
+				m1 = _mm_load1_pX (&t_right[2]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
+
+				m2 = _mm_load1_pX (&t_right[3]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
+
+				m1 = _mm_add_pX (m1, m2);
+				m3 = _mm_mul_pX (m1, m3);
+
+
+				m1 = _mm_load1_pX (&t_middle[2]);
+				m1 = _mm_mul_pX (m1, p_site_mixture_middle[0]);
+
+				m2 = _mm_load1_pX (&t_middle[3]);
+				m2 = _mm_mul_pX (m2, p_site_mixture_middle[1]);
+
+				m1 = _mm_add_pX (m1, m2);
+				p_site_mixture[1] = _mm_mul_pX (m1, m3);
+
+				if(node.isRoot())
+					p_site_mixture[1] = _mm_mul_pX (mrf1, p_site_mixture[1]);
+	#endif
+	#else
+			// compute the per site probabilities
+			for (size_t site = 0; site < numPatterns ; ++site)
+			{
+				size_t offset = rate*rateOffset + freq*frequencyOffset + site*siteOffset;
+
+				RealVector::iterator          p_site_mixture          = p_node   + offset;
+				RealVector::const_iterator    p_site_mixture_left     = p_left   + offset;
+				RealVector::const_iterator    p_site_mixture_right    = p_right  + offset;
+				RealVector::const_iterator    p_site_mixture_middle   = p_middle + offset;
+
+				p_site_mixture[0] = ( p_site_mixture_left[0]   * t_left[0]    + p_site_mixture_left[1]   * t_left[1]  )
+								  * ( p_site_mixture_right[0]  * t_right[0]   + p_site_mixture_right[1]  * t_right[1] )
+								  * ( p_site_mixture_middle[0] * pi_middle[0] + p_site_mixture_middle[1] * pi_middle[1]);
+
+				p_site_mixture[1] = ( p_site_mixture_left[0]   * t_left[2]   + p_site_mixture_left[1]   * t_left[3]  )
+								  * ( p_site_mixture_right[0]  * t_right[2]  + p_site_mixture_right[1]  * t_right[3] )
+								  * ( p_site_mixture_middle[0] * t_middle[2] + p_site_mixture_middle[1] * t_middle[3]);
+
+				if(node.isRoot())
+				{
+					p_site_mixture[0] *= rf0;
+					p_site_mixture[1] *= rf1;
+				}
+	#endif
+			} // end-for over all sites (=patterns)
+
+		} // end-for over all mixtures (=rate-categories)
+	}
 }
 
 
@@ -956,68 +976,71 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
         RealVector::iterator p_node = partialLikelihoods.begin() + active*activeLikelihoodOffset + nodeIndex*nodeOffset;
         
         // iterate over all mixture categories
-        for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+        for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
         {
-#ifdef SIMD_ENABLED
-            // iterate over all sites
-            
-            for (size_t site = 0; site < numSIMDBlocks; site++) 
-            {
-                RealVector::iterator     p_site_mixture      = p_node + mixture*mixtureOffset + site*siteOffset;
-                
-                for (size_t ss = 0; ss < REALS_PER_SIMD_REGISTER; ss++) 
-                {
-                    size_t pattern = site*REALS_PER_SIMD_REGISTER + ss;
-                    size_t index   = ss;
 
-                    if(pattern >= numPatterns)
-                        break;
-                    
-                    // is this site a gap?
-                    if ( td->getGap(siteIndices[pattern2site[pattern]]) ) 
-                    {
-                        // since this is a gap we need to assume that the actual state could have been any state
-                        p_site_mixture[index] = 1.0;
-                        p_site_mixture[index + REALS_PER_SIMD_REGISTER] = 1.0;
-                    } 
-                    else // we have observed a character
-                    {
-                        // get the original character
-                        RealNumber c = td->getCharacter(siteIndices[pattern2site[pattern]]);
-                        
-                        p_site_mixture[index] = 1.0 - c;
-                        p_site_mixture[index + REALS_PER_SIMD_REGISTER] = c;
-                        
-                    }
-                }
+			for (size_t rate = 0; rate < numSiteRates; ++rate)
+			{
+#ifdef SIMD_ENABLED
+				// iterate over all sites
+
+				for (size_t site = 0; site < numSIMDBlocks; site++)
+				{
+					RealVector::iterator     p_site_mixture      = p_node + rate*rateOffset + freq*mixtureOffset + site*siteOffset;
+
+					for (size_t ss = 0; ss < REALS_PER_SIMD_REGISTER; ss++)
+					{
+						size_t pattern = site*REALS_PER_SIMD_REGISTER + ss;
+						size_t index   = ss;
+
+						if(pattern >= numPatterns)
+							break;
+
+						// is this site a gap?
+						if ( td->getGap(siteIndices[pattern2site[pattern]]) )
+						{
+							// since this is a gap we need to assume that the actual state could have been any state
+							p_site_mixture[index] = 1.0;
+							p_site_mixture[index + REALS_PER_SIMD_REGISTER] = 1.0;
+						}
+						else // we have observed a character
+						{
+							// get the original character
+							RealNumber c = td->getCharacter(siteIndices[pattern2site[pattern]]);
+
+							p_site_mixture[index] = 1.0 - c;
+							p_site_mixture[index + REALS_PER_SIMD_REGISTER] = c;
+
+						}
+					}
 #else            
-            // iterate over all sites
-            for (size_t pattern = 0; pattern < numPatterns; pattern++) 
-            {
-                RealVector::iterator     p_site_mixture      = p_node + mixture*mixtureOffset + pattern*siteOffset;
-                
-                // is this site a gap?
-                if ( td->getGap(siteIndices[pattern2site[pattern]]) ) 
-                {
-                    // since this is a gap we need to assume that the actual state could have been any state
-                    p_site_mixture[0] = 1.0;
-                    p_site_mixture[1] = 1.0;
-                } 
-                else // we have observed a character
-                {
-                    // get the original character
-                    RealNumber c = td->getCharacter(siteIndices[pattern2site[pattern]]);
-                    
-                    p_site_mixture[0] = 1.0 - c;
-                    p_site_mixture[1] = c;
-                    
-                }
+				// iterate over all sites
+				for (size_t pattern = 0; pattern < numPatterns; pattern++)
+				{
+					RealVector::iterator     p_site_mixture      = p_node + mixture*mixtureOffset + freq*frequencyOffset + pattern*siteOffset;
+
+					// is this site a gap?
+					if ( td->getGap(siteIndices[pattern2site[pattern]]) )
+					{
+						// since this is a gap we need to assume that the actual state could have been any state
+						p_site_mixture[0] = 1.0;
+						p_site_mixture[1] = 1.0;
+					}
+					else // we have observed a character
+					{
+						// get the original character
+						RealNumber c = td->getCharacter(siteIndices[pattern2site[pattern]]);
+
+						p_site_mixture[0] = 1.0 - c;
+						p_site_mixture[1] = c;
+
+					}
 #endif                
-            }
-            
-        } // end-for over all mixture categories
+				}
+
+			} // end-for over all mixture categories
+		}
     }
-    
 }
 
 
@@ -1029,35 +1052,39 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
         RealVector::iterator p_node = correctionLikelihoods.begin() + active*activeCorrectionOffset + nodeIndex*correctionNodeOffset;
     
         // iterate over all mixture categories
-        for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+        for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
         {
-            for(size_t mask = 0; mask < numCorrectionMasks; mask++)
-            {
-                size_t offset = mixture*correctionMixtureOffset + mask*8;
-    
-                RealVector::iterator         u      = p_node + offset;
-                
-                bool gap = correctionMaskMatrix[mask][nodeIndex];
-                
-                for(size_t ci = 0; ci < 2; ci++)
-                {
-                    RealVector::iterator         uC = u  + ci*2;
-                    RealVector::iterator         uI = uC + 4;
-                                        
-                    for(size_t c = 0; c < 2; c++)
-                    {
-                                    
-                        // Probability of constant state c this tip
-                        // when the state at this tip is ci
-                        uC[c] = (c == ci) && !gap;
-                        
-                        // Probability of invert singleton state c this tip
-                        // when the state at this tip is ci
-                        uI[c] = (c != ci) && !gap;
-                    }
-                }
-            }
-    
+
+			for (size_t rate = 0; rate < numSiteRates; ++rate)
+			{
+				for(size_t mask = 0; mask < numCorrectionMasks; mask++)
+				{
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+					RealVector::iterator         u      = p_node + offset;
+
+					bool gap = correctionMaskMatrix[mask][nodeIndex];
+
+					for(size_t ci = 0; ci < 2; ci++)
+					{
+						RealVector::iterator         uC = u  + ci*2;
+						RealVector::iterator         uI = uC + 4;
+
+						for(size_t c = 0; c < 2; c++)
+						{
+
+							// Probability of constant state c this tip
+							// when the state at this tip is ci
+							uC[c] = (c == ci) && !gap;
+
+							// Probability of invert singleton state c this tip
+							// when the state at this tip is ci
+							uI[c] = (c != ci) && !gap;
+						}
+					}
+				}
+
+			}
         }
     }
 }
@@ -1066,17 +1093,6 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
 
 void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, size_t nodeIndex, size_t left, size_t right, size_t middle)
 {
-#ifdef SIMD_CORRECTION_ENABLED
-    RealNumber rf1 = getStationaryFrequency(root);
-    RealNumber rf0 = 1.0 - rf1;
-    
-    __m128 mrf = _mm_setr_ps(rf0, rf0, rf1, rf1);
-#else
-    std::vector<RealNumber> f(2, 1.0);
-    f[1] = getStationaryFrequency(nodeIndex);
-    f[0] = 1.0 - f[1];
-#endif
-    
     // get the pointers to the partial likelihoods for this node and the two descendant subtrees
     RealVector::const_iterator   p_left   = correctionLikelihoods.begin() + activeLikelihood[left]*activeCorrectionOffset + left*correctionNodeOffset;
     RealVector::const_iterator   p_right  = correctionLikelihoods.begin() + activeLikelihood[right]*activeCorrectionOffset + right*correctionNodeOffset;
@@ -1088,140 +1104,153 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
     RealVector::iterator    pi_middle = transitionProbabilities.begin() + activeProbability[middle]*tActiveOffset + middle*tNodeOffset;
     
     // iterate over all mixture categories
-    for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+    for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
     {
-        size_t tOffset = mixture*tMixtureOffset;
-        
 #ifdef SIMD_CORRECTION_ENABLED
-        __m128*    t_left   = (__m128*)&*(pi_left   + tOffset);
-        __m128*    t_right  = (__m128*)&*(pi_right  + tOffset);
-        __m128*    t_middle = (__m128*)&*(pi_middle  + tOffset);
-#else
-        RealVector::iterator    t_left   = pi_left   + tOffset;
-        RealVector::iterator    t_right  = pi_right  + tOffset;
-        RealVector::iterator    t_middle = pi_middle + tOffset;
-#endif
-                
-        for(size_t mask = 0; mask < numCorrectionMasks; mask++){
+		RealNumber rf1 = getStationaryFrequency(root);
+		RealNumber rf0 = 1.0 - rf1;
 
-            size_t offset = mixture*correctionMixtureOffset + mask*8;
+		__m128 mrf = _mm_setr_ps(rf0, rf0, rf1, rf1);
+#else
+		std::vector<RealNumber> f(2, 1.0);
+		f[1] = getStationaryFrequency(nodeIndex, freq);
+		f[0] = 1.0 - f[1];
+#endif
+		for (size_t rate = 0; rate < numSiteRates; ++rate)
+		{
+			size_t tOffset = rate*tRateOffset + freq*tMixtureOffset;
 
 #ifdef SIMD_CORRECTION_ENABLED
-            __m128* uC_i = (__m128*)&*(p_node  + offset);
-            __m128* uC_j = (__m128*)&*(p_left  + offset);
-            __m128* uC_k = (__m128*)&*(p_right + offset);
-            __m128* uC_l = (__m128*)&*(p_middle + offset);
-            
-            __m128* uI_i = (__m128*)&*(p_node  + offset + 4);
-            __m128* uI_j = (__m128*)&*(p_left  + offset + 4);
-            __m128* uI_k = (__m128*)&*(p_right + offset + 4);
-            __m128* uI_l = (__m128*)&*(p_middle + offset + 4);
-            
-            *uC_i = _mm_setzero_ps();
-            *uI_i = _mm_setzero_ps();
-            
-            __m128 m1a,m1b,m1c,m2a,m2b,m2c,m3a,m3b,m3c,m4a,m4b,m4c,mA1,mA2,mA2,mA;
-            
-            for(size_t i = 0; i < 4; i++)
-            {
-            
-                __m128* rC_j = i == 0 ? uI_j : uC_j;
-                __m128* rC_k = i == 1 ? uI_k : uC_k;
-                __m128* rC_l = i == 2 ? uI_l : uC_l;
-                __m128* rC_i = i == 3 ? uC_i : uI_i;
-                
-                // compute for constant sites
-                m1a = _mm_shuffle_ps(*t_left,   *t_right,  _MM_SHUFFLE(3, 2, 1, 0) );
-                m1b = _mm_shuffle_ps(*t_right,  *t_middle, _MM_SHUFFLE(3, 2, 1, 0) );
-                m1c = _mm_shuffle_ps(*t_middle, *t_left,   _MM_SHUFFLE(3, 2, 1, 0) );
-            
-                m2a = _mm_shuffle_ps(*rC_j, *rC_k, _MM_SHUFFLE(3, 0, 3, 0) );
-                m2b = _mm_shuffle_ps(*rC_k, *rC_l, _MM_SHUFFLE(3, 0, 3, 0) );
-                m2c = _mm_shuffle_ps(*rC_l, *rC_j, _MM_SHUFFLE(3, 0, 3, 0) );
-            
-                m3a = _mm_shuffle_ps(*t_left,   *t_right,  _MM_SHUFFLE(2, 3, 0, 1) );
-                m3b = _mm_shuffle_ps(*t_right,  *t_middle, _MM_SHUFFLE(2, 3, 0, 1) );
-                m3c = _mm_shuffle_ps(*t_middle, *t_left,   _MM_SHUFFLE(2, 3, 0, 1) );
-            
-                m4a = _mm_shuffle_ps(*rC_j, *rC_k, _MM_SHUFFLE(1, 2, 1, 2) );
-                m4b = _mm_shuffle_ps(*rC_k, *rC_l, _MM_SHUFFLE(1, 2, 1, 2) );
-                m4c = _mm_shuffle_ps(*rC_l, *rC_j, _MM_SHUFFLE(1, 2, 1, 2) );
-                
-                for(size_t j = 0; j < 8; j++)
-                {
-                    mA1 = (j & 1) ? _mm_mul_pX(m1a,m2a) : _mm_mul_pX(m3a,m4a);
-                    mA2 = (j & 2) ? _mm_mul_pX(m1b,m2b) : _mm_mul_pX(m3b,m4b);
-                    mA3 = (j & 4) ? _mm_mul_pX(m1c,m2c) : _mm_mul_pX(m3c,m4c);
-                    mA =  _mm_mul_pX(mA1,mA2);
-                    mA =  _mm_mul_pX(mA,mA3);
-                    *rC_i = _mm_add_pX(*rC_i,mA);
-                }
-            }
-            
-            if(node.isRoot())
-            {
-                *uC_i = _mm_mul_pX(*uC_i,mrf);
-                *uI_i = _mm_mul_pX(*uI_i,mrf);
-            }
+			__m128*    t_left   = (__m128*)&*(pi_left   + tOffset);
+			__m128*    t_right  = (__m128*)&*(pi_right  + tOffset);
+			__m128*    t_middle = (__m128*)&*(pi_middle  + tOffset);
 #else
-            RealVector::iterator               u_i = p_node   + offset;
-            RealVector::const_iterator         u_j = p_left   + offset;
-            RealVector::const_iterator         u_k = p_right  + offset;
-            RealVector::const_iterator         u_l = p_middle + offset;
-            
-            for(size_t ci = 0; ci < 2; ci++)
-            {
-                RealVector::iterator         uC_i = u_i  + ci*2;
-                RealVector::iterator         uI_i = uC_i + 4;
-                
-                for(size_t c = 0; c < 2; c++)
-                {
-                                
-                    uC_i[c] = 0.0;
-                    uI_i[c] = 0.0;
-                                        
-                    for(size_t cj = 0; cj < 2; cj++)
-                    {
-                        RealVector::const_iterator         uC_j = u_j  + cj*2;
-                        RealVector::const_iterator         uI_j = uC_j + 4;
-                                        
-                        for(size_t ck = 0; ck < 2; ck++)
-                        {
-                            RealVector::const_iterator         uC_k = u_k  + ck*2;
-                            RealVector::const_iterator         uI_k = uC_k + 4;
-                            
-                            for(size_t cl = 0; cl < 2; cl++)
-                            {
-                                RealVector::const_iterator         uC_l = u_l  + cl*2;
-                                RealVector::const_iterator         uI_l = uC_l + 4;
-                            
-                                RealNumber Pij =   t_left[2*ci + cj];
-                                RealNumber Pik =  t_right[2*ci + ck];
-                                RealNumber Pil = t_middle[2*ci + cl];
-                                
-                                // probability of constant state c descending from this node
-                                // when the state at this node is ci, with children states cj, ck, and cl
-                                uC_i[c] += Pij*uC_j[c] * Pik*uC_k[c] * Pil*uC_l[c];
-                                
-                                // probability of invert singleton state c descending from
-                                // when the state at this node is ci, with children states cj, ck, and cl
-                                uI_i[c] += Pij*uI_j[c] * Pik*uC_k[c] * Pil*uC_l[c]
-                                         + Pij*uC_j[c] * Pik*uI_k[c] * Pil*uC_l[c]
-                                         + Pij*uC_j[c] * Pik*uC_k[c] * Pil*uI_l[c];
-                                
-                            }
-                        }
-                    }
-                    
-                    if(node.isRoot())
-                    {
-                        uC_i[c] *= f[ci];
-                        uI_i[c] *= f[ci];
-                    }
-                }
-            }
+			RealVector::iterator    t_left   = pi_left   + tOffset;
+			RealVector::iterator    t_right  = pi_right  + tOffset;
+			RealVector::iterator    t_middle = pi_middle + tOffset;
 #endif
-        }
+
+			for(size_t mask = 0; mask < numCorrectionMasks; mask++){
+
+				size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+#ifdef SIMD_CORRECTION_ENABLED
+				__m128* uC_i = (__m128*)&*(p_node  + offset);
+				__m128* uC_j = (__m128*)&*(p_left  + offset);
+				__m128* uC_k = (__m128*)&*(p_right + offset);
+				__m128* uC_l = (__m128*)&*(p_middle + offset);
+
+				__m128* uI_i = (__m128*)&*(p_node  + offset + 4);
+				__m128* uI_j = (__m128*)&*(p_left  + offset + 4);
+				__m128* uI_k = (__m128*)&*(p_right + offset + 4);
+				__m128* uI_l = (__m128*)&*(p_middle + offset + 4);
+
+				*uC_i = _mm_setzero_ps();
+				*uI_i = _mm_setzero_ps();
+
+				__m128 m1a,m1b,m1c,m2a,m2b,m2c,m3a,m3b,m3c,m4a,m4b,m4c,mA1,mA2,mA2,mA;
+
+				for(size_t i = 0; i < 4; i++)
+				{
+
+					__m128* rC_j = i == 0 ? uI_j : uC_j;
+					__m128* rC_k = i == 1 ? uI_k : uC_k;
+					__m128* rC_l = i == 2 ? uI_l : uC_l;
+					__m128* rC_i = i == 3 ? uC_i : uI_i;
+
+					// compute for constant sites
+					m1a = _mm_shuffle_ps(*t_left,   *t_right,  _MM_SHUFFLE(3, 2, 1, 0) );
+					m1b = _mm_shuffle_ps(*t_right,  *t_middle, _MM_SHUFFLE(3, 2, 1, 0) );
+					m1c = _mm_shuffle_ps(*t_middle, *t_left,   _MM_SHUFFLE(3, 2, 1, 0) );
+
+					m2a = _mm_shuffle_ps(*rC_j, *rC_k, _MM_SHUFFLE(3, 0, 3, 0) );
+					m2b = _mm_shuffle_ps(*rC_k, *rC_l, _MM_SHUFFLE(3, 0, 3, 0) );
+					m2c = _mm_shuffle_ps(*rC_l, *rC_j, _MM_SHUFFLE(3, 0, 3, 0) );
+
+					m3a = _mm_shuffle_ps(*t_left,   *t_right,  _MM_SHUFFLE(2, 3, 0, 1) );
+					m3b = _mm_shuffle_ps(*t_right,  *t_middle, _MM_SHUFFLE(2, 3, 0, 1) );
+					m3c = _mm_shuffle_ps(*t_middle, *t_left,   _MM_SHUFFLE(2, 3, 0, 1) );
+
+					m4a = _mm_shuffle_ps(*rC_j, *rC_k, _MM_SHUFFLE(1, 2, 1, 2) );
+					m4b = _mm_shuffle_ps(*rC_k, *rC_l, _MM_SHUFFLE(1, 2, 1, 2) );
+					m4c = _mm_shuffle_ps(*rC_l, *rC_j, _MM_SHUFFLE(1, 2, 1, 2) );
+
+					for(size_t j = 0; j < 8; j++)
+					{
+						mA1 = (j & 1) ? _mm_mul_pX(m1a,m2a) : _mm_mul_pX(m3a,m4a);
+						mA2 = (j & 2) ? _mm_mul_pX(m1b,m2b) : _mm_mul_pX(m3b,m4b);
+						mA3 = (j & 4) ? _mm_mul_pX(m1c,m2c) : _mm_mul_pX(m3c,m4c);
+						mA =  _mm_mul_pX(mA1,mA2);
+						mA =  _mm_mul_pX(mA,mA3);
+						*rC_i = _mm_add_pX(*rC_i,mA);
+					}
+				}
+
+				if(node.isRoot())
+				{
+					*uC_i = _mm_mul_pX(*uC_i,mrf);
+					*uI_i = _mm_mul_pX(*uI_i,mrf);
+				}
+#else
+				RealVector::iterator               u_i = p_node   + offset;
+				RealVector::const_iterator         u_j = p_left   + offset;
+				RealVector::const_iterator         u_k = p_right  + offset;
+				RealVector::const_iterator         u_l = p_middle + offset;
+
+				for(size_t ci = 0; ci < 2; ci++)
+				{
+					RealVector::iterator         uC_i = u_i  + ci*2;
+					RealVector::iterator         uI_i = uC_i + 4;
+
+					for(size_t c = 0; c < 2; c++)
+					{
+
+						uC_i[c] = 0.0;
+						uI_i[c] = 0.0;
+
+						for(size_t cj = 0; cj < 2; cj++)
+						{
+							RealVector::const_iterator         uC_j = u_j  + cj*2;
+							RealVector::const_iterator         uI_j = uC_j + 4;
+
+							for(size_t ck = 0; ck < 2; ck++)
+							{
+								RealVector::const_iterator         uC_k = u_k  + ck*2;
+								RealVector::const_iterator         uI_k = uC_k + 4;
+
+								for(size_t cl = 0; cl < 2; cl++)
+								{
+									RealVector::const_iterator         uC_l = u_l  + cl*2;
+									RealVector::const_iterator         uI_l = uC_l + 4;
+
+									RealNumber Pij =   t_left[2*ci + cj];
+									RealNumber Pik =  t_right[2*ci + ck];
+									RealNumber Pil = t_middle[2*ci + cl];
+
+									// probability of constant state c descending from this node
+									// when the state at this node is ci, with children states cj, ck, and cl
+									uC_i[c] += Pij*uC_j[c] * Pik*uC_k[c] * Pil*uC_l[c];
+
+									// probability of invert singleton state c descending from
+									// when the state at this node is ci, with children states cj, ck, and cl
+									uI_i[c] += Pij*uI_j[c] * Pik*uC_k[c] * Pil*uC_l[c]
+											 + Pij*uC_j[c] * Pik*uI_k[c] * Pil*uC_l[c]
+											 + Pij*uC_j[c] * Pik*uC_k[c] * Pil*uI_l[c];
+
+								}
+							}
+						}
+
+						if(node.isRoot())
+						{
+							uC_i[c] *= f[ci];
+							uI_i[c] *= f[ci];
+						}
+					}
+				}
+#endif
+			}
+		}
     }
 }
 
@@ -1229,17 +1258,6 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
 
 void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, size_t nodeIndex, size_t left, size_t right)
 {
-#ifdef SIMD_CORRECTION_ENABLED
-    RealNumber rf1 = getStationaryFrequency(root);
-    RealNumber rf0 = 1.0 - rf1;
-    
-    __m128 mrf = _mm_setr_ps(rf0, rf0, rf1, rf1);
-#else
-    std::vector<RealNumber> f(2, 1.0);
-    f[1] = getStationaryFrequency(nodeIndex);
-    f[0] = 1.0 - f[1];
-#endif
-    
     // get the pointers to the partial likelihoods for this node and the two descendant subtrees
     RealVector::const_iterator   p_left  = correctionLikelihoods.begin() + activeLikelihood[left]*activeCorrectionOffset + left*correctionNodeOffset;
     RealVector::const_iterator   p_right = correctionLikelihoods.begin() + activeLikelihood[right]*activeCorrectionOffset + right*correctionNodeOffset;
@@ -1249,118 +1267,132 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
     RealVector::iterator    pi_right  = transitionProbabilities.begin() + activeProbability[right]*tActiveOffset + right*tNodeOffset;
 
     // iterate over all mixture categories
-    for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+    for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
     {
-        size_t tOffset = mixture*tMixtureOffset;
-        
 #ifdef SIMD_CORRECTION_ENABLED
-        __m128*    t_left   = (__m128*)&*(pi_left   + tOffset);
-        __m128*    t_right  = (__m128*)&*(pi_right  + tOffset);
-#else
-        RealVector::iterator    t_left   = pi_left   + tOffset;
-        RealVector::iterator    t_right  = pi_right  + tOffset;
-#endif
-        
-        for(size_t mask = 0; mask < numCorrectionMasks; mask++){
+		RealNumber rf1 = getStationaryFrequency(root);
+		RealNumber rf0 = 1.0 - rf1;
 
-            size_t offset = mixture*correctionMixtureOffset + mask*8;
-            
-#ifdef SIMD_CORRECTION_ENABLED
-            __m128* uC_i = (__m128*)&*(p_node  + offset);
-            __m128* uC_j = (__m128*)&*(p_left  + offset);
-            __m128* uC_k = (__m128*)&*(p_right + offset);
-            
-            __m128* uI_i = (__m128*)&*(p_node  + offset + 4);
-            __m128* uI_j = (__m128*)&*(p_left  + offset + 4);
-            __m128* uI_k = (__m128*)&*(p_right + offset + 4);
-            
-            *uC_i = _mm_setzero_ps();
-            *uI_i = _mm_setzero_ps();
-                        
-            __m128 m1a,m1b,m2a,m2b,m3a,m3b,m4a,m4b,mA1,mA2,mA;
-            
-            // compute for constant sites
-            for(size_t i = 0; i < 3; i++)
-            {
-                __m128* rC_j = i == 0 ? uI_j : uC_j;
-                __m128* rC_k = i == 1 ? uI_k : uC_k;
-                __m128* rC_i = i == 2 ? uC_i : uI_i;
-                
-                // compute for constant sites
-                m1a = _mm_shuffle_ps(*t_left,   *t_right,  _MM_SHUFFLE(3, 2, 1, 0) );
-                m1b = _mm_shuffle_ps(*t_right, *t_left,   _MM_SHUFFLE(3, 2, 1, 0) );
-            
-                m2a = _mm_shuffle_ps(*rC_j, *rC_k, _MM_SHUFFLE(3, 0, 3, 0) );
-                m2b = _mm_shuffle_ps(*rC_k, *rC_j, _MM_SHUFFLE(3, 0, 3, 0) );
-            
-                m3a = _mm_shuffle_ps(*t_left,   *t_right,  _MM_SHUFFLE(2, 3, 0, 1) );
-                m3b = _mm_shuffle_ps(*t_right, *t_left,   _MM_SHUFFLE(2, 3, 0, 1) );
-            
-                m4a = _mm_shuffle_ps(*rC_j, *rC_k, _MM_SHUFFLE(1, 2, 1, 2) );
-                m4b = _mm_shuffle_ps(*rC_k, *rC_j, _MM_SHUFFLE(1, 2, 1, 2) );
-                
-                for(size_t j = 0; j < 4; j++)
-                {
-                    mA1 = (j & 1) ? _mm_mul_pX(m1a,m2a) : _mm_mul_pX(m3a,m4a);
-                    mA2 = (j & 2) ? _mm_mul_pX(m1b,m2b) : _mm_mul_pX(m3b,m4b);
-                    mA =  _mm_mul_pX(mA1,mA2);
-                    *rC_i = _mm_add_pX(*rC_i,mA);
-                }
-            }
-            
-            if(node.isRoot())
-            {
-                *uC_i = _mm_mul_pX(*uC_i,mrf);
-                *uI_i = _mm_mul_pX(*uI_i,mrf);
-            }
+		__m128 mrf = _mm_setr_ps(rf0, rf0, rf1, rf1);
 #else
-            RealVector::iterator               u_i = p_node  + offset;
-            RealVector::const_iterator         u_j = p_left  + offset;
-            RealVector::const_iterator         u_k = p_right + offset;
-            
-            for(size_t ci = 0; ci < 2; ci++)
-            {
-                RealVector::iterator         uC_i = u_i  + ci*2;
-                RealVector::iterator         uI_i = uC_i + 4;
-                
-                for(size_t c = 0; c < 2; c++)
-                {
-                    
-                    uC_i[c] = 0.0;
-                    uI_i[c] = 0.0;
-                    
-                    for(size_t cj = 0; cj < 2; cj++)
-                    {
-                        RealVector::const_iterator         uC_j = u_j  + cj*2;
-                        RealVector::const_iterator         uI_j = uC_j + 4;
-                                        
-                        for(size_t ck = 0; ck < 2; ck++)
-                        {
-                            RealVector::const_iterator         uC_k = u_k  + ck*2;
-                            RealVector::const_iterator         uI_k = uC_k + 4;
-                            
-                            RealNumber Pij =  t_left[2*ci + cj];
-                            RealNumber Pik = t_right[2*ci + ck];
-                            
-                            // probability of constant state c descending from this node
-                            // when the state at this node is ci, with children states cj and ck
-                            uC_i[c] += Pij*uC_j[c] * Pik*uC_k[c];
-                            
-                            // probability of invert singleton state c descending from this node
-                            // when the state at this node is ci, with children states cj and ck
-                            uI_i[c] += Pij*uC_j[c] * Pik*uI_k[c] + Pij*uI_j[c] * Pik*uC_k[c];
-                        }
-                    }
-                    
-                    if(node.isRoot())
-                    {
-                        uC_i[c] *= f[ci];
-                        uI_i[c] *= f[ci];
-                    }
-                }
-            }
+		std::vector<RealNumber> f(2, 1.0);
+		f[1] = getStationaryFrequency(nodeIndex, freq);
+		f[0] = 1.0 - f[1];
 #endif
-        }
+
+		for (size_t rate = 0; rate < numSiteRates; ++rate)
+		{
+			size_t tOffset = rate*tRateOffset + freq*tMixtureOffset;
+
+	#ifdef SIMD_CORRECTION_ENABLED
+			__m128*    t_left   = (__m128*)&*(pi_left   + tOffset);
+			__m128*    t_right  = (__m128*)&*(pi_right  + tOffset);
+	#else
+			RealVector::iterator    t_left   = pi_left   + tOffset;
+			RealVector::iterator    t_right  = pi_right  + tOffset;
+	#endif
+
+			for(size_t mask = 0; mask < numCorrectionMasks; mask++){
+
+				size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+	#ifdef SIMD_CORRECTION_ENABLED
+				__m128* uC_i = (__m128*)&*(p_node  + offset);
+				__m128* uC_j = (__m128*)&*(p_left  + offset);
+				__m128* uC_k = (__m128*)&*(p_right + offset);
+
+				__m128* uI_i = (__m128*)&*(p_node  + offset + 4);
+				__m128* uI_j = (__m128*)&*(p_left  + offset + 4);
+				__m128* uI_k = (__m128*)&*(p_right + offset + 4);
+
+				*uC_i = _mm_setzero_ps();
+				*uI_i = _mm_setzero_ps();
+
+				__m128 m1a,m1b,m2a,m2b,m3a,m3b,m4a,m4b,mA1,mA2,mA;
+
+				// compute for constant sites
+				for(size_t i = 0; i < 3; i++)
+				{
+					__m128* rC_j = i == 0 ? uI_j : uC_j;
+					__m128* rC_k = i == 1 ? uI_k : uC_k;
+					__m128* rC_i = i == 2 ? uC_i : uI_i;
+
+					// compute for constant sites
+					m1a = _mm_shuffle_ps(*t_left,   *t_right,  _MM_SHUFFLE(3, 2, 1, 0) );
+					m1b = _mm_shuffle_ps(*t_right, *t_left,   _MM_SHUFFLE(3, 2, 1, 0) );
+
+					m2a = _mm_shuffle_ps(*rC_j, *rC_k, _MM_SHUFFLE(3, 0, 3, 0) );
+					m2b = _mm_shuffle_ps(*rC_k, *rC_j, _MM_SHUFFLE(3, 0, 3, 0) );
+
+					m3a = _mm_shuffle_ps(*t_left,   *t_right,  _MM_SHUFFLE(2, 3, 0, 1) );
+					m3b = _mm_shuffle_ps(*t_right, *t_left,   _MM_SHUFFLE(2, 3, 0, 1) );
+
+					m4a = _mm_shuffle_ps(*rC_j, *rC_k, _MM_SHUFFLE(1, 2, 1, 2) );
+					m4b = _mm_shuffle_ps(*rC_k, *rC_j, _MM_SHUFFLE(1, 2, 1, 2) );
+
+					for(size_t j = 0; j < 4; j++)
+					{
+						mA1 = (j & 1) ? _mm_mul_pX(m1a,m2a) : _mm_mul_pX(m3a,m4a);
+						mA2 = (j & 2) ? _mm_mul_pX(m1b,m2b) : _mm_mul_pX(m3b,m4b);
+						mA =  _mm_mul_pX(mA1,mA2);
+						*rC_i = _mm_add_pX(*rC_i,mA);
+					}
+				}
+
+				if(node.isRoot())
+				{
+					*uC_i = _mm_mul_pX(*uC_i,mrf);
+					*uI_i = _mm_mul_pX(*uI_i,mrf);
+				}
+	#else
+				RealVector::iterator               u_i = p_node  + offset;
+				RealVector::const_iterator         u_j = p_left  + offset;
+				RealVector::const_iterator         u_k = p_right + offset;
+
+				for(size_t ci = 0; ci < 2; ci++)
+				{
+					RealVector::iterator         uC_i = u_i  + ci*2;
+					RealVector::iterator         uI_i = uC_i + 4;
+
+					for(size_t c = 0; c < 2; c++)
+					{
+
+						uC_i[c] = 0.0;
+						uI_i[c] = 0.0;
+
+						for(size_t cj = 0; cj < 2; cj++)
+						{
+							RealVector::const_iterator         uC_j = u_j  + cj*2;
+							RealVector::const_iterator         uI_j = uC_j + 4;
+
+							for(size_t ck = 0; ck < 2; ck++)
+							{
+								RealVector::const_iterator         uC_k = u_k  + ck*2;
+								RealVector::const_iterator         uI_k = uC_k + 4;
+
+								RealNumber Pij =  t_left[2*ci + cj];
+								RealNumber Pik = t_right[2*ci + ck];
+
+								// probability of constant state c descending from this node
+								// when the state at this node is ci, with children states cj and ck
+								uC_i[c] += Pij*uC_j[c] * Pik*uC_k[c];
+
+								// probability of invert singleton state c descending from this node
+								// when the state at this node is ci, with children states cj and ck
+								uI_i[c] += Pij*uC_j[c] * Pik*uI_k[c] + Pij*uI_j[c] * Pik*uC_k[c];
+							}
+						}
+
+						if(node.isRoot())
+						{
+							uC_i[c] *= f[ci];
+							uI_i[c] *= f[ci];
+						}
+					}
+				}
+	#endif
+			}
+		}
     }
 }
 
@@ -1387,93 +1419,97 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
     {   
         RealNumber logScalingFactor = useScaling ? perNodeCorrectionLogScalingFactors[activeLikelihood[nodeIndex]*activeCorrectionScalingOffset + nodeIndex*numCorrectionMasks + mask] : 0.0;
         // iterate over all mixture categories
-        for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
-        {    
-            size_t offset = mixture*correctionMixtureOffset + mask*8;
+        for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
+        {
 
-            RealVector::const_iterator         u_i = p_node   + offset;
-            
-            RealNumber max = -std::numeric_limits<RealNumber>::infinity();
-                    
-            RealNumber prob = 0.0;
-            
-            std::vector<RealNumber> logCorrections;
-            
-            for(size_t ci = 0; ci < 2; ci++)
-            {
-                // constant site pattern likelihoods
-                RealVector::const_iterator         uC_i = u_i  + ci*2;
-                // invert singleton likelihoods
-                RealVector::const_iterator         uI_i = uC_i + 4;
-                
-                for(size_t c = 0; c < 2; c++)
-                {   
-                    RealNumber tmp = 0.0;
-                    
-                    // c is the character state of the correction pattern
-                    if(c == 0)
-                    {
-                        if(coding & AscertainmentBias::NOABSENCESITES)
-                            tmp += uC_i[c];
-                        
-                        if(coding & AscertainmentBias::NOSINGLETONPRESENCE)
-                            tmp += uI_i[c];
-                    }
-                    
-                    if(c == 1)
-                    {
-                        // if there is only one observed tip, then don't double-count singleton gains
-                        if((coding & AscertainmentBias::NOPRESENCESITES) && maskObservationCounts[mask] > 1)
-                            tmp += uC_i[c];
-                    
-                        // if there are only two observed tips, then don't double-count singleton gains
-                        // if there is only one observed tip, then don't double-count absence sites
-                        if((coding & AscertainmentBias::NOSINGLETONABSENCE) && maskObservationCounts[mask] > 2)
-                            tmp += uI_i[c];
-                    }
-                    
-                    if(tmp == 0.0)
-                        continue;
-                    
-                    if(useScaling)
-                    {
-                        tmp = log(tmp) + logScalingFactor;
-                    
-                        max = std::max(tmp, max);
-                        
-                        logCorrections.push_back(tmp);
-                    }
-                    else
-                    {
-                        prob += tmp;
-                    }
-                }
-            }
-            
-            if(useScaling)
-            {
-                //std::cerr << logScalingFactor << std::endl;
-                //max = std::max(logScalingFactor, max);
-                
-                //logCorrections.push_back(logScalingFactor);
-                // use the log-exp-sum to get the sum of the corrections
-                prob = exp(Math::log_sum_exp(logCorrections, max));
-            }
-            
-            // invert the probability
-            prob = 1.0 - prob;
-            
-            // impose a boundary
-            if(prob <= 0)
-            	prob = std::numeric_limits<RealNumber>::infinity();
-        
-            perMixtureCorrections[mixture*numCorrectionMasks + mask] = prob;
-            
-            perMaskCorrections[mask] += prob;
+			for (size_t rate = 0; rate < numSiteRates; ++rate)
+			{
+				size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+				RealVector::const_iterator         u_i = p_node   + offset;
+
+				RealNumber max = -std::numeric_limits<RealNumber>::infinity();
+
+				RealNumber prob = 0.0;
+
+				std::vector<RealNumber> logCorrections;
+
+				for(size_t ci = 0; ci < 2; ci++)
+				{
+					// constant site pattern likelihoods
+					RealVector::const_iterator         uC_i = u_i  + ci*2;
+					// invert singleton likelihoods
+					RealVector::const_iterator         uI_i = uC_i + 4;
+
+					for(size_t c = 0; c < 2; c++)
+					{
+						RealNumber tmp = 0.0;
+
+						// c is the character state of the correction pattern
+						if(c == 0)
+						{
+							if(coding & AscertainmentBias::NOABSENCESITES)
+								tmp += uC_i[c];
+
+							if(coding & AscertainmentBias::NOSINGLETONPRESENCE)
+								tmp += uI_i[c];
+						}
+
+						if(c == 1)
+						{
+							// if there is only one observed tip, then don't double-count singleton gains
+							if((coding & AscertainmentBias::NOPRESENCESITES) && maskObservationCounts[mask] > 1)
+								tmp += uC_i[c];
+
+							// if there are only two observed tips, then don't double-count singleton gains
+							// if there is only one observed tip, then don't double-count absence sites
+							if((coding & AscertainmentBias::NOSINGLETONABSENCE) && maskObservationCounts[mask] > 2)
+								tmp += uI_i[c];
+						}
+
+						if(tmp == 0.0)
+							continue;
+
+						if(useScaling)
+						{
+							tmp = log(tmp) + logScalingFactor;
+
+							max = std::max(tmp, max);
+
+							logCorrections.push_back(tmp);
+						}
+						else
+						{
+							prob += tmp;
+						}
+					}
+				}
+
+				if(useScaling)
+				{
+					//std::cerr << logScalingFactor << std::endl;
+					//max = std::max(logScalingFactor, max);
+
+					//logCorrections.push_back(logScalingFactor);
+					// use the log-exp-sum to get the sum of the corrections
+					prob = exp(Math::log_sum_exp(logCorrections, max));
+				}
+
+				// invert the probability
+				prob = 1.0 - prob;
+
+				// impose a boundary
+				if(prob <= 0)
+					prob = std::numeric_limits<RealNumber>::infinity();
+
+				perMixtureCorrections[freq*numSiteRates*numCorrectionMasks + rate*numCorrectionMasks + mask] = prob;
+
+				perMaskCorrections[mask] += prob;
+			}
         }
 
         // normalize the log-probability
-        perMaskCorrections[mask] = log(perMaskCorrections[mask]) - log(RealNumber(numSiteRates));
+        perMaskCorrections[mask] = log(perMaskCorrections[mask]) - log(RealNumber(numSiteRates)) - log(RealNumber(numSiteFrequencies));
         
         //std::cerr << perMaskCorrections[mask]*correctionMaskCounts[mask] << std::endl;
         // apply the correction for this correction mask
@@ -1497,81 +1533,84 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
    
     //reset the per site likelihood
     std::fill(per_site_Likelihoods.begin(), per_site_Likelihoods.end(), 0.0);
-    
     // iterate over all mixture categories
-    for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+	for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
     {
-     
+		for (size_t rate = 0; rate < numSiteRates; ++rate)
+		{
+
 #ifdef SIMD_ENABLED
-        SIMDRegister * mTotals = (SIMDRegister *)&per_site_Likelihoods[0];
-        
-        for (size_t pattern = 0; pattern < numSIMDBlocks; pattern++)
-        {
-            // get the pointers to the likelihoods for this site and mixture category
-            SIMDRegister *   p_site_mixture     = (SIMDRegister *)&*(p_node + pattern*siteOffset + mixture*mixtureOffset);
+			SIMDRegister * mTotals = (SIMDRegister *)&per_site_Likelihoods[0];
+
+			for (size_t pattern = 0; pattern < numSIMDBlocks; pattern++)
+			{
+				// get the pointers to the likelihoods for this site and mixture category
+				SIMDRegister *   p_site_mixture     = (SIMDRegister *)&*(p_node + pattern*siteOffset + rate*rateOffset + freq*mixtureOffset);
 #ifdef AVX_ENABLED
-            *mTotals = _mm256_add_ps(*mTotals, _mm256_add_ps(p_site_mixture[0], p_site_mixture[1]));
+				*mTotals = _mm256_add_ps(*mTotals, _mm256_add_ps(p_site_mixture[0], p_site_mixture[1]));
 #else
-            *mTotals = _mm_add_pX(*mTotals, _mm_add_pX(p_site_mixture[0], p_site_mixture[1]));
+				*mTotals = _mm_add_pX(*mTotals, _mm_add_pX(p_site_mixture[0], p_site_mixture[1]));
 #endif
-            
-            mTotals++;
-            
-        } // end-for over all mixtures (=rate categories)
+
+				mTotals++;
+
+			} // end-for over all mixtures (=rate categories)
+		}
     }
+
+	// sum the log-likelihoods for all sites together
+	RealNumber sumPartialProbs = 0.0;
+
+	for (size_t block = 0; block < numSIMDBlocks; block++)
+	{
+		for (size_t ss = 0; ss < REALS_PER_SIMD_REGISTER; ss++)
+		{
+			size_t pattern = block*REALS_PER_SIMD_REGISTER + ss;
+
+			if(pattern >= numPatterns)
+				continue;
+
+			per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / (numSiteRates * numSiteFrequencies) );
+
+			if ( useScaling == true )
+			{
+				per_site_Likelihoods[pattern] += perNodeSiteLogScalingFactors[activeLikelihood[rootIndex]*activeScalingOffset + rootIndex*numAllocatedPatterns + pattern];
+			}
+
+			sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
+		}
+	}
+#else
+		for (size_t pattern = 0; pattern < numPatterns; ++pattern)
+		{
+			// get the pointers to the likelihoods for this site and mixture category
+			RealVector::iterator   p_site_mixture     = p_node + pattern*siteOffset + rate*rateOffset + freq*mixtureOffset;
+
+			per_site_Likelihoods[pattern] += p_site_mixture[0] + p_site_mixture[1];
+
+		}
+
+	} // end-for over all mixtures (=rate categories)
+
+	// sum the log-likelihoods for all sites together
+	double sumPartialProbs = 0.0;
+
+	for (size_t pattern = 0; pattern < numPatterns; ++pattern)
+	{
+		per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / (numSiteRates * numSiteFrequencies) );
+
+		if ( useScaling == true )
+		{
+
+			per_site_Likelihoods[pattern] += perNodeSiteLogScalingFactors[activeLikelihood[rootIndex]*activeScalingOffset + rootIndex*numPatterns + pattern] * patternCounts[pattern];
+		}
+
+		sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
+	}
+#endif
+	//std::cerr << sumPartialProbs << std::endl;
     
-    // sum the log-likelihoods for all sites together
-    RealNumber sumPartialProbs = 0.0;
-
-    for (size_t block = 0; block < numSIMDBlocks; block++)
-    {
-        for (size_t ss = 0; ss < REALS_PER_SIMD_REGISTER; ss++)
-        {
-            size_t pattern = block*REALS_PER_SIMD_REGISTER + ss;
-            
-            if(pattern >= numPatterns)
-                continue;
-
-            per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / numSiteRates );
-            
-            if ( useScaling == true )
-            {
-                per_site_Likelihoods[pattern] += perNodeSiteLogScalingFactors[activeLikelihood[rootIndex]*activeScalingOffset + rootIndex*numAllocatedPatterns + pattern];
-            }
-            
-            sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
-        }
-    }
-#else
-        for (size_t pattern = 0; pattern < numPatterns; ++pattern)
-        {
-            // get the pointers to the likelihoods for this site and mixture category
-            RealVector::iterator   p_site_mixture     = p_node + pattern*siteOffset + mixture*mixtureOffset;
-            
-            per_site_Likelihoods[pattern] += p_site_mixture[0] + p_site_mixture[1];
-
-        }
-
-    } // end-for over all mixtures (=rate categories)
-
-    // sum the log-likelihoods for all sites together
-    double sumPartialProbs = 0.0;
-
-    for (size_t pattern = 0; pattern < numPatterns; ++pattern)
-    {
-        per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / numSiteRates );
-        
-        if ( useScaling == true )
-        {
-
-            per_site_Likelihoods[pattern] += perNodeSiteLogScalingFactors[activeLikelihood[rootIndex]*activeScalingOffset + rootIndex*numPatterns + pattern] * patternCounts[pattern];
-        }
-
-        sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
-    }
-#endif
-    //std::cerr << sumPartialProbs << std::endl;
-    return sumPartialProbs;
+	return sumPartialProbs;
 }
 
 
@@ -1600,26 +1639,30 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
             SIMDRegister max;
             
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                // get the pointers to the likelihood for this mixture category
-                size_t offset = mixture*mixtureOffset + site*siteOffset;
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					// get the pointers to the likelihood for this mixture category
+					size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
-                SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
+					SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
 #ifdef AVX_ENABLED
-                SIMDRegister tmp = _mm256_max_ps(p_site_mixture[0],p_site_mixture[1]);
-                if(mixture == 0)
-                    max = tmp;
-                else
-                    max = _mm256_max_ps(max, tmp);
+					SIMDRegister tmp = _mm256_max_ps(p_site_mixture[0],p_site_mixture[1]);
+					if(freq == 0 && rate == 0)
+						max = tmp;
+					else
+						max = _mm256_max_ps(max, tmp);
 #else
-                SIMDRegister tmp = _mm_max_pX(p_site_mixture[0],p_site_mixture[1]);
-                if(mixture == 0)
-                    max = tmp;
-                else
-                    max = _mm_max_pX(max, tmp);
+					SIMDRegister tmp = _mm_max_pX(p_site_mixture[0],p_site_mixture[1]);
+					if(freq == 0 && rate == 0)
+						max = tmp;
+					else
+						max = _mm_max_pX(max, tmp);
 #endif
+				}
             }
+
 #ifdef AVX_ENABLED
             p_scaler[site] = _mm256_add_ps(p_scaler_left[site],p_scaler_right[site]);
 #ifdef DOUBLE_PRECISION
@@ -1649,21 +1692,24 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
 #endif
 
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
-            {
-                // get the pointers to the likelihood for this mixture category
-                size_t offset = mixture*mixtureOffset + site*siteOffset;
+			for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
+			{
+				// compute the per site probabilities
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					// get the pointers to the likelihood for this mixture category
+					size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
-                SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
+					SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
 #ifdef AVX_ENABLED
-                p_site_mixture[0] = _mm256_div_ps(p_site_mixture[0], max);
-                p_site_mixture[1] = _mm256_div_ps(p_site_mixture[1], max);
+					p_site_mixture[0] = _mm256_div_ps(p_site_mixture[0], max);
+					p_site_mixture[1] = _mm256_div_ps(p_site_mixture[1], max);
 #else
-                p_site_mixture[0] = _mm_div_pX(p_site_mixture[0], max);
-                p_site_mixture[1] = _mm_div_pX(p_site_mixture[1], max);
+					p_site_mixture[0] = _mm_div_pX(p_site_mixture[0], max);
+					p_site_mixture[1] = _mm_div_pX(p_site_mixture[1], max);
 #endif
-
-            }
+				}
+			}
 #else
         // iterate over all mixture categories
         for (size_t site = 0; site < numPatterns ; ++site)
@@ -1672,39 +1718,45 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
             RealNumber max = 0.0;
 
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                // get the pointers to the likelihood for this mixture category
-                size_t offset = mixture*mixtureOffset + site*siteOffset;
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					// get the pointers to the likelihood for this mixture category
+					size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
-                RealVector::iterator          p_site_mixture          = p_node + offset;
+					RealVector::iterator          p_site_mixture          = p_node + offset;
 
-                for ( size_t i=0; i<2; ++i)
-                {
-                    if ( p_site_mixture[i] > max )
-                    {
-                        max = p_site_mixture[i];
-                    }
-                }
+					for ( size_t i=0; i<2; ++i)
+					{
+						if ( p_site_mixture[i] > max )
+						{
+							max = p_site_mixture[i];
+						}
+					}
 
+				}
             }
 
             p_scaler[site] = p_scaler_left[site] + p_scaler_right[site] + log(max);
 
 
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                // get the pointers to the likelihood for this mixture category
-                size_t offset = mixture*mixtureOffset + site*siteOffset;
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					// get the pointers to the likelihood for this mixture category
+					size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
-                RealVector::iterator          p_site_mixture          = p_node + offset;
+					RealVector::iterator          p_site_mixture          = p_node + offset;
 
-                for ( size_t i=0; i<2; ++i)
-                {
-                    p_site_mixture[i] /= max;
-                }
+					for ( size_t i=0; i<2; ++i)
+					{
+						p_site_mixture[i] /= max;
+					}
 
+				}
             }
 #endif
 
@@ -1759,26 +1811,30 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
             SIMDRegister max;
             
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                // get the pointers to the likelihood for this mixture category
-                size_t offset = mixture*mixtureOffset + site*siteOffset;
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					// get the pointers to the likelihood for this mixture category
+					size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
-                SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
+					SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
 #ifdef AVX_ENABLED
-                SIMDRegister tmp = _mm256_max_ps(p_site_mixture[0],p_site_mixture[1]);
-                if(mixture == 0)
-                    max = tmp;
-                else
-                    max = _mm256_max_ps(max, tmp);
+					SIMDRegister tmp = _mm256_max_ps(p_site_mixture[0],p_site_mixture[1]);
+					if(freq == 0 && rate == 0)
+						max = tmp;
+					else
+						max = _mm256_max_ps(max, tmp);
 #else
-                SIMDRegister tmp = _mm_max_pX(p_site_mixture[0],p_site_mixture[1]);
-                if(mixture == 0)
-                    max = tmp;
-                else
-                    max = _mm_max_pX(max, tmp);
+					SIMDRegister tmp = _mm_max_pX(p_site_mixture[0],p_site_mixture[1]);
+					if(freq == 0 && rate == 0)
+						max = tmp;
+					else
+						max = _mm_max_pX(max, tmp);
 #endif
+				}
             }
+
 #ifdef AVX_ENABLED
             p_scaler[site] = _mm256_add_ps(p_scaler_left[site], p_scaler_right[site]);
             p_scaler[site] = _mm256_add_ps(p_scaler[site], p_scaler_middle[site]);
@@ -1810,20 +1866,22 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
 #endif
 
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                // get the pointers to the likelihood for this mixture category
-                size_t offset = mixture*mixtureOffset + site*siteOffset;
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					// get the pointers to the likelihood for this mixture category
+					size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
-                SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
+					SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
 #ifdef AVX_ENABLED
-                p_site_mixture[0] = _mm256_div_ps(p_site_mixture[0], max);
-                p_site_mixture[1] = _mm256_div_ps(p_site_mixture[1], max);
+					p_site_mixture[0] = _mm256_div_ps(p_site_mixture[0], max);
+					p_site_mixture[1] = _mm256_div_ps(p_site_mixture[1], max);
 #else
-                p_site_mixture[0] = _mm_div_pX(p_site_mixture[0], max);
-                p_site_mixture[1] = _mm_div_pX(p_site_mixture[1], max);
+					p_site_mixture[0] = _mm_div_pX(p_site_mixture[0], max);
+					p_site_mixture[1] = _mm_div_pX(p_site_mixture[1], max);
 #endif
-
+				}
             }
 #else
         // iterate over all mixture categories
@@ -1833,39 +1891,45 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
             RealNumber max = 0.0;
 
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                // get the pointers to the likelihood for this mixture category
-                size_t offset = mixture*mixtureOffset + site*siteOffset;
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					// get the pointers to the likelihood for this mixture category
+					size_t offset = rate*rateOffset + freq*frequencyOffset + site*siteOffset;
 
-                RealVector::iterator          p_site_mixture          = p_node + offset;
+					RealVector::iterator          p_site_mixture          = p_node + offset;
 
-                for ( size_t i=0; i<2; ++i)
-                {
-                    if ( p_site_mixture[i] > max )
-                    {
-                        max = p_site_mixture[i];
-                    }
-                }
+					for ( size_t i=0; i<2; ++i)
+					{
+						if ( p_site_mixture[i] > max )
+						{
+							max = p_site_mixture[i];
+						}
+					}
 
+				}
             }
 
             p_scaler[site] = p_scaler_left[site] + p_scaler_right[site] + p_scaler_middle[site] + log(max);
 
 
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                // get the pointers to the likelihood for this mixture category
-                size_t offset = mixture*mixtureOffset + site*siteOffset;
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					// get the pointers to the likelihood for this mixture category
+					size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
-                RealVector::iterator          p_site_mixture          = p_node + offset;
+					RealVector::iterator          p_site_mixture          = p_node + offset;
 
-                for ( size_t i=0; i<2; ++i)
-                {
-                    p_site_mixture[i] /= max;
-                }
+					for ( size_t i=0; i<2; ++i)
+					{
+						p_site_mixture[i] /= max;
+					}
 
+				}
             }
 #endif
 
@@ -1913,23 +1977,26 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
             
             SIMDRegister max;
             
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*8;
-                    
-                SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+					SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
 #ifdef AVX_ENABLED
-                if(mixture == 0)
-                    max = *u_i;
-                else
-                    max = _mm256_max_ps(max, *u_i);
+					if(freq == 0 && rate == 0)
+						max = *u_i;
+					else
+						max = _mm256_max_ps(max, *u_i);
 #else
-                SIMDRegister tmp = _mm_max_pX(u_i[0],u_i[1]);
-                if(mixture == 0)
-                    max = tmp;
-                else
-                    max = _mm_max_pX(max, tmp);
+					SIMDRegister tmp = _mm_max_pX(u_i[0],u_i[1]);
+					if(freq == 0 && rate == 0)
+						max = tmp;
+					else
+						max = _mm_max_pX(max, tmp);
 #endif
+				}
             }
             
             RealNumber maximum = 0.0;
@@ -1948,18 +2015,21 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
 #endif
             
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*8;
-                    
-                SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
-                
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+					SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
+
 #ifdef AVX_ENABLED
-                *u_i = _mm256_div_ps(*u_i, max);
+					*u_i = _mm256_div_ps(*u_i, max);
 #else
-                u_i[0] = _mm_div_pX(u_i[0], max);
-                u_i[1] = _mm_div_pX(u_i[1], max);
+					u_i[0] = _mm_div_pX(u_i[0], max);
+					u_i[1] = _mm_div_pX(u_i[1], max);
 #endif
+				}
             }
         }
 #else
@@ -1968,47 +2038,53 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
             
             RealNumber max = 0.0;
             
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*8;
-                    
-                RealVector::const_iterator   u_i  = p_node  + offset;
-                
-                for(size_t c = 0; c < 2; c++)
-                {
-                    for(size_t ci = 0; ci < 2; ci++)
-                    {
-                        
-                        RealVector::const_iterator   uC_i = u_i  + ci*2;
-                        RealVector::const_iterator   uI_i = uC_i + 4;
-        
-                        max = std::max(max, std::max(uC_i[c], uI_i[c]));
-                    }
-                }
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset mask*8;
+
+					RealVector::const_iterator   u_i  = p_node  + offset;
+
+					for(size_t c = 0; c < 2; c++)
+					{
+						for(size_t ci = 0; ci < 2; ci++)
+						{
+
+							RealVector::const_iterator   uC_i = u_i  + ci*2;
+							RealVector::const_iterator   uI_i = uC_i + 4;
+
+							max = std::max(max, std::max(uC_i[c], uI_i[c]));
+						}
+					}
+				}
             }
 
             p_scaler[mask] = p_scaler_left[mask] + p_scaler_right[mask] + log(max);
     
             
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*8;
-                    
-                RealVector::iterator   u_i  = p_node  + offset;
-                
-                for(size_t ci = 0; ci < 2; ci++)
-                {
-                    for(size_t c = 0; c < 2; c++)
-                    {
-                                                
-                        RealVector::iterator   uC_i = u_i  + ci*2;
-                        RealVector::iterator   uI_i = uC_i + 4;
-        
-                        uC_i[c] /= max;
-                        uI_i[c] /= max;
-                    }
-                }
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+					RealVector::iterator   u_i  = p_node  + offset;
+
+					for(size_t ci = 0; ci < 2; ci++)
+					{
+						for(size_t c = 0; c < 2; c++)
+						{
+
+							RealVector::iterator   uC_i = u_i  + ci*2;
+							RealVector::iterator   uI_i = uC_i + 4;
+
+							uC_i[c] /= max;
+							uI_i[c] /= max;
+						}
+					}
+				}
             }
         }
 #endif
@@ -2041,23 +2117,26 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
             
             SIMDRegister max;
             
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*8;
-                    
-                SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+					SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
 #ifdef AVX_ENABLED
-                if(mixture == 0)
-                    max = *u_i;
-                else
-                    max = _mm256_max_ps(max, *u_i);
+					if(freq == 0 && rate == 0)
+						max = *u_i;
+					else
+						max = _mm256_max_ps(max, *u_i);
 #else
-                SIMDRegister tmp = _mm_max_pX(u_i[0],u_i[1]);
-                if(mixture == 0)
-                    max = tmp;
-                else
-                    max = _mm_max_pX(max, tmp);
+					SIMDRegister tmp = _mm_max_pX(u_i[0],u_i[1]);
+					if(freq == 0 && rate == 0)
+						max = tmp;
+					else
+						max = _mm_max_pX(max, tmp);
 #endif
+				}
             }
             
             RealNumber maximum = 0.0;
@@ -2076,18 +2155,21 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
 #endif
             
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*8;
-                    
-                SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
-                
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+					SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
+
 #ifdef AVX_ENABLED
-                *u_i = _mm256_div_ps(*u_i, max);
+					*u_i = _mm256_div_ps(*u_i, max);
 #else
-                u_i[0] = _mm_div_pX(u_i[0], max);
-                u_i[1] = _mm_div_pX(u_i[1], max);
+					u_i[0] = _mm_div_pX(u_i[0], max);
+					u_i[1] = _mm_div_pX(u_i[1], max);
 #endif
+				}
             }
         }
 #else
@@ -2096,47 +2178,53 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
             
             RealNumber max = 0.0;
             
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*8;
-                    
-                RealVector::const_iterator   u_i  = p_node  + offset;
-                
-                for(size_t c = 0; c < 2; c++)
-                {
-                    for(size_t ci = 0; ci < 2; ci++)
-                    {
-                        
-                        RealVector::const_iterator   uC_i = u_i  + ci*2;
-                        RealVector::const_iterator   uI_i = uC_i + 4;
-        
-                        max = std::max(max, std::max(uC_i[c], uI_i[c]));
-                    }
-                }
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+					RealVector::const_iterator   u_i  = p_node  + offset;
+
+					for(size_t c = 0; c < 2; c++)
+					{
+						for(size_t ci = 0; ci < 2; ci++)
+						{
+
+							RealVector::const_iterator   uC_i = u_i  + ci*2;
+							RealVector::const_iterator   uI_i = uC_i + 4;
+
+							max = std::max(max, std::max(uC_i[c], uI_i[c]));
+						}
+					}
+				}
             }
 
             p_scaler[mask] = p_scaler_left[mask] + p_scaler_right[mask] + p_scaler_middle[mask] + log(max);
     
             
             // compute the per site probabilities
-            for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*8;
-                    
-                RealVector::iterator   u_i  = p_node  + offset;
-                
-                for(size_t ci = 0; ci < 2; ci++)
-                {
-                    for(size_t c = 0; c < 2; c++)
-                    {
-                                                
-                        RealVector::iterator   uC_i = u_i  + ci*2;
-                        RealVector::iterator   uI_i = uC_i + 4;
-        
-                        uC_i[c] /= max;
-                        uI_i[c] /= max;
-                    }
-                }
+				for (size_t rate = 0; rate < numSiteRates; ++rate)
+				{
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+
+					RealVector::iterator   u_i  = p_node  + offset;
+
+					for(size_t ci = 0; ci < 2; ci++)
+					{
+						for(size_t c = 0; c < 2; c++)
+						{
+
+							RealVector::iterator   uC_i = u_i  + ci*2;
+							RealVector::iterator   uI_i = uC_i + 4;
+
+							uC_i[c] /= max;
+							uI_i[c] /= max;
+						}
+					}
+				}
             }
         }
 #endif
@@ -2214,28 +2302,31 @@ void BinarySubstitutionModel::updateTransitionProbabilities() {
         RealNumber rate = getClockRate(nodeIndex);
         
         RealNumber brlen = getBranchLength(nodeIndex);
-        
-        RealNumber pi1 = getStationaryFrequency(nodeIndex);
-        RealNumber pi0 = 1.0 - pi1;
-        
-        RealNumber mu = 1.0/(2.0*pi1*pi0);
     
         RealVector::iterator p_node = transitionProbabilities.begin() + activeProbability[nodeIndex]*tActiveOffset + nodeIndex*tNodeOffset;
             
-        for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
+        for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
         {
-            RealNumber r = 1.0;
-            if(rateVariationAcrossSites)
-                r = siteRates->getValue()[mixture];
-            
-            RealNumber expPart = exp( - mu * rate * brlen * r );
-            
-            RealVector::iterator p_node_mixture = p_node + mixture*tMixtureOffset;
-            
-            p_node_mixture[0] = pi0 + pi1 * expPart;
-            p_node_mixture[1] = pi1 - pi1 * expPart;
-            p_node_mixture[2] = pi0 - pi0 * expPart;
-            p_node_mixture[3] = pi1 + pi0 * expPart;
+        	RealNumber pi1 = getStationaryFrequency(nodeIndex, freq);
+			RealNumber pi0 = 1.0 - pi1;
+
+			RealNumber mu = 1.0/(2.0*pi1*pi0);
+
+			for (size_t rate = 0; rate < numSiteRates; ++rate)
+			{
+				RealNumber r = 1.0;
+				if(rateVariationAcrossSites)
+					r = siteRates->getValue()[rate];
+
+				RealVector::iterator p_node_mixture = p_node + rate*tRateOffset + freq*tMixtureOffset;
+
+    			RealNumber expPart = exp( - mu * rate * brlen * r );
+
+        		p_node_mixture[0] = pi0 + pi1 * expPart;
+				p_node_mixture[1] = pi1 - pi1 * expPart;
+				p_node_mixture[2] = pi0 - pi0 * expPart;
+				p_node_mixture[3] = pi1 + pi0 * expPart;
+        	}
         }
     }
 
@@ -2579,9 +2670,13 @@ void BinarySubstitutionModel::setSiteRates(const TypedDagNode< std::vector< doub
 }
 
 
-RealNumber BinarySubstitutionModel::getStationaryFrequency( size_t nodeIndex ) {
+RealNumber BinarySubstitutionModel::getStationaryFrequency( size_t nodeIndex, size_t mixture ) {
     
-	if ( branchHeterogeneousFrequencies )
+	if ( frequencyVariationAcrossSites)
+	{
+		return heterogeneousFrequencies->getValue()[mixture];
+	}
+	else if ( branchHeterogeneousFrequencies )
     {
 		return heterogeneousFrequencies->getValue()[nodeIndex];
     } 
@@ -2649,6 +2744,7 @@ void BinarySubstitutionModel::setStationaryFrequency(const TypedDagNode< double 
 
     // set the value
     branchHeterogeneousFrequencies = false;
+    frequencyVariationAcrossSites = false;
     homogeneousFrequency = r;
 
     // add the new parameter
@@ -2679,6 +2775,7 @@ void BinarySubstitutionModel::setStationaryFrequency(const TypedDagNode< std::ve
 
     // set the value
     branchHeterogeneousFrequencies = true;
+    frequencyVariationAcrossSites = false;
     heterogeneousFrequencies = f;
 
     // add the new parameter
@@ -2690,6 +2787,43 @@ void BinarySubstitutionModel::setStationaryFrequency(const TypedDagNode< std::ve
         this->redrawValue();
     }
 
+}
+
+void BinarySubstitutionModel::setSiteFrequencies(const TypedDagNode< std::vector< double > > *r) {
+
+    // remove the old parameter first
+    if ( heterogeneousFrequencies != NULL )
+    {
+        this->removeParameter( heterogeneousFrequencies );
+        heterogeneousFrequencies = NULL;
+    }
+
+    if ( r != NULL )
+    {
+        // set the value
+        frequencyVariationAcrossSites = true;
+        heterogeneousFrequencies = r;
+        numSiteFrequencies = r->getValue().size();
+        resizeLikelihoodVectors();
+    }
+    else
+    {
+        // set the value
+    	frequencyVariationAcrossSites = false;
+    	heterogeneousFrequencies = NULL;
+    	numSiteFrequencies = 1;
+        resizeLikelihoodVectors();
+
+    }
+
+    // add the parameter
+    this->addParameter( heterogeneousFrequencies );
+
+    // redraw the current value
+    if ( this->dagNode != NULL && !this->dagNode->isClamped() )
+    {
+        redrawValue();
+    }
 }
 
 
@@ -2723,6 +2857,7 @@ void BinarySubstitutionModel::redrawValue( void ) {
     }
 
     std::vector<size_t> perSiteRates;
+    std::vector<size_t> perSiteFrequencies;
     
     if(coding != AscertainmentBias::ALL && numSites > 0)
     {
@@ -2736,23 +2871,33 @@ void BinarySubstitutionModel::redrawValue( void ) {
     
         // sample the rate categories in proportion to the total probability (correction) for each mixture.
         double total = 0.0;
-        for ( size_t i = 0; i < numSiteRates; ++i )
-            total += perMixtureCorrections[i*numCorrectionMasks];
+        for ( size_t i = 0; i < numSiteFrequencies; ++i )
+        	for ( size_t j = 0; j < numSiteRates; ++j )
+        		total += perMixtureCorrections[i*numSiteRates*numCorrectionMasks + j*numCorrectionMasks];
     
         for ( size_t i = 0; i < numSites; ++i )
         {
             // draw the state
             double u = rng->uniform01()*total;
             size_t rateIndex = 0;
+            size_t freqIndex = 0;
     
             double tmp = 0.0;
             while(tmp < u){
-                tmp += perMixtureCorrections[rateIndex*numCorrectionMasks];
+                tmp += perMixtureCorrections[freqIndex*numSiteRates*numCorrectionMasks + rateIndex*numCorrectionMasks];
                 if(tmp < u)
+                {
                     rateIndex++;
+                    if(rateIndex == numSiteRates)
+                    {
+                    	freqIndex++;
+                    	rateIndex = 0;
+                    }
+                }
             }
     
             perSiteRates.push_back( rateIndex );
+            perSiteFrequencies.push_back( freqIndex );
         }
     }
     else
@@ -2763,12 +2908,14 @@ void BinarySubstitutionModel::redrawValue( void ) {
             double u = rng->uniform01();
             
             size_t rateIndex = (int)(u*numSiteRates);
-    
             perSiteRates.push_back( rateIndex );
+
+            u = rng->uniform01();
+            size_t freqIndex = (int)(u*numSiteFrequencies);
+    
+            perSiteFrequencies.push_back( rateIndex );
         }
     }
-    
-    RealNumber rf = getStationaryFrequency(rootIndex);
 
     // then sample site-patterns using rejection sampling,
     // rejecting those that match the unobservable ones.
@@ -2778,6 +2925,7 @@ void BinarySubstitutionModel::redrawValue( void ) {
 
         std::vector<RealNumber> siteData(numNodes, 0.0);
 
+        RealNumber rf = getStationaryFrequency(rootIndex, perSiteFrequencies[i]);
         // draw the root state
         double u = rng->uniform01();
         if(u < rf)
@@ -2785,7 +2933,7 @@ void BinarySubstitutionModel::redrawValue( void ) {
 
         // recursively simulate the sequences
         std::pair<size_t, size_t> charCounts;
-        simulate( root, siteData, rateIndex, charCounts);
+        simulate( root, siteData, rateIndex, perSiteFrequencies[i], charCounts);
 
         if( !isSitePatternCompatible(charCounts, 0) )
         {
@@ -2831,7 +2979,7 @@ void BinarySubstitutionModel::redrawValue( void ) {
 }
 
 
-void BinarySubstitutionModel::simulate( const TopologyNode &node, std::vector<RealNumber> &data, size_t rateIndex, std::pair<size_t, size_t>& charCounts) {
+void BinarySubstitutionModel::simulate( const TopologyNode &node, std::vector<RealNumber> &data, size_t rateIndex, size_t freqIndex, std::pair<size_t, size_t>& charCounts) {
 
     // get the children of the node
     const std::vector<TopologyNode*>& children = node.getChildren();
@@ -2846,7 +2994,7 @@ void BinarySubstitutionModel::simulate( const TopologyNode &node, std::vector<Re
     {
         const TopologyNode &child = *(*it);
 
-        RealVector::iterator pi = transitionProbabilities.begin() + activeProbability[nodeIndex]*tActiveOffset + nodeIndex*tNodeOffset + rateIndex*tMixtureOffset;
+        RealVector::iterator pi = transitionProbabilities.begin() + activeProbability[nodeIndex]*tActiveOffset + nodeIndex*tNodeOffset + rateIndex*tRateOffset + freqIndex*tMixtureOffset;
 
         if(parentState == 1.0)
             pi += 2;
@@ -2870,7 +3018,7 @@ void BinarySubstitutionModel::simulate( const TopologyNode &node, std::vector<Re
                 charCounts.first++;
         }
         else
-            simulate( child, data, rateIndex, charCounts);
+            simulate( child, data, rateIndex, freqIndex, charCounts);
     }
 
 }
@@ -2887,41 +3035,55 @@ const std::vector< DiscreteBinaryTaxonData >& BinarySubstitutionModel::getMappin
     RandomNumberGenerator* rng = GLOBAL_RNG;
 
     std::vector<size_t> perSiteRates;
+    std::vector<size_t> perSiteFrequencies;
     if(coding != AscertainmentBias::ALL)
-    {
-        // sample the rate categories in proportion to the total probability (correction) for each mixture.
-        double total = 0.0;
-        for ( size_t i = 0; i < numSiteRates; ++i )
-            total += perMixtureCorrections[i*numCorrectionMasks];
-    
-        for ( size_t i = 0; i < numSites; ++i )
-        {
-            // draw the state
-            double u = rng->uniform01()*total;
-            size_t rateIndex = 0;
-    
-            double tmp = 0.0;
-            while(tmp < u){
-                tmp += perMixtureCorrections[rateIndex*numCorrectionMasks];
-                if(tmp < u)
-                    rateIndex++;
-            }
-    
-            perSiteRates.push_back( rateIndex );
-        }
-    }
-    else
-    {
-        for ( size_t i = 0; i < numSites; ++i )
-        {
-            // draw the state
-            double u = rng->uniform01();
-            
-            size_t rateIndex = (int)(u*numSiteRates);
-    
-            perSiteRates.push_back( rateIndex );
-        }
-    }
+	{
+		double total = 0.0;
+		for ( size_t i = 0; i < numSiteFrequencies; ++i )
+			for ( size_t j = 0; j < numSiteRates; ++j )
+				total += perMixtureCorrections[i*numSiteRates*numCorrectionMasks + j*numCorrectionMasks];
+
+		for ( size_t i = 0; i < numSites; ++i )
+		{
+			// draw the state
+			double u = rng->uniform01()*total;
+			size_t rateIndex = 0;
+			size_t freqIndex = 0;
+
+			double tmp = 0.0;
+			while(tmp < u){
+				tmp += perMixtureCorrections[freqIndex*numSiteRates*numCorrectionMasks + rateIndex*numCorrectionMasks];
+				if(tmp < u)
+				{
+					rateIndex++;
+					if(rateIndex == numSiteRates)
+					{
+						freqIndex++;
+						rateIndex = 0;
+					}
+				}
+			}
+
+			perSiteRates.push_back( rateIndex );
+			perSiteFrequencies.push_back( freqIndex );
+		}
+	}
+	else
+	{
+		for ( size_t i = 0; i < numSites; ++i )
+		{
+			// draw the state
+			double u = rng->uniform01();
+
+			size_t rateIndex = (int)(u*numSiteRates);
+			perSiteRates.push_back( rateIndex );
+
+			u = rng->uniform01();
+			size_t freqIndex = (int)(u*numSiteFrequencies);
+
+			perSiteFrequencies.push_back( rateIndex );
+		}
+	}
     
     // compute the ln probability by recursively calling the probability calculation for each node
     const TopologyNode &root = tau->getValue().getRoot();
@@ -2933,7 +3095,7 @@ const std::vector< DiscreteBinaryTaxonData >& BinarySubstitutionModel::getMappin
 #ifdef SIMD_ENABLED
     for ( size_t site = 0; site < numSites; ++site )
     {
-        size_t offset = perSiteRates[site]*mixtureOffset + (site2pattern[site] % REALS_PER_SIMD_REGISTER) + size_t(site2pattern[site]/REALS_PER_SIMD_REGISTER)*siteOffset;
+        size_t offset = perSiteRates[site]*rateOffset + perSiteFrequencies[site]*mixtureOffset + (site2pattern[site] % REALS_PER_SIMD_REGISTER) + size_t(site2pattern[site]/REALS_PER_SIMD_REGISTER)*siteOffset;
                 
         RealVector::const_iterator   p_node  = partialLikelihoods.begin() + activeLikelihood[rootIndex]*activeLikelihoodOffset + rootIndex*nodeOffset + offset;
         
@@ -2942,7 +3104,7 @@ const std::vector< DiscreteBinaryTaxonData >& BinarySubstitutionModel::getMappin
 #else
     for ( size_t site = 0; site < numSites; ++site )
     {
-        size_t offset = perSiteRates[site]*mixtureOffset + site2pattern[site]*siteOffset;
+        size_t offset = perSiteRates[site]*rateOffset + perSiteFrequencies[site]*mixtureOffset + site2pattern[site]*siteOffset;
 
         RealVector::const_iterator   p_root  = partialLikelihoods.begin() + activeLikelihood[rootIndex]*activeLikelihoodOffset + rootIndex*nodeOffset + offset;
 
@@ -2965,7 +3127,7 @@ const std::vector< DiscreteBinaryTaxonData >& BinarySubstitutionModel::getMappin
     
     for(std::vector<TopologyNode*>::const_iterator it = children.begin(); it != children.end(); it++)
     {
-        simulateMapping(root, *(*it), perSiteRates);
+        simulateMapping(root, *(*it), perSiteRates, perSiteFrequencies);
     }
         
     return mapping;
@@ -2973,7 +3135,7 @@ const std::vector< DiscreteBinaryTaxonData >& BinarySubstitutionModel::getMappin
 
 
 
-void BinarySubstitutionModel::simulateMapping(const TopologyNode &parent, const TopologyNode &node, std::vector<size_t>& perSiteRates)
+void BinarySubstitutionModel::simulateMapping(const TopologyNode &parent, const TopologyNode &node, std::vector<size_t>& perSiteRates, std::vector<size_t>& perSiteFrequencies)
 {
     // first, simulate the per site rates
     RandomNumberGenerator* rng = GLOBAL_RNG;
@@ -2987,7 +3149,7 @@ void BinarySubstitutionModel::simulateMapping(const TopologyNode &parent, const 
 #ifdef SIMD_ENABLED
     for ( size_t site = 0; site < numSites; ++site )
     {
-        size_t offset = perSiteRates[site]*mixtureOffset + (site2pattern[site] % REALS_PER_SIMD_REGISTER) + size_t(site2pattern[site]/REALS_PER_SIMD_REGISTER)*siteOffset;
+        size_t offset = perSiteRates[site]*rateOffset + perSiteFrequencies[site]*mixtureOffset + (site2pattern[site] % REALS_PER_SIMD_REGISTER) + size_t(site2pattern[site]/REALS_PER_SIMD_REGISTER)*siteOffset;
         
         RealVector::const_iterator   p_node  = partialLikelihoods.begin() + activeLikelihood[nodeIndex]*activeLikelihoodOffset + nodeIndex*nodeOffset + offset;
         
@@ -3001,7 +3163,7 @@ void BinarySubstitutionModel::simulateMapping(const TopologyNode &parent, const 
 #else
     for ( size_t site = 0; site < numSites; ++site )
     {
-        size_t offset = perSiteRates[site]*mixtureOffset + site2pattern[site]*siteOffset;
+        size_t offset = perSiteRates[site]*rateOffset + perSiteFrequencies[site]*mixtureOffset + site2pattern[site]*siteOffset;
 
         RealVector::const_iterator   p_node  = partialLikelihoods.begin() + activeLikelihood[nodeIndex]*activeLikelihoodOffset + nodeIndex*nodeOffset + offset;
         
@@ -3029,6 +3191,6 @@ void BinarySubstitutionModel::simulateMapping(const TopologyNode &parent, const 
     
     for(std::vector<TopologyNode*>::const_iterator it = children.begin(); it != children.end(); it++)
     {
-        simulateMapping(node, *(*it), perSiteRates);
+        simulateMapping(node, *(*it), perSiteRates, perSiteFrequencies);
     }
 }

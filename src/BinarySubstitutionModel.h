@@ -59,12 +59,13 @@ public:
     virtual void                                                        setStationaryFrequency(const TypedDagNode< std::vector< double > > *r);
     virtual void                                                        setStationaryFrequency(const TypedDagNode< double > *f);
     virtual void                                                        setSiteRates(const TypedDagNode< std::vector< double > > *r);
+    virtual void                                                        setSiteFrequencies(const TypedDagNode< std::vector< double > > *r);
     
     void                                                                setVerbose(bool v);
     void                                                                setUseScaling(bool s);
     double                                                              getClockRate(size_t n);
     double                                                              getBranchLength(size_t n);
-    virtual RealNumber                                                  getStationaryFrequency(size_t n);
+    virtual RealNumber                                                  getStationaryFrequency(size_t n, size_t mixture);
     
 protected:
     // helper method for this and derived classes
@@ -111,7 +112,9 @@ protected:
     
     // RAS model
     size_t                                                              mixtureOffset;
+    size_t                                                              rateOffset;
     size_t                                                              numSiteRates;
+    size_t                                                              numSiteFrequencies;
     
     // Correction model
     
@@ -121,6 +124,7 @@ protected:
     size_t                                                              numCorrectionMasks;
     size_t                                                              activeCorrectionOffset;
     size_t                                                              correctionNodeOffset;
+    size_t                                                              correctionRateOffset;
     size_t                                                              correctionMixtureOffset;
     
     // full model
@@ -129,10 +133,12 @@ protected:
     size_t                                                              siteOffset;
     
     size_t                                                              tNodeOffset;
+    size_t                                                              tRateOffset;
     size_t                                                              tMixtureOffset;
     size_t                                                              tActiveOffset;
     
     bool                                                                rateVariationAcrossSites;
+    bool                                                                frequencyVariationAcrossSites;
     bool                                                                branchHeterogeneousClockRates;
     bool                                                                branchHeterogeneousFrequencies;
     
@@ -188,7 +194,7 @@ protected:
     // private methods
     virtual void                                                        compress(void);
     void                                                                fillLikelihoodVector(const TopologyNode &n, size_t nIdx);
-    virtual void                                                        simulate( const TopologyNode &node, std::vector<RealNumber> &data, size_t rateIndex, std::pair<size_t, size_t>& charCounts);
+    virtual void                                                        simulate( const TopologyNode &node, std::vector<RealNumber> &data, size_t rateIndex, size_t freqIndex, std::pair<size_t, size_t>& charCounts);
     
     virtual void                                                        scale(size_t i, size_t l, size_t r);
     virtual void                                                        scale(size_t i, size_t l, size_t r, size_t m);
@@ -198,7 +204,7 @@ protected:
     std::vector< DiscreteBinaryTaxonData >                              mapping;
     
 private:
-    virtual void                                                        simulateMapping(const TopologyNode& parent, const TopologyNode& node, std::vector<size_t>& perSiteRates);
+    virtual void                                                        simulateMapping(const TopologyNode& parent, const TopologyNode& node, std::vector<size_t>& perSiteRates, std::vector<size_t>& perSiteFreqs);
 
 
 };

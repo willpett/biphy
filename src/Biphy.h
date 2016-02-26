@@ -35,7 +35,7 @@
 #include "Tree.h"
 
 struct ModelPrior {
-    enum Type {DOLLO, HOMOGENEOUS, HIERARCHICAL, MIXTURE};
+    enum Type {DOLLO, MK, HOMOGENEOUS, HIERARCHICAL, MIXTURE};
 };
 
 struct RootPrior {
@@ -60,6 +60,8 @@ class Biphy {
                 RootPrior::Type rootprior,
                 int correction,
                 int dgam,
+				int dbeta,
+				bool asymmbeta,
                 int mixture,
                 double rootmin,
                 double rootmax,
@@ -101,6 +103,7 @@ class Biphy {
 
         int										correction;
         int										dgam;
+        int										dbeta;
         int                                     every;
         int                                     until;
         int                                     numChains;
@@ -143,6 +146,7 @@ class Biphy {
         bool                                    dolloMapping;
         bool                                    perSiteLnProbs;
         bool                                    ancestral;
+        bool									asymmbeta;
 
         Clade                                   outgroup;
 

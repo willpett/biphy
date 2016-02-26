@@ -10,6 +10,7 @@
 #include "CladeReader.h"
 #include "CrossValidationScoreMonitor.h"
 #include "DirichletDistribution.h"
+#include "DiscreteBetaValuesFunction.h"
 #include "ExponentialDistribution.h"
 #include "FileMonitor.h"
 #include "GammaDistribution.h"
@@ -52,6 +53,8 @@ Biphy::Biphy(const std::string n,
         RootPrior::Type rt,
         int c,
         int d,
+		int b,
+		bool sb,
         int mix,
         double rm,
         double rx,
@@ -69,6 +72,8 @@ Biphy::Biphy(const std::string n,
     treeFile( t ),
     correction(c),
     dgam( d),
+	dbeta(b),
+	asymmbeta(sb),
     every( e ),
     until( u ),
     numChains( num),
@@ -130,6 +135,8 @@ void Biphy::open( void ) {
     is >> treeFile;
     is >> correction;
     is >> dgam;
+    is >> dbeta;
+    is >> asymmbeta;
     is >> every;
     is >> until;
     is >> numChains;
@@ -163,6 +170,8 @@ void Biphy::save( void ) {
     os << treeFile << "\n";
     os << correction << "\n";
     os << dgam << "\n";
+    os << dbeta << "\n";
+    os << asymmbeta << "\n";
     os << every << "\n";
     os << until << "\n";
     os << numChains << "\n";
@@ -261,19 +270,28 @@ void Biphy::printConfiguration( void ) {
                 std::cout << "pi(i) ~ Beta(beta1,beta2)\n";
         //        break;
         //}
-    }else if(modeltype == ModelPrior::DOLLO){
-        std::cout << "dollo model";
-    }else{
-        std::cout << "time-homogeneous reversible model\n";
     }
+    else if(modeltype == ModelPrior::DOLLO)
+    {
+        std::cout << "dollo model";
+    }
+    else if(modeltype == ModelPrior::HOMOGENEOUS)
+    {
+        std::cout << "homogeneous asymmetric reversible model\n";
+    }
+    else if(modeltype == ModelPrior::MK)
+	{
+		std::cout << "Mk model\n";
+	}
 
     std::cout << "\n";
 
     if(modeltype != ModelPrior::DOLLO){
         if(rootprior == RootPrior::RIGID)
             std::cout << "rigid ";
-        std::cout << "root frequency:\n";
-        if(modeltype > ModelPrior::HOMOGENEOUS){
+        if(modeltype > ModelPrior::HOMOGENEOUS)
+        {
+        	std::cout << "root frequency:\n";
             /*switch(modeltype){
                 case MIXTURE:
                     std::cout << "phi ~ Beta(beta1,beta2) mixture with " << mixture << " components\n";
@@ -286,13 +304,17 @@ void Biphy::printConfiguration( void ) {
                     //break;
             //}
             std::cout << "\nbeta1, beta2 ~ exponential of mean 1\n";
-        }else if(modeltype != ModelPrior::DOLLO){
-            if(rootprior == RootPrior::TRUNCATED){
-                std::cout << "phi ~ Uniform(" << rootmin << "," << rootmax << ")\n";
-            }else{
-                std::cout << "phi ~ Beta(1,1)\n";
-            }
         }
+        else if(rootprior == RootPrior::TRUNCATED)
+        {
+        	std::cout << "root frequency:\n";
+        	std::cout << "phi ~ Uniform(" << rootmin << "," << rootmax << ")\n";
+		}
+		else if(modeltype == ModelPrior::HOMOGENEOUS)
+		{
+			std::cout << "root frequency:\n";
+			std::cout << "phi ~ Beta(1,1)\n";
+		}
     }
 
     std::cout << "\n";
@@ -315,14 +337,31 @@ void Biphy::printConfiguration( void ) {
 	{
 		std::cout << "strict clock rate ~ exponential of mean 1\n";
 	}
-    
-    std::cout << "\n";
+
 
     if(dgam > 1){
+    	std::cout << "\n";
         std::cout << "rates across sites ~ discrete gamma with " << dgam << " rate categories\n";
         std::cout << "\tmean 1 and variance 1/alpha^2\n";
         std::cout << "alpha ~ exponential of mean 1\n";
     }
+
+    if(dbeta > 1){
+
+        std::cout << "\n";
+
+    	if(!asymmbeta)
+    	{
+			std::cout << "frequencies across sites ~ discrete Beta(beta,beta) with " << dgam << " rate categories\n";
+			std::cout << "beta ~ exponential of mean 1\n";
+    	}
+    	else
+    	{
+    		std::cout << "frequencies across sites ~ discrete Beta(beta1,beta2) with " << dgam << " rate categories\n";
+    		std::cout << "beta1 ~ exponential of mean 1\n";
+    		std::cout << "beta2 ~ exponential of mean 1\n";
+    	}
+	}
 
     if(correction != AscertainmentBias::ALL){
         std::cout << "\n";
@@ -368,7 +407,7 @@ void Biphy::initModel( void ) {
     std::vector<const TypedDagNode<double>* > gamma_rates = std::vector<const TypedDagNode<double>* >();
     //DeterministicNode<std::vector<double> > *site_rates_norm;
     if(dgam > 1){
-        shape = new ContinuousStochasticNode("shape", new ExponentialDistribution(one) );
+        shape = new ContinuousStochasticNode("alpha", new ExponentialDistribution(one) );
         for(size_t cat = 0; cat < dgam; cat++){
             std::stringstream name;
             std::stringstream value_name;
@@ -438,7 +477,7 @@ void Biphy::initModel( void ) {
                 if(rootprior == RootPrior::RIGID)
                     phi = new StochasticNode<double>( "phi", new BetaDistribution( beta1,beta2 ) );
             }
-            else
+            else if(modeltype == ModelPrior::HOMOGENEOUS)
             {
             	/*ConstantNode<double>* var = new ConstantNode<double>("var", new double(1.66378) );
             	logit = new ContinuousStochasticNode("logit", new NormalDistribution(zero, var));
@@ -462,7 +501,26 @@ void Biphy::initModel( void ) {
     size_t right = root.getChild(1).getIndex();
 
     // branch frequency prior
-    if(modeltype == ModelPrior::HIERARCHICAL)
+    if(modeltype == ModelPrior::MK && dbeta > 1)
+	{
+    	if(asymmbeta)
+    	{
+    		beta1 = new ContinuousStochasticNode("beta1", new ExponentialDistribution(one) );
+    		beta2 = new ContinuousStochasticNode("beta2", new ExponentialDistribution(one) );
+    	}
+    	else
+    	{
+    		beta1 = new ContinuousStochasticNode("beta", new ExponentialDistribution(one) );
+    		beta2 = beta1;
+    	}
+
+    	std::vector<double> breaks;
+		for(size_t cat = 0; cat < dbeta - 1; cat++){
+			breaks.push_back((cat + 1.0)/dbeta);
+		}
+		pi_vector = new DeterministicNode<std::vector<double> >( "pi", new DiscreteBetaValuesFunction(beta1, beta2, breaks) );
+	}
+    else if(modeltype == ModelPrior::HIERARCHICAL)
     {
         for (size_t i = 0 ; i < numNodes ; i++ )
         {
@@ -575,10 +633,14 @@ void Biphy::initModel( void ) {
     
     if(modeltype > ModelPrior::HOMOGENEOUS)
         charModel->setStationaryFrequency( pi_vector );
-    else if(modeltype != ModelPrior::DOLLO)
+    else if(modeltype == ModelPrior::HOMOGENEOUS)
     {
         charModel->setStationaryFrequency( phi );
     }
+    else if(modeltype == ModelPrior::MK && dbeta > 1)
+	{
+		charModel->setSiteFrequencies( pi_vector );
+	}
 
     if(dgam > 1)
     {
@@ -646,13 +708,16 @@ void Biphy::initModel( void ) {
         monitoredNodes.push_back( meanpi );
     }
 
-    if(modeltype > ModelPrior::HOMOGENEOUS)
+    if(modeltype > ModelPrior::HOMOGENEOUS || (modeltype == ModelPrior::MK && dbeta > 1))
     {
         moves.push_back( new ScaleMove(beta1, 0.3, true, 0.0096/4) );
         monitoredNodes.push_back( beta1 );
 
-        moves.push_back( new ScaleMove(beta2, 0.3, true, 0.0096/4) );
-        monitoredNodes.push_back( beta2 );
+        if(modeltype > ModelPrior::HOMOGENEOUS || asymmbeta)
+        {
+        	moves.push_back( new ScaleMove(beta2, 0.3, true, 0.0096/4) );
+        	monitoredNodes.push_back( beta2 );
+        }
 
        /* if(modeltype == ModelPrior::MIXTURE){
             //std::vector<Move*> mixmoves;

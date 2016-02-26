@@ -23,6 +23,7 @@ int main (int argc, const char * argv[])
 	BranchPrior::Type branchprior = BranchPrior::DEFAULT;
 
 	int dgam = 4;
+	int dbeta = 0;
 
 	RootPrior::Type rootprior = RootPrior::FREE;
 	double rootmin = 0.0;
@@ -45,7 +46,7 @@ int main (int argc, const char * argv[])
 	bool dolloMapping = false;
 	bool persite = false;
 	bool ancestral = false;
-	bool pasta = false;
+	bool asymmbeta = false;
 
 	Biphy *chain = NULL;
 
@@ -72,11 +73,8 @@ int main (int argc, const char * argv[])
 				if (s == "-d")	{
 					i++;
 					datafile = argv[i];
-				}else if (s == "-p") {
-                    i++;
-                    pasta = true;
-                    datafile = argv[i];
-                }else if (s == "-f")	{
+				}
+				else if (s == "-f")	{
 					overwrite = true;
 				}
 				else if ((s == "-t") || (s == "-T"))	{
@@ -90,11 +88,14 @@ int main (int argc, const char * argv[])
 				else if (s == "-o")	{
 					i++;
 					outgroupfile = argv[i];
-				}else if (s == "-s"){
+				}
+				else if (s == "-s"){
 					saveall = true;
-				}else if (s == "-a"){
+				}
+				else if (s == "-a"){
                     ancestral = true;
-                }else if (s == "-dgam"){
+                }
+				else if (s == "-dgam"){
 					i++;
 					if (i == argc)	{
 						cerr << "error in command: -dgam <int>\n\n";
@@ -106,31 +107,60 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					dgam = atoi(argv[i]);
-				}else if (s == "-rigid"){
+				}
+				else if (s == "-dbeta"){
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -dbeta <int>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (! IsInt(s))	{
+						cerr << "error in command: -dbeta <int>\n\n";
+						exit(1);
+					}
+					dbeta = atoi(argv[i]);
+				}
+				else if (s == "-asymmbeta"){
+					asymmbeta = true;
+				}
+                else if (s == "-rigid"){
 					rootprior = RootPrior::RIGID;
+				}
+				else if (s == "-e")	{
+					nexus = true;
+				}
+				else if (s == "-site")	{
+					persite = true;
+				}
+				else if (s == "-map"){
+					dolloMapping = true;
 				}
 				else if (s == "-nh")	{
 					modeltype = ModelPrior::HIERARCHICAL;
 				}
-				else if (s == "-e")	{
-					nexus = true;
-				}else if (s == "-site")	{
-					persite = true;
-				}else if (s == "-dollo"){
+				else if (s == "-dollo"){
 					modeltype = ModelPrior::DOLLO;
-				}else if (s == "-map"){
-					dolloMapping = true;
-				}else if (s == "-h")	{
+				}
+				else if (s == "-h")	{
 					modeltype = ModelPrior::HOMOGENEOUS;
-				}else if (s == "-ldir")	{
+				}
+				else if (s == "-mk")	{
+					modeltype = ModelPrior::MK;
+				}
+				else if (s == "-ldir")	{
 					branchprior = BranchPrior::DIRICHLET;
-				}else if (s == "-lexp")	{
+				}
+				else if (s == "-lexp")	{
 					branchprior = BranchPrior::EXPONENTIAL;
-				}else if (s == "-lfixed")	{
+				}
+				else if (s == "-lfixed")	{
 					branchprior = BranchPrior::FIXED;
-				}else if (s == "-lstrict")	{
+				}
+				else if (s == "-lstrict")	{
 					branchprior = BranchPrior::STRICT;
-				}else if (s == "-n")	{
+				}
+				else if (s == "-n")	{
 					i++;
 					if (i == argc)	{
 						cerr << "error in command: -n <int>\n\n";
@@ -142,7 +172,8 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					numChains = atoi(argv[i]);
-				}else if (s == "-u")	{
+				}
+				else if (s == "-u")	{
 					i++;
 					if (i == argc)	{
 						cerr << "error in command: -u <int>\n\n";
@@ -281,8 +312,8 @@ int main (int argc, const char * argv[])
 				exit(1);
 			}
 
-			//if(mixture > 1 && modeltype != Biphy::MIXTURE)
-			//	throw(0);
+			if(dbeta > 1 && modeltype != ModelPrior::MK)
+				throw(0);
 
 			if(rootprior == RootPrior::RIGID && (modeltype < ModelPrior::HIERARCHICAL))
 				rootprior = RootPrior::FREE;
@@ -315,9 +346,10 @@ int main (int argc, const char * argv[])
 		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n";
 
 		cerr << "\nBranch frequency prior:\n";
-		cerr << "\t-h\t\thomogeneous reversible model (default)\n";
-		cerr << "\t-nh\t\tbranch-heterogeneous reversible model\n";
-		cerr << "\t-dollo\t\tstochastic dollo model\n";
+		cerr << "\t-dollo\t\tirreversible stochastic dollo model\n";
+		cerr << "\t-mk\t\tsymmetric reversible Mk model\n";
+		cerr << "\t-h\t\tasymmetric reversible model (default)\n";
+		cerr << "\t-nh\t\tbranch-heterogeneous asymmetric reversible model\n";
 		//cerr << "\t-mix <int>\tbeta mixture with <int> components\n";
 
 		cerr << "\nBranch length prior:\n";
@@ -325,11 +357,13 @@ int main (int argc, const char * argv[])
 
 		cerr << "\nClock models (require fixed input branch lengths via -t option):\n";
 		cerr << "\t-lfixed\t\tfix the branch lengths at their input values (default)\n";
-		cerr << "\t-lstrict\tstrict clock. same as -cfixed, but with a tree-length multiplier\n\n";
+		cerr << "\t-lstrict\tstrict clock. same as -lfixed, but with a tree-length multiplier\n\n";
 
-		cerr << "\nRates across sites prior:\n";
-		cerr << "\t-dgam <int>\tdiscrete gamma model with <int> categories (default: 4)\n";
-		cerr << "\t\t\t0 or 1 = constant rates model\n";
+		cerr << "\nAcross sites mixtures:\n";
+		cerr << "\t-dgam <int>\tdiscrete gamma rates mixture with <int> categories (default: 4)\n";
+		cerr << "\t-dbeta <int>\tbeta frequency mixture with <int> categories (Mk model only)\n";
+		cerr << "\t\t0 or 1 = across sites mixture disabled\n";
+		cerr << "\t-asymmbeta\tasymmetric beta mixture\n\n";
 
 		cerr << "\nCorrections for unobservable site patterns:\n";
 		cerr << "\t-u <int>\twhere <int> is one of:\n";
@@ -347,7 +381,7 @@ int main (int argc, const char * argv[])
 		cerr << "\t-t <file>\tfixed tree filename\n";
 		cerr << "\t-o <file>\toutgroup clade file\n";
 		cerr << "\t-rigid\trigid root frequency for heterogeneous models\n";
-		cerr << "\t-rp <min> <max>\ttruncate root frequency prior on (min,max) (-nh or -h only)\n";
+		cerr << "\t-rp <min> <max>\ttruncate root frequency on (min,max) (asymmetric reversible models only)\n";
 
 		cerr << "\nMCMCMC options:\n";
 		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
@@ -356,8 +390,8 @@ int main (int argc, const char * argv[])
 		cerr << "\t-sigma <float>\t(default = 1)\n";
 
 		cerr << "\nOutput options:\n";
-		cerr << "\t-s\t\tsave entire output (default: disabled)\n";
-		cerr << "\t-e\t\tsave nexus treefile (default: disabled)\n";
+		cerr << "\t-s\t\tsave entire output\n";
+		cerr << "\t-e\t\tsave nexus treefile\n";
 
 		cerr << "\nStream-reading options:\n";
 		cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
@@ -391,7 +425,7 @@ int main (int argc, const char * argv[])
 					remove((name+".treelist.nex").c_str());
 			}
 
-			chain = new Biphy(name,datafile,cvfile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
+			chain = new Biphy(name,datafile,cvfile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,dbeta,asymmbeta,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
 		}else{
 			if(!fexists(name+".stream")){
 				cerr << "run '" << name << "' does not exist\n";
