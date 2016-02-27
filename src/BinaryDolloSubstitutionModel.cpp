@@ -43,7 +43,8 @@ void BinaryDolloSubstitutionModel::resizeLikelihoodVectors( void ) {
             
     if(coding != AscertainmentBias::ALL)
     {
-        correctionMixtureOffset = numCorrectionMasks*4;
+        correctionRateOffset 	= numCorrectionMasks*4;
+        correctionMixtureOffset = correctionRateOffset;
         correctionNodeOffset    = numSiteRates*correctionMixtureOffset;
         activeCorrectionOffset  = numNodes*correctionNodeOffset;
 
@@ -80,6 +81,7 @@ void BinaryDolloSubstitutionModel::resizeLikelihoodVectors( void ) {
     
     size_t numAllocatedPatterns = numPatterns;
 #endif
+    rateOffset 					= mixtureOffset;
     nodeOffset                  = numSiteRates*mixtureOffset;
     activeLikelihoodOffset      = numNodes*nodeOffset;
     
@@ -98,6 +100,7 @@ void BinaryDolloSubstitutionModel::resizeLikelihoodVectors( void ) {
     
     // reset the transitionProbability vector
     tMixtureOffset = 2;
+    tRateOffset = tMixtureOffset;
     tNodeOffset = numSiteRates*tMixtureOffset;
     tActiveOffset = (numNodes - 1)*tNodeOffset;
     
@@ -851,7 +854,7 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                         
                         // correct rounding errors
                         if(prob < 0)
-                            prob = 0;
+                            prob = std::numeric_limits<double>::infinity();
                         
                         prob *= integrationFactor[mixture];
                     }
