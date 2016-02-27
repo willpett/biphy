@@ -189,7 +189,7 @@ int main (int argc, const char * argv[])
 						cerr << "error in command: -u <int>\n\n";
 						exit(1);
 					}
-				}/*else if (s == "-mix")	{
+				}else if (s == "-mix")	{
 					i++;
 					if (i == argc)	{
 						cerr << "error in command: -mix <int>\n\n";
@@ -207,7 +207,7 @@ int main (int argc, const char * argv[])
 						modeltype = ModelPrior::HOMOGENEOUS;
 						mixture = 0;
 					}
-				}*/
+				}
 				else if (s == "-delta")	{
 					i++;
 					if (i == argc)	{
@@ -313,10 +313,19 @@ int main (int argc, const char * argv[])
 			}
 
 			if(dbeta > 1 && modeltype != ModelPrior::MK)
-				throw(0);
+			{
+				cerr << "error: -dbeta only used with Mk model\n\n";
+				exit(1);
+			}
 
 			if(rootprior == RootPrior::RIGID && (modeltype < ModelPrior::HIERARCHICAL))
 				rootprior = RootPrior::FREE;
+
+			if(rootprior == RootPrior::TRUNCATED && (modeltype == ModelPrior::MIXTURE))
+			{
+				cerr << "error: truncated root prior incompatible with branch mixture model\n\n";
+				exit(1);
+			}
 
 			if((branchprior == BranchPrior::FIXED || branchprior == BranchPrior::STRICT) && treefile == "None")
 			{

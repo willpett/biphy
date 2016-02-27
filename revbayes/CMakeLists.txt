@@ -135,6 +135,8 @@ ${REVBAYES_DIR}/core/functions/builtin/MeanFunction.cpp
 ${REVBAYES_DIR}/core/functions/builtin/NormalizeVectorFunction.cpp
 ${REVBAYES_DIR}/core/functions/builtin/MeanFunction.h
 ${REVBAYES_DIR}/core/functions/builtin/NormalizeVectorFunction.h
+${REVBAYES_DIR}/core/functions/builtin/EntropyFunction.h
+${REVBAYES_DIR}/core/functions/builtin/EntropyFunction.cpp
 ${REVBAYES_DIR}/core/functions/Function.cpp
 ${REVBAYES_DIR}/core/functions/distribution
 ${REVBAYES_DIR}/core/functions/distribution/DiscreteBetaValuesFunction.h
