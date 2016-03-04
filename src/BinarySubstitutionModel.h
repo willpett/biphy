@@ -20,7 +20,8 @@ struct AscertainmentBias {
                 NOSINGLETONPRESENCE = 0x04,
                 NOSINGLETONABSENCE  = 0x08,
                 NOSINGLETONS        = 0x0C,
-                INFORMATIVE         = 0x0F
+                INFORMATIVE         = 0x0F,
+				SAMPLED				= 0x11
               };
 };
 
@@ -60,12 +61,14 @@ public:
     virtual void                                                        setStationaryFrequency(const TypedDagNode< double > *f);
     virtual void                                                        setSiteRates(const TypedDagNode< std::vector< double > > *r);
     virtual void                                                        setSiteFrequencies(const TypedDagNode< std::vector< double > > *r);
+    virtual void                                                        setSamplingRate(const TypedDagNode< double > *f);
     
     void                                                                setVerbose(bool v);
     void                                                                setUseScaling(bool s);
     double                                                              getClockRate(size_t n);
     double                                                              getBranchLength(size_t n);
-    virtual RealNumber                                                  getStationaryFrequency(size_t n, size_t mixture);
+    virtual double                                                  	getStationaryFrequency(size_t n, size_t mixture);
+    virtual double                                                  	getSamplingRate(void);
     
 protected:
     // helper method for this and derived classes
@@ -127,6 +130,8 @@ protected:
     size_t                                                              correctionRateOffset;
     size_t                                                              correctionMixtureOffset;
     
+    size_t																correctionMaskOffset;
+
     // full model
     size_t                                                              activeLikelihoodOffset;
     size_t                                                              nodeOffset;
@@ -156,6 +161,9 @@ protected:
     const TypedDagNode< std::vector< double > >*                        heterogeneousFrequencies;
     const TypedDagNode< double >*                                       homogeneousFrequency;
     
+    const TypedDagNode<double>*                                         samplingRate;
+    std::vector<size_t>													pattern2numPresent;
+
     RealVector                                                          correctionLikelihoods;
     
     std::vector<std::vector<bool> >                                     correctionMaskMatrix;
@@ -193,7 +201,7 @@ protected:
 protected:
     // private methods
     virtual void                                                        compress(void);
-    void                                                                fillLikelihoodVector(const TopologyNode &n, size_t nIdx);
+    virtual void                                                        fillLikelihoodVector(const TopologyNode &n, size_t nIdx);
     virtual void                                                        simulate( const TopologyNode &node, std::vector<RealNumber> &data, size_t rateIndex, size_t freqIndex, std::pair<size_t, size_t>& charCounts);
     
     virtual void                                                        scale(size_t i, size_t l, size_t r);

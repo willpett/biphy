@@ -616,6 +616,8 @@ void Biphy::initModel( void ) {
     BinarySubstitutionModel* charModel;
     BinarySubstitutionModel* charModel2;
     
+    StochasticNode<double>* samplingRate;
+
     if(modeltype == ModelPrior::DOLLO)
         charModel = new BinaryDolloSubstitutionModel(tau, AscertainmentBias::Coding(correction));
     else
@@ -648,6 +650,12 @@ void Biphy::initModel( void ) {
     {
     	charModel->setSiteRates( site_rates );
     }
+
+    if(correction == AscertainmentBias::SAMPLED)
+	{
+		samplingRate = new StochasticNode<double >( "sigma", new BetaDistribution(one,one) );
+		charModel->setSamplingRate(samplingRate);
+	}
 
     StochasticNode< BinaryCharacterData >* charactermodel = new StochasticNode< BinaryCharacterData >("S", charModel );
     charactermodel->clamp( data );
@@ -748,6 +756,12 @@ void Biphy::initModel( void ) {
     {
         moves.push_back( new ScaleMove(shape, 0.2, true, 0.02) );
         monitoredNodes.push_back( shape );
+    }
+
+    if(correction == AscertainmentBias::SAMPLED)
+    {
+    	moves.push_back( new BetaSimplexMove(samplingRate, 1000.0, true, 0.02 ) );
+    	monitoredNodes.push_back( samplingRate );
     }
 
     bool useParallelMcmcmc = (numChains > 1);

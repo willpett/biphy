@@ -42,6 +42,7 @@ BinarySubstitutionModel::BinarySubstitutionModel(const TypedDagNode<Tree> *t, As
     heterogeneousFrequencies  = NULL;
     branchLengths             = NULL;
     siteRates                 = NULL;
+    samplingRate			  = NULL;
         
     // add the parameters to the parents list
     this->addParameter( tau );
@@ -61,6 +62,7 @@ BinarySubstitutionModel::BinarySubstitutionModel(const BinarySubstitutionModel &
     siteIndices(n.siteIndices),
     patternCounts( n.patternCounts ),
     pattern2site(n.pattern2site),
+	pattern2numPresent(n.pattern2numPresent),
     site2pattern(n.site2pattern),
     site2mask(n.site2mask),
 #ifdef SIMD_ENABLED
@@ -89,6 +91,7 @@ BinarySubstitutionModel::BinarySubstitutionModel(const BinarySubstitutionModel &
     
     // parameters
     tau( n.tau ),
+	samplingRate( n.samplingRate ),
     siteRates(n.siteRates),
     homogeneousClockRate(n.homogeneousClockRate),
     heterogeneousClockRates(n.heterogeneousClockRates),
@@ -110,6 +113,7 @@ BinarySubstitutionModel::BinarySubstitutionModel(const BinarySubstitutionModel &
     
     N(n.N),
     numCorrectionMasks(n.numCorrectionMasks),
+	correctionMaskOffset(n.correctionMaskOffset),
     activeCorrectionOffset(n.activeCorrectionOffset),
     correctionNodeOffset(n.correctionNodeOffset),
 	correctionRateOffset(n.correctionRateOffset),
@@ -145,7 +149,8 @@ void BinarySubstitutionModel::resizeLikelihoodVectors( void ) {
     // we resize the partial likelihood vectors to the new dimensions
     if(coding != AscertainmentBias::ALL)
     {
-        correctionRateOffset 		= numCorrectionMasks*8;
+    	correctionMaskOffset		= 8;
+    	correctionRateOffset 		= numCorrectionMasks*correctionMaskOffset;
         correctionMixtureOffset 	= numSiteRates*correctionRateOffset;
         correctionNodeOffset    	= numSiteFrequencies*correctionMixtureOffset;
         activeCorrectionOffset  	= numNodes*correctionNodeOffset;
@@ -439,6 +444,7 @@ void BinarySubstitutionModel::compress( void )
     {
         // create the site pattern
         std::string pattern = "";
+        size_t numPresent = 0;
         for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it)
         {
             if ( (*it)->isTip() )
@@ -446,8 +452,11 @@ void BinarySubstitutionModel::compress( void )
                 const BinaryTaxonData* taxon = this->value->getTaxonData( (*it)->getName() );
                 
                 std::stringstream ss;
-                ss << taxon->getCharacter(siteIndices[site]);
+                RealNumber c = taxon->getCharacter(siteIndices[site]);
+                ss << c;
                 pattern += ss.str();
+
+                numPresent += (c > 0.0);
             }
         }
         // check if we have already seen this site pattern
@@ -467,6 +476,7 @@ void BinarySubstitutionModel::compress( void )
         {
             // create a new pattern frequency counter for this pattern
             patternCounts.push_back(1);
+            pattern2numPresent.push_back(numPresent);
 
             // insert this pattern with the corresponding index in the map
             patterns.insert( std::pair<std::string,size_t>(pattern,numPatterns) );
@@ -1284,19 +1294,19 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
 		{
 			size_t tOffset = rate*tRateOffset + freq*tMixtureOffset;
 
-	#ifdef SIMD_CORRECTION_ENABLED
+#ifdef SIMD_CORRECTION_ENABLED
 			__m128*    t_left   = (__m128*)&*(pi_left   + tOffset);
 			__m128*    t_right  = (__m128*)&*(pi_right  + tOffset);
-	#else
+#else
 			RealVector::iterator    t_left   = pi_left   + tOffset;
 			RealVector::iterator    t_right  = pi_right  + tOffset;
-	#endif
+#endif
 
 			for(size_t mask = 0; mask < numCorrectionMasks; mask++){
 
 				size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
 
-	#ifdef SIMD_CORRECTION_ENABLED
+#ifdef SIMD_CORRECTION_ENABLED
 				__m128* uC_i = (__m128*)&*(p_node  + offset);
 				__m128* uC_j = (__m128*)&*(p_left  + offset);
 				__m128* uC_k = (__m128*)&*(p_right + offset);
@@ -1344,7 +1354,7 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
 					*uC_i = _mm_mul_pX(*uC_i,mrf);
 					*uI_i = _mm_mul_pX(*uI_i,mrf);
 				}
-	#else
+#else
 				RealVector::iterator               u_i = p_node  + offset;
 				RealVector::const_iterator         u_j = p_left  + offset;
 				RealVector::const_iterator         u_k = p_right + offset;
@@ -1390,7 +1400,7 @@ void BinarySubstitutionModel::computeNodeCorrection(const TopologyNode &node, si
 						}
 					}
 				}
-	#endif
+#endif
 			}
 		}
     }
@@ -1410,6 +1420,8 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
     // get the index of the root node
     size_t nodeIndex = root.getIndex();
     
+    double sampling = 1.0 - getSamplingRate();
+
     RealVector::const_iterator p_node = correctionLikelihoods.begin() + activeLikelihood[nodeIndex] * activeCorrectionOffset  + nodeIndex*correctionNodeOffset;
     
     std::fill(perMaskCorrections.begin(), perMaskCorrections.end(), 0.0);
@@ -1453,6 +1465,8 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
 
 							if(coding & AscertainmentBias::NOSINGLETONPRESENCE)
 								tmp += uI_i[c];
+							else
+								tmp += uI_i[c] * sampling;
 						}
 
 						if(c == 1)
@@ -1561,6 +1575,8 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
 	// sum the log-likelihoods for all sites together
 	RealNumber sumPartialProbs = 0.0;
 
+	double logSampling = log(getSamplingRate());
+
 	for (size_t block = 0; block < numSIMDBlocks; block++)
 	{
 		for (size_t ss = 0; ss < REALS_PER_SIMD_REGISTER; ss++)
@@ -1576,6 +1592,8 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
 			{
 				per_site_Likelihoods[pattern] += perNodeSiteLogScalingFactors[activeLikelihood[rootIndex]*activeScalingOffset + rootIndex*numAllocatedPatterns + pattern];
 			}
+
+			per_site_Likelihoods[pattern] += (pattern2numPresent[pattern] == 1) ? logSampling : 0.0;
 
 			sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
 		}
@@ -1604,6 +1622,8 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
 
 			per_site_Likelihoods[pattern] += perNodeSiteLogScalingFactors[activeLikelihood[rootIndex]*activeScalingOffset + rootIndex*numPatterns + pattern] * patternCounts[pattern];
 		}
+
+		per_site_Likelihoods[pattern] += (pattern2numPresent[pattern] == 1) ? logSampling : 0.0;
 
 		sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
 	}
@@ -1971,7 +1991,7 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
     
     if ( useScaling == true && nodeIndex % scalingDensity == 0 )
     {   
-#ifdef SIMD_ENABLED
+/*#ifdef SIMD_ENABLED
         for (size_t mask = 0; mask < numCorrectionMasks; ++mask)
         {
             
@@ -1981,7 +2001,7 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
             {
 				for (size_t rate = 0; rate < numSiteRates; ++rate)
 				{
-					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*correctionMaskOffset;
 
 					SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
 #ifdef AVX_ENABLED
@@ -2019,7 +2039,7 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
             {
 				for (size_t rate = 0; rate < numSiteRates; ++rate)
 				{
-					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*correctionMaskOffset;
 
 					SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
 
@@ -2032,62 +2052,43 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
 				}
             }
         }
-#else
+#else*/
         for (size_t mask = 0; mask < numCorrectionMasks; ++mask)
-        {
-            
-            RealNumber max = 0.0;
-            
-            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
-            {
+		{
+
+			RealNumber max = 0.0;
+
+			for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
+			{
 				for (size_t rate = 0; rate < numSiteRates; ++rate)
 				{
-					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset mask*8;
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*correctionMaskOffset;
 
 					RealVector::const_iterator   u_i  = p_node  + offset;
 
-					for(size_t c = 0; c < 2; c++)
-					{
-						for(size_t ci = 0; ci < 2; ci++)
-						{
-
-							RealVector::const_iterator   uC_i = u_i  + ci*2;
-							RealVector::const_iterator   uI_i = uC_i + 4;
-
-							max = std::max(max, std::max(uC_i[c], uI_i[c]));
-						}
-					}
+					for(size_t i = 0; i < correctionMaskOffset; i++)
+						max = std::max(max, u_i[i]);
 				}
-            }
+			}
 
-            p_scaler[mask] = p_scaler_left[mask] + p_scaler_right[mask] + log(max);
-    
-            
-            // compute the per site probabilities
-            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
-            {
+			p_scaler[mask] = p_scaler_left[mask] + p_scaler_right[mask] + log(max);
+
+
+			// compute the per site probabilities
+			for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
+			{
 				for (size_t rate = 0; rate < numSiteRates; ++rate)
 				{
-					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*correctionMaskOffset;
 
 					RealVector::iterator   u_i  = p_node  + offset;
 
-					for(size_t ci = 0; ci < 2; ci++)
-					{
-						for(size_t c = 0; c < 2; c++)
-						{
-
-							RealVector::iterator   uC_i = u_i  + ci*2;
-							RealVector::iterator   uI_i = uC_i + 4;
-
-							uC_i[c] /= max;
-							uI_i[c] /= max;
-						}
-					}
+					for(size_t i = 0; i < correctionMaskOffset; i++)
+						u_i[i] /= max;
 				}
-            }
-        }
-#endif
+			}
+		}
+//#endif
     }
     else if ( useScaling == true )
     {
@@ -2110,7 +2111,8 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
    RealVector::const_iterator p_scaler_middle = perNodeCorrectionLogScalingFactors.begin() + activeLikelihood[middle]*activeCorrectionScalingOffset    + middle*numCorrectionMasks;
     
     if ( useScaling == true && nodeIndex % scalingDensity == 0 )
-    {   
+    {
+    	/*
 #ifdef SIMD_ENABLED
         for (size_t mask = 0; mask < numCorrectionMasks; ++mask)
         {
@@ -2172,62 +2174,43 @@ void BinarySubstitutionModel::scaleCorrection( size_t nodeIndex, size_t left, si
 				}
             }
         }
-#else
+#else*/
         for (size_t mask = 0; mask < numCorrectionMasks; ++mask)
-        {
-            
-            RealNumber max = 0.0;
-            
-            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
-            {
+		{
+
+			RealNumber max = 0.0;
+
+			for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
+			{
 				for (size_t rate = 0; rate < numSiteRates; ++rate)
 				{
-					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*correctionMaskOffset;
 
 					RealVector::const_iterator   u_i  = p_node  + offset;
 
-					for(size_t c = 0; c < 2; c++)
-					{
-						for(size_t ci = 0; ci < 2; ci++)
-						{
-
-							RealVector::const_iterator   uC_i = u_i  + ci*2;
-							RealVector::const_iterator   uI_i = uC_i + 4;
-
-							max = std::max(max, std::max(uC_i[c], uI_i[c]));
-						}
-					}
+					for(size_t i = 0; i < correctionMaskOffset; i++)
+						max = std::max(max, u_i[i]);
 				}
-            }
+			}
 
-            p_scaler[mask] = p_scaler_left[mask] + p_scaler_right[mask] + p_scaler_middle[mask] + log(max);
-    
-            
-            // compute the per site probabilities
-            for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
-            {
+			p_scaler[mask] = p_scaler_left[mask] + p_scaler_right[mask] + p_scaler_middle[mask] + log(max);
+
+
+			// compute the per site probabilities
+			for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
+			{
 				for (size_t rate = 0; rate < numSiteRates; ++rate)
 				{
-					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*8;
+					size_t offset = rate*correctionRateOffset + freq*correctionMixtureOffset + mask*correctionMaskOffset;
 
 					RealVector::iterator   u_i  = p_node  + offset;
 
-					for(size_t ci = 0; ci < 2; ci++)
-					{
-						for(size_t c = 0; c < 2; c++)
-						{
-
-							RealVector::iterator   uC_i = u_i  + ci*2;
-							RealVector::iterator   uI_i = uC_i + 4;
-
-							uC_i[c] /= max;
-							uI_i[c] /= max;
-						}
-					}
+					for(size_t i = 0; i < correctionMaskOffset; i++)
+						u_i[i] /= max;
 				}
-            }
-        }
-#endif
+			}
+		}
+//#endif
     }
     else if ( useScaling == true )
     {
@@ -2531,6 +2514,10 @@ void BinarySubstitutionModel::swapParameter(const DagNode *oldP, const DagNode *
     {
         siteRates = static_cast<const TypedDagNode< std::vector< double > >* >( newP );
     }
+    else if (oldP == samplingRate)
+	{
+    	samplingRate = static_cast<const TypedDagNode< double >* >( newP );
+	}
     else if (oldP == tau)
     {
         tau->getValue().getTreeChangeEventHandler().removeListener( this );
@@ -2670,7 +2657,7 @@ void BinarySubstitutionModel::setSiteRates(const TypedDagNode< std::vector< doub
 }
 
 
-RealNumber BinarySubstitutionModel::getStationaryFrequency( size_t nodeIndex, size_t mixture ) {
+double BinarySubstitutionModel::getStationaryFrequency( size_t nodeIndex, size_t mixture ) {
     
 	if ( frequencyVariationAcrossSites)
 	{
@@ -2687,6 +2674,18 @@ RealNumber BinarySubstitutionModel::getStationaryFrequency( size_t nodeIndex, si
     else
     {
         return 0.5;
+    }
+}
+
+double BinarySubstitutionModel::getSamplingRate(void ) {
+
+	if ( samplingRate)
+	{
+		return samplingRate->getValue();
+	}
+    else
+    {
+        return 1.0;
     }
 }
 
@@ -2826,6 +2825,29 @@ void BinarySubstitutionModel::setSiteFrequencies(const TypedDagNode< std::vector
     }
 }
 
+void BinarySubstitutionModel::setSamplingRate(const TypedDagNode< double > *r)
+{
+
+    // remove the old parameter first
+    if ( samplingRate != NULL )
+    {
+        this->removeParameter( samplingRate );
+        samplingRate = NULL;
+    }
+
+    // set the value
+    samplingRate = r;
+
+    // add the new parameter
+    this->addParameter( samplingRate );
+
+    // redraw the current value
+    if ( this->dagNode == NULL || !this->dagNode->isClamped() )
+    {
+        this->redrawValue();
+    }
+
+}
 
 void BinarySubstitutionModel::redrawValue( void ) {
 
@@ -2917,6 +2939,8 @@ void BinarySubstitutionModel::redrawValue( void ) {
         }
     }
 
+    double sampling = getSamplingRate();
+
     // then sample site-patterns using rejection sampling,
     // rejecting those that match the unobservable ones.
     for ( size_t i = 0; i < numSites; i++ )
@@ -2937,9 +2961,14 @@ void BinarySubstitutionModel::redrawValue( void ) {
 
         if( !isSitePatternCompatible(charCounts, 0) )
         {
-            i--;
-            continue;
+			i--;
+			continue;
         }
+        else if(samplingRate != NULL && charCounts.second == 1 && rng->uniform01() >= sampling)
+    	{
+			i--;
+			continue;
+    	}
 
         // add the taxon data to the character data
         for (size_t t = 0; t < numTaxa; ++t)

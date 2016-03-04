@@ -185,7 +185,7 @@ int main (int argc, const char * argv[])
 						exit(1);
 					}
 					correction = AscertainmentBias::Coding(atoi(argv[i]));
-					if(correction < 0 || correction > 15)	{
+					if(correction < 0 || (correction > 15 && correction != 17))	{
 						cerr << "error in command: -u <int>\n\n";
 						exit(1);
 					}

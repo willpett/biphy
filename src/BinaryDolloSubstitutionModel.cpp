@@ -772,6 +772,8 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
     
     std::fill(perMaskCorrections.begin(), perMaskCorrections.end(), 0.0);
     std::fill(perMixtureCorrections.begin(), perMixtureCorrections.end(), 0.0);
+
+    double sampling = 1.0 - getSamplingRate();
             
     if(coding == AscertainmentBias::ALL)
     {
@@ -824,6 +826,8 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                     
                     if(coding & AscertainmentBias::NOSINGLETONPRESENCE)
                         prob += uI_i[0];
+                    else
+                    	prob += uI_i[0]*sampling;
                     
                     // if there is only one observed tip, then don't double-count singleton gains
                     if((coding & AscertainmentBias::NOPRESENCESITES) && maskObservationCounts[mask] > 1)
@@ -889,6 +893,8 @@ RealNumber BinaryDolloSubstitutionModel::sumUncorrectedRootLikelihood( void )
     const TopologyNode& root = tau->getValue().getRoot();
     size_t rootIndex = root.getIndex();
     
+    double logSampling = log(getSamplingRate());
+
     double sumPartialProbs = 0.0;
     
 #ifdef SIMD_ENABLED
@@ -987,6 +993,8 @@ RealNumber BinaryDolloSubstitutionModel::sumUncorrectedRootLikelihood( void )
             // if we are using scaling, then per_site_Likelihoods will already be log-scaled at this point
             per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / numSiteRates );   
             
+            per_site_Likelihoods[pattern] += (pattern2numPresent[pattern] == 1) ? logSampling : 0.0;
+
             sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
         }
     }
@@ -1001,6 +1009,8 @@ RealNumber BinaryDolloSubstitutionModel::sumUncorrectedRootLikelihood( void )
             
             per_site_Likelihoods[pattern] = Math::log_sum_exp(integratedNodeProbs, max) - log(RealNumber(numSiteRates)); 
             
+            per_site_Likelihoods[pattern] += (pattern2numPresent[pattern] == 1) ? logSampling : 0.0;
+
             sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
         }
     }
@@ -1026,6 +1036,8 @@ RealNumber BinaryDolloSubstitutionModel::sumUncorrectedRootLikelihood( void )
         
         //normalize the log prob
         per_site_Likelihoods[pattern] -= log(RealNumber(numSiteRates));
+
+        per_site_Likelihoods[pattern] += (pattern2numPresent[pattern] == 1) ? logSampling : 0.0;
                              
         sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
     }
@@ -1746,6 +1758,8 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
         numSites = Statistics::Poisson::rv( lambda * exp(perMaskCorrections[0]), *rng);
     }
 
+    double sampling = getSamplingRate();
+
     // then sample site-patterns using rejection sampling,
     // rejecting those that match the unobservable ones.
     for ( size_t i = 0; i < numSites; i++ )
@@ -1798,6 +1812,11 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
             i--;
             continue;
         }
+        else if(samplingRate != NULL && charCounts.second == 1 && rng->uniform01() >= sampling)
+		{
+			i--;
+			continue;
+		}
 
         // add the taxon data to the character data
         for (size_t t = 0; t < numTaxa; ++t)
