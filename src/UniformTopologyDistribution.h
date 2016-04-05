@@ -35,7 +35,10 @@ public:
     double                                              computeLnProbability(void);
     void                                                redrawValue(void);
     void                                                swapParameter(const DagNode *oldP, const DagNode *newP);                                            //!< Implementation of swaping parameters
-    
+    // virtual methods
+	virtual void                    					setValue(Tree *v);
+	virtual void                    					setValue(const Tree &v);
+
 private:
     
     // helper functions
@@ -45,6 +48,7 @@ private:
     void                                                rearrangeTree(void);
     bool                                                matchesConstraints(void);
     bool                                                hasOutgroup(void);
+    void                                                resetNodeIndices(void);
     
     // members
     bool                                                rooted;

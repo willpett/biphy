@@ -7,7 +7,7 @@
 
 #include <cmath>
 
-class LnCorrectionFunction : public TypedFunction<RealNumber> {
+class LnCorrectionFunction : public TypedFunction<std::vector<RealNumber> > {
     
 public:
     LnCorrectionFunction(const StochasticNode<BinaryCharacterData >* m);

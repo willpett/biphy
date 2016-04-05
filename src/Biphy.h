@@ -72,7 +72,8 @@ class Biphy {
                 double delta,
                 double sigma,
                 bool saveall,
-                bool nexus
+                bool nexus,
+				bool percoding
 			);
     	
     	/* stream reading mode */
@@ -143,6 +144,7 @@ class Biphy {
         double                                  rootmin;
         double                                  rootmax;
         bool                                    nexus;
+        bool									percoding;
         bool                                    dolloMapping;
         bool                                    perSiteLnProbs;
         bool                                    ancestral;

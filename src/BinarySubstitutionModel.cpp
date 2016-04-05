@@ -123,6 +123,7 @@ BinarySubstitutionModel::BinarySubstitutionModel(const BinarySubstitutionModel &
     maskObservationCounts(n.maskObservationCounts),
     
     perSiteCorrection(n.perSiteCorrection),
+	perCodingProbs(n.perCodingProbs),
     perMaskCorrections(n.perMaskCorrections),
     perMixtureCorrections(n.perMixtureCorrections),
     correctionLikelihoods(n.correctionLikelihoods),
@@ -156,7 +157,7 @@ void BinarySubstitutionModel::resizeLikelihoodVectors( void ) {
         activeCorrectionOffset  	= numNodes*correctionNodeOffset;
 
         correctionLikelihoods = RealVector(2*activeCorrectionOffset, 0.0);
-        perMixtureCorrections = RealVector(numSiteRates*numSiteFrequencies*numCorrectionMasks, 0.0);
+        perMixtureCorrections = RealVector(numSiteRates*numSiteFrequencies, 0.0);
         perMaskCorrections    = RealVector(numCorrectionMasks, 0.0);
         
         if(useScaling)
@@ -501,7 +502,7 @@ void BinarySubstitutionModel::compress( void )
 
 double BinarySubstitutionModel::computeLnProbability( void )
 {
-    
+
     updateTransitionProbabilities();
     
     // compute the ln probability by recursively calling the probability calculation for each node
@@ -1425,6 +1426,7 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
     RealVector::const_iterator p_node = correctionLikelihoods.begin() + activeLikelihood[nodeIndex] * activeCorrectionOffset  + nodeIndex*correctionNodeOffset;
     
     std::fill(perMaskCorrections.begin(), perMaskCorrections.end(), 0.0);
+    perCodingProbs = std::vector<RealNumber>(4, 0.0);
     
     // iterate over each correction mask
     for(size_t mask = 0; mask < numCorrectionMasks; mask++)
@@ -1467,6 +1469,12 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
 								tmp += uI_i[c];
 							else
 								tmp += uI_i[c] * sampling;
+
+							if(mask == 0)
+							{
+								perCodingProbs[0] += uC_i[c];
+								perCodingProbs[1] += uI_i[c];
+							}
 						}
 
 						if(c == 1)
@@ -1479,6 +1487,12 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
 							// if there is only one observed tip, then don't double-count absence sites
 							if((coding & AscertainmentBias::NOSINGLETONABSENCE) && maskObservationCounts[mask] > 2)
 								tmp += uI_i[c];
+
+							if(mask == 0)
+							{
+								perCodingProbs[2] += uI_i[c];
+								perCodingProbs[3] += uC_i[c];
+							}
 						}
 
 						if(tmp == 0.0)
@@ -1509,23 +1523,34 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
 					prob = exp(Math::log_sum_exp(logCorrections, max));
 				}
 
-				// invert the probability
-				prob = 1.0 - prob;
+				perMaskCorrections[mask] += prob;
+
+				RealNumber mixprob = 1.0 - prob;
 
 				// impose a boundary
-				if(prob <= 0)
-					prob = std::numeric_limits<RealNumber>::infinity();
+				if(mixprob <= 0)
+					mixprob = 0;
 
-				perMixtureCorrections[freq*numSiteRates*numCorrectionMasks + rate*numCorrectionMasks + mask] = prob;
-
-				perMaskCorrections[mask] += prob;
+				if(mask == 0)
+					perMixtureCorrections[freq*numSiteRates*numCorrectionMasks + rate*numCorrectionMasks] = mixprob;
 			}
         }
 
-        // normalize the log-probability
-        perMaskCorrections[mask] = log(perMaskCorrections[mask]) - log(RealNumber(numSiteRates)) - log(RealNumber(numSiteFrequencies));
+        if(mask == 0)
+        	for(size_t i = 0; i < 4; i++)
+        		perCodingProbs[i] /= numSiteRates*numSiteFrequencies;
+
+        // normalize and invert the probability
+        perMaskCorrections[mask] = 1.0 - perMaskCorrections[mask]/(numSiteRates*numSiteFrequencies);
+
+        if(perMaskCorrections[mask] <= 0)
+        	perMaskCorrections[mask] = std::numeric_limits<RealNumber>::infinity();
+
+        // log transform
+        perMaskCorrections[mask] = log(perMaskCorrections[mask]);
         
-        //std::cerr << perMaskCorrections[mask]*correctionMaskCounts[mask] << std::endl;
+        //std::cerr << perMaskCorrections[mask]*correctionMaskCounts[mask] << "\t" << perCodingProbs << std::endl;
+
         // apply the correction for this correction mask
         sumPartialProbs -= perMaskCorrections[mask]*correctionMaskCounts[mask];
     }
@@ -2240,6 +2265,11 @@ RealNumber BinarySubstitutionModel::getLnCorrection() const {
     return perMaskCorrections[0];
 }
 
+std::vector<RealNumber> BinarySubstitutionModel::getLnCorrections() const {
+
+    return perCodingProbs;
+}
+
 
 RealVector BinarySubstitutionModel::getPerSiteLnProbs() const {
     
@@ -2351,7 +2381,7 @@ void BinarySubstitutionModel::touchSpecialization( DagNode* affecter) {
     
     // if the topology wasn't the culprit for the touch, then we just flag everything as dirty
     std::set<size_t> indices;
-    
+
     if ( affecter == heterogeneousClockRates )
     {
         indices = heterogeneousClockRates->getTouchedElementIndices();
@@ -2449,7 +2479,7 @@ void BinarySubstitutionModel::recursivelyFlagNodeDirty( const TopologyNode &n ) 
     
     // we need to flag this node and all ancestral nodes for recomputation
     size_t index = n.getIndex();
-    
+
     // if this node is already dirty, the also all the ancestral nodes must have been flagged as dirty
     if ( !dirtyNodes[index] ) 
     {

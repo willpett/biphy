@@ -43,6 +43,19 @@ UniformTopologyDistribution::~UniformTopologyDistribution() {
     
 }
 
+void UniformTopologyDistribution::setValue( Tree *v ) {
+
+	TypedDistribution<Tree>::setValue(v);
+
+	resetNodeIndices();
+}
+
+void UniformTopologyDistribution::setValue( const Tree &v ) {
+
+	TypedDistribution<Tree>::setValue(v);
+
+	resetNodeIndices();
+}
 
 void UniformTopologyDistribution::buildRandomBinaryTree(std::vector<TopologyNode*> &tips, unsigned int size) {
     
@@ -220,24 +233,32 @@ void UniformTopologyDistribution::simulateTree( void ) {
     value->setRoot(root);
     value->setRooted(rooted);
 
-    size_t leftIndex = leftChild->getIndex();
-    size_t rightIndex = rightChild->getIndex();
+    resetNodeIndices();
+}
 
-    if(leftIndex > numTaxa + 1)
-    {
-    	value->getNode(numTaxa).setIndex(leftIndex);
-    	leftChild->setIndex(numTaxa);
-    }
-    if(rightIndex > numTaxa + 1)
-    {
-    	value->getNode(numTaxa+1).setIndex(rightIndex);
-		rightChild->setIndex(numTaxa+1);
-    }
+void UniformTopologyDistribution::resetNodeIndices()
+{
+	TopologyNode& leftChild = value->getRoot().getChild(0);
+	TopologyNode& rightChild = value->getRoot().getChild(1);
 
-    for (size_t i=0; i<numTaxa; i++)
-        value->getTipNodeWithName(taxonNames[i]).setIndex(i);
-    
-    value->orderNodesByIndex();
+	size_t leftIndex = leftChild.getIndex();
+	size_t rightIndex = rightChild.getIndex();
+
+	if(leftIndex > numTaxa + 1)
+	{
+		value->getNode(numTaxa).setIndex(leftIndex);
+		leftChild.setIndex(numTaxa);
+	}
+	if(rightIndex > numTaxa + 1)
+	{
+		value->getNode(numTaxa+1).setIndex(rightIndex);
+		rightChild.setIndex(numTaxa+1);
+	}
+
+	for (size_t i=0; i<numTaxa; i++)
+		value->getTipNodeWithName(taxonNames[i]).setIndex(i);
+
+	value->orderNodesByIndex();
 }
 
 void UniformTopologyDistribution::swapParameter(const DagNode *oldP, const DagNode *newP) {

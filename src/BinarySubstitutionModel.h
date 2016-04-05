@@ -52,6 +52,7 @@ public:
     const Tree*												            getTree() const;
     
     RealNumber                                                          getLnCorrection() const;
+    std::vector<RealNumber>                                             getLnCorrections() const;
     RealVector                                                          getPerSiteLnProbs() const;
     
     void                                                                setClockRate(const TypedDagNode< double > *r);
@@ -123,6 +124,7 @@ protected:
     
     size_t                                                              N;
     RealNumber                                                          perSiteCorrection;
+    std::vector<RealNumber>                                             perCodingProbs;
 
     size_t                                                              numCorrectionMasks;
     size_t                                                              activeCorrectionOffset;

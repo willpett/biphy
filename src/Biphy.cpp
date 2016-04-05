@@ -15,6 +15,7 @@
 #include "ExponentialDistribution.h"
 #include "FileMonitor.h"
 #include "GammaDistribution.h"
+#include "LnCorrectionFunction.h"
 #include "LogitFunction.h"
 #include "MappingMonitor.h"
 #include "MeanFunction.h"
@@ -67,7 +68,8 @@ Biphy::Biphy(const std::string n,
         double de,
         double si,
         bool sav,
-        bool nex) :
+        bool nex,
+		bool pc) :
     dataFile( df ),
 	cvfile(cv),
     name( n ),
@@ -93,7 +95,8 @@ Biphy::Biphy(const std::string n,
     branchprior(br),
     rootprior(rt),
     nexus(nex),
-    outgroup(std::vector<std::string>())
+    outgroup(std::vector<std::string>()),
+	percoding(pc)
 {
     save();
 }
@@ -158,6 +161,7 @@ void Biphy::open( void ) {
     is >> rootmin;
     is >> rootmax;
     is >> nexus;
+    is >> percoding;
 
     is.close();
 }
@@ -189,6 +193,7 @@ void Biphy::save( void ) {
     os << rootmin << "\n";
     os << rootmax << "\n";
     os << nexus << "\n";
+    os << percoding << "\n";
 
     os.close();
 }
@@ -344,7 +349,7 @@ void Biphy::printConfiguration( void ) {
     if(dgam > 1){
     	std::cout << "\n";
         std::cout << "rates across sites ~ discrete gamma with " << dgam << " rate categories\n";
-        std::cout << "\tmean 1 and variance 1/alpha^2\n";
+        std::cout << "\tmean 1 and variance 1/alpha\n";
         std::cout << "alpha ~ exponential of mean 1\n";
     }
 
@@ -427,7 +432,7 @@ void Biphy::initModel( void ) {
     ConstantNode<double> *ten = new ConstantNode<double>("ten", new double(10.0) );
 
     //number of branches
-    bool rooted = modeltype != ModelPrior::HOMOGENEOUS;
+    bool rooted = modeltype != ModelPrior::HOMOGENEOUS && modeltype != ModelPrior::MK;
     
     size_t numBranches = 2*data->getNumberOfTaxa() - 2 - !rooted;
     size_t numNodes = numBranches + 1;
@@ -764,12 +769,14 @@ void Biphy::initModel( void ) {
     	monitoredNodes.push_back( samplingRate );
     }
 
+    if(percoding)
+    	monitoredNodes.push_back( new DeterministicNode<std::vector<RealNumber> >("asc", new LnCorrectionFunction(charactermodel)));
+
     bool useParallelMcmcmc = (numChains > 1);
 
     if(readstream)
     {
         //tau->getValue().getTreeChangeEventHandler().clear();
-        
         if(ppred)
             monitors.push_back( new PosteriorPredictiveStateFrequencyMonitor( charactermodel, every, name+".ppred", useParallelMcmcmc) );
         if(cvdata != NULL)

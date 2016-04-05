@@ -840,28 +840,17 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                     
                     if(useScaling && prob > 0.0)
                     {
-                        RealNumber logInt = log(integrationFactor[mixture]);
-                        RealNumber b = logInt + log(prob) + logScalingFactor;
-                        RealNumber max = std::max(logInt, -b);
+                        RealNumber b = log(prob) + logScalingFactor + log(integrationFactor[mixture]);
                         
-                        prob = max + exp(logInt - max) + exp(b - max);
-                        
-                        prob = exp(prob);
-                        
-                        //std::cerr << logInt << "\t" << -b << "\t" << prob << std::endl;
+                        prob = integrationFactor[mixture] - exp(b);
                     }
-                    else
+                    else if(prob > 0.0)
                     {
-                    
-                        // invert the probability
-                        prob = 1.0 - prob;
-                        
-                        // correct rounding errors
-                        if(prob < 0)
-                            prob = std::numeric_limits<double>::infinity();
-                        
-                        prob *= integrationFactor[mixture];
+                        prob = integrationFactor[mixture]*(1.0 - prob);
                     }
+
+                    if(prob <= 0.0)
+                    	prob = 0.0;
                                         
                     if(mask == 0)
                         perMixtureCorrections[nodeIndex*numSiteRates + mixture] = prob;
@@ -870,6 +859,9 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                 }
             }
             
+            if(perMaskCorrections[mask] <= 0.0)
+            	perMaskCorrections[mask] = std::numeric_limits<RealNumber>::infinity();
+
             // normalize the log-probability
             perMaskCorrections[mask] = log(perMaskCorrections[mask]) - log(RealNumber(numSiteRates));
             

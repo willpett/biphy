@@ -48,6 +48,8 @@ int main (int argc, const char * argv[])
 	bool ancestral = false;
 	bool asymmbeta = false;
 
+	bool percoding = false;
+
 	Biphy *chain = NULL;
 
 	try	{
@@ -88,6 +90,9 @@ int main (int argc, const char * argv[])
 				else if (s == "-o")	{
 					i++;
 					outgroupfile = argv[i];
+				}
+				else if (s == "-percoding"){
+					percoding = true;
 				}
 				else if (s == "-s"){
 					saveall = true;
@@ -434,7 +439,7 @@ int main (int argc, const char * argv[])
 					remove((name+".treelist.nex").c_str());
 			}
 
-			chain = new Biphy(name,datafile,cvfile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,dbeta,asymmbeta,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
+			chain = new Biphy(name,datafile,cvfile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,dbeta,asymmbeta,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus,percoding);
 		}else{
 			if(!fexists(name+".stream")){
 				cerr << "run '" << name << "' does not exist\n";

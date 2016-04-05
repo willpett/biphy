@@ -1,7 +1,7 @@
 #include "LnCorrectionFunction.h"
 #include "BinarySubstitutionModel.h"
 
- LnCorrectionFunction::LnCorrectionFunction(const StochasticNode<BinaryCharacterData> *p) : TypedFunction< RealNumber >( new RealNumber(0.0) ),
+ LnCorrectionFunction::LnCorrectionFunction(const StochasticNode<BinaryCharacterData> *p) : TypedFunction< std::vector<RealNumber> >( new std::vector<RealNumber>() ),
     parameter( p )
 {
      if(dynamic_cast<const BinarySubstitutionModel*>(&(parameter->getDistribution())) == 0){
@@ -22,7 +22,7 @@ void LnCorrectionFunction::update( void ) {
     
     const BinarySubstitutionModel* model = dynamic_cast<const BinarySubstitutionModel* >(&(parameter->getDistribution()));
 
-    *this->value = exp(model->getLnCorrection());
+    *this->value = model->getLnCorrections();
     
 }
 
