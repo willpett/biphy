@@ -1724,6 +1724,9 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
     // delete the old value first
     delete this->value;
 
+    this->dagNode->touch();
+    updateTransitionProbabilities();
+
     // create a new character data object
     if(continuous)
         this->value = new ContinuousBinaryCharacterData();
@@ -1751,6 +1754,7 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
     }
 
     double sampling = getSamplingRate();
+    std::fill(countDistribution.begin(), countDistribution.end(), 0);
 
     // then sample site-patterns using rejection sampling,
     // rejecting those that match the unobservable ones.
@@ -1799,6 +1803,8 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
         std::pair<size_t, size_t> charCounts;
         simulate( root, siteData, rateIndex, charCounts);
 
+        countDistribution[charCounts.second]++;
+
         if( !isSitePatternCompatible(charCounts, 0) )
         {
             i--;
@@ -1823,28 +1829,6 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
         taxa[i]->setTaxonName(tau->getValue().getNode(i).getName());
         this->value->addTaxonData( taxa[i] );
     }
-
-    for (std::vector<bool>::iterator it = dirtyNodes.begin(); it != dirtyNodes.end(); ++it)
-    {
-        (*it) = true;
-    }
-
-    // flip the active likelihood pointers
-    for (size_t index = 0; index < dirtyNodes.size(); ++index)
-    {
-        if ( changedNodes.find(index) == changedNodes.end() )
-        {
-            activeLikelihood[index] = (activeLikelihood[index] == 0 ? 1 : 0);
-            changedNodes.insert(index);
-        }
-        
-        if ( touchedNodes.find(index) == touchedNodes.end() )
-        {
-            activeProbability[index] = (activeProbability[index] == 0 ? 1 : 0);
-            touchedNodes.insert(index);
-        }
-    }
-
 }
 
 

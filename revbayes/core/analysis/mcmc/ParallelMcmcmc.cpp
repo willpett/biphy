@@ -384,21 +384,27 @@ void ParallelMcmcmc::toStream(std::ostream& os){
 	os.flush();
 }
 
-void ParallelMcmcmc::readStream(size_t generations)
+void ParallelMcmcmc::readStream(size_t burnin)
 {
 	if(stream.is_open())
 		stream.close();
 
 	stream.open(filename.c_str(), std::fstream::in);
 
-    for (int k=1; k<=generations; k++)
+	// print file header
+
+    for (int k=0; k==k; k++)
     {
 		stream >> currentGeneration;
 		if(!stream)
 			throw(Exception("premature end of stream"));
 
 		fromStream(stream, false, true);
-		chains[chainIdxByHeat[0]]->monitor(currentGeneration);
+		//std::cerr << ".";
+		if(k == burnin)
+			chains[chainIdxByHeat[0]]->monitor(0);
+		else if(k > burnin)
+			chains[chainIdxByHeat[0]]->monitor(currentGeneration);
 
 		if(stream.eof())
 			break;

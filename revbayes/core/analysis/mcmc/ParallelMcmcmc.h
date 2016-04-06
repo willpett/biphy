@@ -35,7 +35,7 @@ public:
     ParallelMcmcmc*                                     clone(void) const;
     void                                                printOperatorSummary(void) const;
     void                                                run(int g);
-    void                                                readStream(size_t g);
+    void                                                readStream(size_t b = 0);
     bool                                                restore(void);
     unsigned int                                        getCurrentGeneration(void);
 

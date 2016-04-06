@@ -53,6 +53,8 @@ BinarySubstitutionModel::BinarySubstitutionModel(const TypedDagNode<Tree> *t, As
     branchHeterogeneousFrequencies  = false;
     rateVariationAcrossSites        = false;
     frequencyVariationAcrossSites   = false;
+
+    countDistribution = std::vector<int>(numTaxa + 1, 0);
 }
 
 
@@ -139,7 +141,8 @@ BinarySubstitutionModel::BinarySubstitutionModel(const BinarySubstitutionModel &
     
     verbose(n.verbose),
     continuous(n.continuous),
-    scalingDensity(n.scalingDensity)
+    scalingDensity(n.scalingDensity),
+	countDistribution(n.countDistribution)
 {   
     tau->getValue().getTreeChangeEventHandler().addListener( this );
 }
@@ -263,6 +266,7 @@ void BinarySubstitutionModel::getIncludedSiteIndices( void )
     maskObservationCounts.clear();
     correctionMaskMatrix.clear();
     site2mask.clear();
+    std::fill(countDistribution.begin(), countDistribution.end(), 0);
 
     // find the unique site patterns and compute their respective frequencies
     std::vector<TopologyNode*> nodes = tau->getValue().getNodes();
@@ -336,6 +340,8 @@ void BinarySubstitutionModel::getIncludedSiteIndices( void )
         }
         else
         {
+            countDistribution[charCounts.second]++;
+
             siteIndices.push_back(siteIndex);
 
             if(coding != AscertainmentBias::ALL)
@@ -2879,11 +2885,19 @@ void BinarySubstitutionModel::setSamplingRate(const TypedDagNode< double > *r)
 
 }
 
+std::vector<int> BinarySubstitutionModel::getCountDistribution( void ) const
+{
+	return countDistribution;
+}
+
 void BinarySubstitutionModel::redrawValue( void ) {
 
     if(numSites == 0)
-        return; 
+        return;
     
+    this->dagNode->touch();
+    updateTransitionProbabilities();
+
     // delete the old value first
     delete this->value;
 
@@ -2970,6 +2984,7 @@ void BinarySubstitutionModel::redrawValue( void ) {
     }
 
     double sampling = getSamplingRate();
+    std::fill(countDistribution.begin(), countDistribution.end(), 0);
 
     // then sample site-patterns using rejection sampling,
     // rejecting those that match the unobservable ones.
@@ -2988,6 +3003,8 @@ void BinarySubstitutionModel::redrawValue( void ) {
         // recursively simulate the sequences
         std::pair<size_t, size_t> charCounts;
         simulate( root, siteData, rateIndex, perSiteFrequencies[i], charCounts);
+
+        countDistribution[charCounts.second]++;
 
         if( !isSitePatternCompatible(charCounts, 0) )
         {
@@ -3013,28 +3030,6 @@ void BinarySubstitutionModel::redrawValue( void ) {
         taxa[i]->setTaxonName(tau->getValue().getNode(i).getName());
         this->value->addTaxonData( taxa[i] );
     }
-
-    for (std::vector<bool>::iterator it = dirtyNodes.begin(); it != dirtyNodes.end(); ++it)
-    {
-        (*it) = true;
-    }
-
-    // flip the active likelihood pointers
-    for (size_t index = 0; index < dirtyNodes.size(); ++index)
-    {
-        if ( changedNodes.find(index) == changedNodes.end() )
-        {
-            activeLikelihood[index] = (activeLikelihood[index] == 0 ? 1 : 0);
-            changedNodes.insert(index);
-        }
-        
-        if ( touchedNodes.find(index) == touchedNodes.end() )
-        {
-            activeProbability[index] = (activeProbability[index] == 0 ? 1 : 0);
-            touchedNodes.insert(index);
-        }
-    }
-
 }
 
 

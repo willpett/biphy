@@ -40,9 +40,9 @@ int main (int argc, const char * argv[])
 	double delta = 0.05;
 	double sigma = 1;
 
-	bool saveall = false;
+	bool saveall = true;
 	bool nexus = false;
-	bool ppred = false;
+	int ppred = -1;
 	bool dolloMapping = false;
 	bool persite = false;
 	bool ancestral = false;
@@ -95,7 +95,7 @@ int main (int argc, const char * argv[])
 					percoding = true;
 				}
 				else if (s == "-s"){
-					saveall = true;
+					saveall = false;
 				}
 				else if (s == "-a"){
                     ancestral = true;
@@ -250,7 +250,7 @@ int main (int argc, const char * argv[])
 						cerr << "error in command: -si <int>\n\n";
 						exit(1);
 					}
-					swapInterval = atof(argv[i]);
+					swapInterval = atoi(argv[i]);
 				}else if (s == "-x")	{
 					i++;
 					if (i == argc)	{
@@ -302,7 +302,17 @@ int main (int argc, const char * argv[])
 					}
 					rootprior = RootPrior::TRUNCATED;
 				}else if (s == "-ppred")	{
-					ppred = true;
+					i++;
+					if (i == argc)	{
+						cerr << "error in command: -ppred <int>\n\n";
+						exit(1);
+					}
+					s = argv[i];
+					if (!IsInt(s))	{
+						cerr << "error in command: -ppred <int>\n\n";
+						exit(1);
+					}
+					ppred = atoi(argv[i]);
 				}else{
 					if (i != (argc -1))	{
 						throw(0);
@@ -357,7 +367,7 @@ int main (int argc, const char * argv[])
 
 		cerr << "biphy " << VERSION << "\n";
 		cerr << '\n';
-		cerr << "usage: biphy -d <data file> [-x <every> [<until>] ] <run name>\n";
+		cerr << "usage: biphy -d <data file> [-x <every/burnin> ] <run name>\n";
 
 		cerr << "\nBranch frequency prior:\n";
 		cerr << "\t-dollo\t\tirreversible stochastic dollo model\n";
@@ -404,11 +414,11 @@ int main (int argc, const char * argv[])
 		cerr << "\t-sigma <float>\t(default = 1)\n";
 
 		cerr << "\nOutput options:\n";
-		cerr << "\t-s\t\tsave entire output\n";
+		cerr << "\t-s\t\tdo not save entire output\n";
 		cerr << "\t-e\t\tsave nexus treefile\n";
 
 		cerr << "\nStream-reading options:\n";
-		cerr << "\t-ppred\t\tposterior predictive simulation of tip frequencies\n";
+		cerr << "\t-ppred <int>\t\tposterior predictive simulation (0 or 1)\n";
 		cerr << "\t-cv <file>\tcross-validation test alignment\n";
 		cerr << "\t-a\t\tsimulate ancestral states\n";
 
@@ -449,7 +459,11 @@ int main (int argc, const char * argv[])
 				cvfile = "./"+cvfile;
 			}
 			if(ppred)
-				remove((name+".ppred").c_str());
+			{
+				stringstream ss;
+				ss << name << ".ppred" << ppred;
+				remove(ss.str().c_str());
+			}
 			if(cvfile != "None")
 				remove((name+".cv").c_str());
 			if(persite)
@@ -458,7 +472,7 @@ int main (int argc, const char * argv[])
 				remove((name+".dollo.fa").c_str());
 			if(ancestral)
 			    remove((name+".mapping").c_str());
-			chain = new Biphy(name,cvfile,ppred,dolloMapping,persite,ancestral);
+			chain = new Biphy(name,cvfile,ppred,dolloMapping,persite,ancestral,every,until);
 		}
 
 	try

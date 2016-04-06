@@ -28,6 +28,7 @@
 #include "NormalizeVectorFunction.h"
 #include "PerSiteLnProbMonitor.h"
 #include "PosteriorPredictiveStateFrequencyMonitor.h"
+#include "PosteriorPredictiveCountDistributionMonitor.h"
 #include "QuantileFunction.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
@@ -88,7 +89,7 @@ Biphy::Biphy(const std::string n,
     readstream(false),
     restart(false),
     mixture( mix),
-    ppred(false),
+    ppred(-1),
     perSiteLnProbs(false),
     outgroupFile( out ),
     modeltype(mt),
@@ -102,7 +103,7 @@ Biphy::Biphy(const std::string n,
 }
 
 
-Biphy::Biphy(const std::string n, const std::string cv, bool pp, bool dm, bool site, bool anc) :
+Biphy::Biphy(const std::string n, const std::string cv, int pp, bool dm, bool site, bool anc, int bur, int ev) :
     name(n),
     cvfile(cv),
     ppred(pp),
@@ -117,12 +118,13 @@ Biphy::Biphy(const std::string n, const std::string cv, bool pp, bool dm, bool s
 
     open();
 
-    every = 1;
+    every = ev;
+    until = bur;
 }
 
 
 Biphy::Biphy(const std::string n) :
-        name( n ), readstream(false), restart(true), cvfile("None"), ppred(false), perSiteLnProbs(false), outgroup(std::vector<std::string>())
+        name( n ), readstream(false), restart(true), cvfile("None"), ppred(-1), perSiteLnProbs(false), outgroup(std::vector<std::string>())
 {
     open();
 }
@@ -630,7 +632,7 @@ void Biphy::initModel( void ) {
         charModel = new BinarySubstitutionModel(tau, AscertainmentBias::Coding(correction));
     }
     
-    if(cvdata != NULL)
+    if(readstream)
     	charModel->setVerbose(false);
 
     if(branchprior == BranchPrior::EXPONENTIAL || branchprior == BranchPrior::DIRICHLET)
@@ -777,8 +779,10 @@ void Biphy::initModel( void ) {
     if(readstream)
     {
         //tau->getValue().getTreeChangeEventHandler().clear();
-        if(ppred)
-            monitors.push_back( new PosteriorPredictiveStateFrequencyMonitor( charactermodel, every, name+".ppred", useParallelMcmcmc) );
+        if(ppred == 0)
+            monitors.push_back( new PosteriorPredictiveStateFrequencyMonitor( charactermodel, every, name+".ppred0", useParallelMcmcmc) );
+        if(ppred == 1)
+        	monitors.push_back( new PosteriorPredictiveCountDistributionMonitor( charactermodel, every, name+".ppred1", useParallelMcmcmc) );
         if(cvdata != NULL)
             monitors.push_back( new CrossValidationScoreMonitor( charactermodel, cvdata, every, name+".cv", useParallelMcmcmc) );
         if(perSiteLnProbs)
@@ -828,6 +832,8 @@ void Biphy::run( void ) {
             exit(1);
         }
         std::cout << "reading from stream\n";
+        if(until > 0)
+        	std::cout << "skipping " << until << " samples...\n";
         mcmc->readStream(until);
     }else{
         if(restart)

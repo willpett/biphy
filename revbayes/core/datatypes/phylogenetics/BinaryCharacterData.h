@@ -30,6 +30,7 @@ public:
     // CharacterData functions
     void                                addTaxonData(BinaryTaxonData* obs);                                 //!< Add taxon data
     std::vector<double>                 computeStateFrequencies(void) const;
+    std::vector<int>                 	computeCountDistribution(void) const;
     void                                excludeCharacter(size_t i);                                                 //!< Exclude character
     void                                excludeTaxon(size_t i);                                                     //!< Exclude taxon
     void                                excludeTaxon(std::string& s);

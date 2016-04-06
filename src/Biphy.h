@@ -77,7 +77,7 @@ class Biphy {
 			);
     	
     	/* stream reading mode */
-    	Biphy(const std::string name, const std::string cvfile, bool ppred, bool dolloMapping, bool site, bool ancestral);
+    	Biphy(const std::string name, const std::string cvfile, int ppred, bool dolloMapping, bool site, bool ancestral, int burnin = 0, int every = 1);
     	
     	/* restart mode */
     	Biphy(const std::string name);
@@ -140,7 +140,7 @@ class Biphy {
         RootPrior::Type                         rootprior;
 
         int                                     mixture;
-        bool                                    ppred;
+        int                                    ppred;
         double                                  rootmin;
         double                                  rootmax;
         bool                                    nexus;

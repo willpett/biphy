@@ -13,6 +13,7 @@ ${BIPHY_DIR}/NewickTreeMonitor.cpp
 ${BIPHY_DIR}/NexusTreeMonitor.cpp
 ${BIPHY_DIR}/CrossValidationScoreMonitor.cpp
 ${BIPHY_DIR}/PosteriorPredictiveStateFrequencyMonitor.cpp
+${BIPHY_DIR}/PosteriorPredictiveCountDistributionMonitor.cpp
 ${BIPHY_DIR}/MappingMonitor.cpp
 ${BIPHY_DIR}/LnCorrectionFunction.cpp
 )

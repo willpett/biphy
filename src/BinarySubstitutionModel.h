@@ -54,6 +54,7 @@ public:
     RealNumber                                                          getLnCorrection() const;
     std::vector<RealNumber>                                             getLnCorrections() const;
     RealVector                                                          getPerSiteLnProbs() const;
+    std::vector<int>													getCountDistribution( void ) const;
     
     void                                                                setClockRate(const TypedDagNode< double > *r);
     void                                                                setClockRate(const TypedDagNode< std::vector< double > > *r);
@@ -125,6 +126,7 @@ protected:
     size_t                                                              N;
     RealNumber                                                          perSiteCorrection;
     std::vector<RealNumber>                                             perCodingProbs;
+    std::vector<int>													countDistribution;
 
     size_t                                                              numCorrectionMasks;
     size_t                                                              activeCorrectionOffset;

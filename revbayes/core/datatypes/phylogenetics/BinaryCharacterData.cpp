@@ -128,6 +128,33 @@ std::vector<double> BinaryCharacterData::computeStateFrequencies( void ) const
     return m;
 }
 
+std::vector<int> BinaryCharacterData::computeCountDistribution( void ) const
+{
+
+    bool tmp;
+    size_t numSequences = sequenceNames.size();
+    std::vector<int> m = std::vector<int>(numSequences + 1, 0);
+    for(size_t c = 0; c < this->getNumberOfCharacters(); c++)
+    {
+		if(isCharacterExcluded(c))
+			continue;
+
+		int count = 0;
+		for (size_t i = 0; i < numSequences; ++i)
+		{
+			if(isTaxonExcluded(i))
+				continue;
+
+			const BinaryTaxonData* seq = getTaxonData(i);
+			count += ((*seq)[c] > 0.0);
+		}
+
+		m[count]++;
+    }
+
+    return m;
+}
+
 
 /** 
  * Exclude a character.
