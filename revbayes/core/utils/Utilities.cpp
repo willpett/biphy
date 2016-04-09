@@ -44,6 +44,19 @@ std::ostream& operator<<(std::ostream& o, const std::vector<double>& x) {
     return o;
 }
 
+std::ostream& operator<<(std::ostream& o, const std::vector<float>& x) {
+    o << "( ";
+    for (std::vector<float>::const_iterator it = x.begin(); it != x.end(); ++it) {
+        if ( it != x.begin() ) {
+            o << " , ";
+        }
+        o << *it;
+    }
+    o << " )";
+
+    return o;
+}
+
 
 std::ostream& operator<<(std::ostream& o, const std::vector<int>& x) {
     o << "( ";
@@ -150,6 +163,13 @@ std::istream& operator>>(std::istream& is, std::vector<bool>& x) {
 
 std::istream& operator>>(std::istream& is, std::vector<double>& x) {
     for (std::vector<double>::iterator it = x.begin(); it != x.end(); ++it)
+    	is >> *it;
+
+    return is;
+}
+
+std::istream& operator>>(std::istream& is, std::vector<float>& x) {
+    for (std::vector<float>::iterator it = x.begin(); it != x.end(); ++it)
     	is >> *it;
 
     return is;

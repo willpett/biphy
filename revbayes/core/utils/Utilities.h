@@ -76,7 +76,8 @@ namespace Utils {
 
 // Global functions using the class
 std::ostream&                       operator<<(std::ostream& o, const std::vector<bool>& x);                            //!< Overloaded output operator
-std::ostream&                       operator<<(std::ostream& o, const std::vector<double>& x);                          //!< Overloaded output operator
+std::ostream&                       operator<<(std::ostream& o, const std::vector<double>& x);                             //!< Overloaded output operator
+std::ostream&                       operator<<(std::ostream& o, const std::vector<float>& x);                         //!< Overloaded output operator
 std::ostream&                       operator<<(std::ostream& o, const std::vector<int>& x);                             //!< Overloaded output operator
 std::ostream&                       operator<<(std::ostream& o, const std::vector<unsigned int>& x);                    //!< Overloaded output operator
 std::ostream&                       operator<<(std::ostream& o, const std::vector<std::string>& x);                     //!< Overloaded output operator
@@ -84,7 +85,8 @@ std::ostream&                       operator<<(std::ostream& o, const std::vecto
 std::ostream&                       operator<<(std::ostream& o, const std::vector<Tree>& x);                    //!< Overloaded output operator
 
 std::istream&                       operator>>(std::istream& is, std::vector<bool>& x);                            //!< Overloaded input operator
-std::istream&                       operator>>(std::istream& is, std::vector<double>& x);                          //!< Overloaded input operator
+std::istream&                       operator>>(std::istream& is, std::vector<double>& x);
+std::istream&                       operator>>(std::istream& is, std::vector<float>& x);//!< Overloaded input operator
 std::istream&                       operator>>(std::istream& is, std::vector<int>& x);                             //!< Overloaded input operator
 std::istream&                       operator>>(std::istream& is, std::vector<unsigned int>& x);                    //!< Overloaded input operator
 std::istream&                       operator>>(std::istream& is, std::vector<std::string>& x);

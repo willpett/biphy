@@ -1253,7 +1253,7 @@ void TopologyNode::setParent(TopologyNode* p)
         parent = p;
         
         // we need to recompute our branch length
-        recomputeBranchLength();
+        //recomputeBranchLength();
         
         // fire tree change event
         if ( tree != NULL )
@@ -1284,5 +1284,26 @@ void TopologyNode::setTree(Tree *t)
         (*i)->setTree( t );
     }
     
+}
+
+TopologyNode* TopologyNode::reverseParentChild()
+{
+
+	TopologyNode* ret = this;
+
+    if ( !isRoot() )
+    {
+        TopologyNode &p = getParent();
+        ret = p.reverseParentChild();
+
+        p.setIndex(getIndex());
+        p.setBranchLength(getBranchLength());
+
+        p.removeChild( this );
+        p.setParent( this );
+        addChild( &p );
+    }
+
+    return ret;
 }
 

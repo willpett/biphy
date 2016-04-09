@@ -51,6 +51,7 @@ private:
     TopologyNode*                               storedChoosenNode;
     TopologyNode*                               storedBrother;
     bool										outgroup;
+    bool										prunedroot;
     
 };
 

@@ -616,7 +616,7 @@ void Tree::reroot(const std::string &outgroup)
 
     // reset parent/child relationships
 	TopologyNode& outgroupNode = getTipNode( outgroupIndex );
-    reverseParentChild( outgroupNode.getParent() );
+	outgroupNode.getParent().reverseParentChild( );
     outgroupNode.getParent().setParent( NULL );
 
 	// set the new root
@@ -627,26 +627,11 @@ void Tree::reroot(const std::string &outgroup)
 void Tree::reroot(TopologyNode &n)
 {
 	// reset parent/child relationships
-	reverseParentChild( n.getParent() );
+	n.getParent().reverseParentChild();
     n.getParent().setParent( NULL );
 
 	// set the new root
 	setRoot( &n.getParent() );
-
-}
-
-
-void Tree::reverseParentChild(TopologyNode &n)
-{
-
-    if ( !n.isRoot() )
-    {
-        TopologyNode &p = n.getParent();
-        reverseParentChild( p );
-        p.removeChild( &n );
-        p.setParent( &n );
-        n.addChild( &p );
-    }
 
 }
 

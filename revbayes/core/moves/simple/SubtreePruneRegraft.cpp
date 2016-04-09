@@ -82,22 +82,78 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
         double u = rng->uniform01();
         size_t index = std::floor(tau.getNumberOfNodes() * u);
         newBrother = &tau.getNode(index);
-    } while ( newBrother->isRoot() || isDescendant(*newBrother,*node) || newBrother == &parent || newBrother == storedBrother || (newBrother->getParent().isRoot() & outgroup));
+    } while ( newBrother->isRoot() ||
+    		newBrother == &parent ||
+			newBrother == storedBrother ||
+			newBrother == storedChoosenNode ||
+			&(newBrother->getParent()) == storedChoosenNode ||
+			(newBrother->getParent().isRoot() && outgroup)
+			//|| isDescendant(*newBrother,*node)
+		);
     
     TopologyNode &newGrandparent = newBrother->getParent();
-    
-    // now prune
-    grandparent.removeChild( &parent );
-    parent.removeChild( storedBrother );
-    grandparent.addChild( storedBrother );
-    storedBrother->setParent( &grandparent );
-    
-    // re-attach
-    newGrandparent.removeChild( newBrother );
-    parent.addChild( newBrother );
-    newGrandparent.addChild( &parent );
-    parent.setParent( &newGrandparent );
-    newBrother->setParent( &parent );
+
+    // if the regrafting subtree contains the root
+    if(!isDescendant(*newBrother,*node))
+    {
+    	prunedroot = false;
+		// now prune
+		grandparent.removeChild( &parent );
+		parent.removeChild( storedBrother );
+		grandparent.addChild( storedBrother );
+		storedBrother->setParent( &grandparent );
+
+		// re-attach
+		newGrandparent.removeChild( newBrother );
+		parent.addChild( newBrother );
+		newGrandparent.addChild( &parent );
+		parent.setParent( &newGrandparent );
+		newBrother->setParent( &parent );
+    }
+    // if the pruned subtree contains the root
+    else
+    {
+    	prunedroot = true;
+    	// prune
+		std::vector<TopologyNode*> storedchildren = storedChoosenNode->getChildren();
+		std::vector<size_t> storedindices;
+		std::vector<double> storedbrlens;
+		for(size_t i = 0 ; i < storedchildren.size(); i++)
+		{
+			storedindices.push_back(storedchildren[i]->getIndex());
+			storedbrlens.push_back(storedchildren[i]->getBranchLength());
+			storedChoosenNode->removeChild(storedchildren[i]);
+			storedchildren[i]->setParent(NULL);
+		}
+		TopologyNode* newParent = &(newBrother->getParent());
+		TopologyNode* regraft = newParent->reverseParentChild();
+
+		for(size_t i = 0 ; i < storedchildren.size(); i++)
+		{
+			if(regraft != storedchildren[i])
+			{
+				regraft->addChild(storedchildren[i]);
+				storedchildren[i]->setParent(regraft);
+
+				storedBrother = storedchildren[i];
+			}
+			else
+			{
+				newParent->setIndex(storedindices[i]);
+				newParent->setBranchLength(storedbrlens[i]);
+			}
+		}
+
+		newParent->removeChild(newBrother);
+
+		// re-attach
+		storedChoosenNode->addChild(newBrother);
+		newBrother->setParent(storedChoosenNode);
+		storedChoosenNode->addChild(newParent);
+		newParent->setParent(storedChoosenNode);
+
+		tau.orderNodesByIndex();
+    }
     
     return 0.0;
 }
@@ -106,28 +162,72 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
 void SubtreePruneRegraft::rejectSimpleMove( void ) {
     
     // undo the proposal
-    TopologyNode &parent = storedChoosenNode->getParent();
-    TopologyNode &grandparent = parent.getParent();
-    TopologyNode* oldBrother = &parent.getChild( 0 );
-    TopologyNode &newGrandparent = storedBrother->getParent();
-    
-    // check if we got the correct child
-    if ( storedChoosenNode == oldBrother ) {
-        oldBrother = &parent.getChild( 1 );
-    }
-    
-    // now prune
-    grandparent.removeChild( &parent );
-    parent.removeChild( oldBrother );
-    grandparent.addChild( oldBrother );
-    oldBrother->setParent( &grandparent );
-    
-    // re-attach
-    newGrandparent.removeChild( storedBrother );
-    parent.addChild( storedBrother );
-    newGrandparent.addChild( &parent );
-    parent.setParent( &newGrandparent );
-    storedBrother->setParent( &parent );
+	if(!prunedroot)
+	{
+		TopologyNode &parent = storedChoosenNode->getParent();
+		TopologyNode &grandparent = parent.getParent();
+		TopologyNode* oldBrother = &parent.getChild( 0 );
+		TopologyNode &newGrandparent = storedBrother->getParent();
+
+		// check if we got the correct child
+		if ( storedChoosenNode == oldBrother ) {
+			oldBrother = &parent.getChild( 1 );
+		}
+
+		// now prune
+		grandparent.removeChild( &parent );
+		parent.removeChild( oldBrother );
+		grandparent.addChild( oldBrother );
+		oldBrother->setParent( &grandparent );
+
+		// re-attach
+		newGrandparent.removeChild( storedBrother );
+		parent.addChild( storedBrother );
+		newGrandparent.addChild( &parent );
+		parent.setParent( &newGrandparent );
+		storedBrother->setParent( &parent );
+	}
+	else
+	{
+		// prune
+		std::vector<TopologyNode*> storedchildren = storedChoosenNode->getChildren();
+		std::vector<size_t> storedindices;
+		std::vector<double> storedbrlens;
+		for(size_t i = 0 ; i < storedchildren.size(); i++)
+		{
+			storedindices.push_back(storedchildren[i]->getIndex());
+			storedbrlens.push_back(storedchildren[i]->getBranchLength());
+			storedChoosenNode->removeChild(storedchildren[i]);
+			storedchildren[i]->setParent(NULL);
+		}
+
+		TopologyNode* newParent = &(storedBrother->getParent());
+		TopologyNode* oldBrother = newParent->reverseParentChild();
+
+		for(size_t i = 0 ; i < storedchildren.size(); i++)
+		{
+			if(oldBrother != storedchildren[i])
+			{
+				oldBrother->addChild(storedchildren[i]);
+				storedchildren[i]->setParent(oldBrother);
+			}
+			else
+			{
+				newParent->setIndex(storedindices[i]);
+				newParent->setBranchLength(storedbrlens[i]);
+			}
+		}
+
+		newParent->removeChild(storedBrother);
+
+		// re-attach
+		storedChoosenNode->addChild(storedBrother);
+		storedBrother->setParent(storedChoosenNode);
+		storedChoosenNode->addChild(newParent);
+		newParent->setParent(storedChoosenNode);
+
+		variable->getValue().orderNodesByIndex();
+	}
     
 }
 
