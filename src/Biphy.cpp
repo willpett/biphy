@@ -735,6 +735,8 @@ void Biphy::initModel( void ) {
         monitoredNodes.push_back( meanpi );
     }
 
+    //monitoredNodes.push_back(br_vector);
+
     if(modeltype > ModelPrior::HOMOGENEOUS || (modeltype == ModelPrior::MK && dbeta > 1))
     {
         moves.push_back( new ScaleMove(beta1, 0.3, true, 0.0096/4) );
