@@ -37,7 +37,7 @@ int main (int argc, const char * argv[])
 
 	int numChains = 1;
 	int swapInterval = 1;
-	double delta = 0.05;
+	double delta = 0.5;
 	double sigma = 1;
 
 	bool saveall = true;
