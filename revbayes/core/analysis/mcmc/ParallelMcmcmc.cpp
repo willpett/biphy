@@ -123,7 +123,10 @@ void ParallelMcmcmc::initialize(void)
 double ParallelMcmcmc::computeBeta(double d, double s, size_t idx)
 {
     // MJL: May want other distributions of beta in the future
-    return pow(1 + d, -pow(idx,s));
+    //return pow(1 + d, -pow(idx,s));
+
+	// this is the heat function used by mrbayes
+    return 1.0/(1.0 + d * idx);
 }
 
 void ParallelMcmcmc::burnin(int g, int ti)
