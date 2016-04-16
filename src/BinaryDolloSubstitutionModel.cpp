@@ -1742,8 +1742,11 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
     else
         taxa = std::vector< BinaryTaxonData* >(numTaxa, new DiscreteBinaryTaxonData("") );
 
+    std::vector<size_t> rateIndices;
+    std::vector<size_t> birthNodes;
     if(coding != AscertainmentBias::ALL && numSites > 0)
     {
+        /*
         // first sample the raw character birth rate from the marginal posterior 
         // lambda | N ~ Gamma(N, exp(lnCorrection) )
         double lambda = Statistics::Gamma::rv(N, exp(perMaskCorrections[0]), *rng);
@@ -1751,63 +1754,51 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
         // then sample the observed number of characters (numSites) from the likelihood:
         // numSites | lambda ~ Poisson(lambda * exp(lnCorrection) )
         numSites = Statistics::Poisson::rv( lambda * exp(perMaskCorrections[0]), *rng);
+        */
+
+        for ( size_t i = 0; i < numSites; i++ )
+        {
+			double u = rng->uniform01()*perMaskCorrections[0];
+			double total = 0.0;
+
+			// simulate a birth for this character
+			// by sampling nodes in proportion to the per node survival probs
+			size_t birthNode = 0;
+			size_t rateIndex = 0;
+			while(total < u)
+			{
+				total += perMixtureCorrections[birthNode*numSiteRates + rateIndex];
+
+				if(total < u)
+				{
+					rateIndex++;
+					if(rateIndex == numSiteRates)
+					{
+						rateIndex = 0;
+						birthNode++;
+					}
+				}
+			}
+
+			rateIndices.push_back(rateIndex);
+			birthNodes.push_back(birthNode);
+        }
     }
 
     double sampling = getSamplingRate();
     std::fill(countDistribution.begin(), countDistribution.end(), 0);
 
-    std::vector<double> total(numNodes,0.0);
-
     // then sample site-patterns using rejection sampling,
     // rejecting those that match the unobservable ones.
     for ( size_t i = 0; i < numSites; i++ )
     {
-        double u = rng->uniform01();
-        double t = 0.0;
-                
-        // simulate a birth for this character
-        // by sampling nodes in proportion to the per node survival probs
-        size_t birthNode = 0;
-        while(t < u*perMaskCorrections[0])
-        {
-            for(size_t mixture = 0; mixture < numSiteRates; mixture++)
-            {
-                t += perMixtureCorrections[birthNode*numSiteRates + mixture];
-            }
-            
-            if(t < u*perMaskCorrections[0])
-                birthNode++;
-        }
-        
-        // then sample a rate category conditional on survival from this node
-        // by sampling in proportion to the per mixture surivival probs
-        if(total[birthNode] == 0.0)
-        {
-			for(size_t mixture = 0; mixture < this->numSiteRates; mixture++)
-				total[birthNode] += perMixtureCorrections[birthNode*numSiteRates + mixture];
-        }
-
-
-        u = rng->uniform01()*total[birthNode];
-        size_t rateIndex = 0;
-
-        double tmp = 0.0;
-        while(tmp < u){
-            tmp += perMixtureCorrections[birthNode*numSiteRates + rateIndex];
-            if(tmp < u)
-                rateIndex++;
-        }
-        
-
         std::vector<RealNumber> siteData(numNodes, 0.0);
 
-        const TopologyNode& root = tau->getValue().getNode(birthNode);
+        const TopologyNode& root = tau->getValue().getNode(birthNodes[i]);
         
         // recursively simulate the sequences
         std::pair<size_t, size_t> charCounts;
-        simulate( root, siteData, rateIndex, charCounts);
-
-        countDistribution[charCounts.second]++;
+        simulate( root, siteData, rateIndices[i], charCounts);
 
         if( !isSitePatternCompatible(charCounts, 0) )
         {
@@ -1819,6 +1810,8 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
 			i--;
 			continue;
 		}
+
+        countDistribution[charCounts.second]++;
 
         // add the taxon data to the character data
         for (size_t t = 0; t < numTaxa; ++t)
@@ -2040,7 +2033,7 @@ void BinaryDolloSubstitutionModel::simulateDolloMapping( const TopologyNode &nod
     // get the pointers to the partial likelihoods for this node
     RealVector::iterator p_node  = partialLikelihoods.begin() + activeLikelihood[nodeIndex]*activeLikelihoodOffset  + nodeIndex*nodeOffset + rateIndex*mixtureOffset + patternOffset;
         
-    RealVector::iterator pi = transitionProbabilities.begin() + activeProbability[nodeIndex]*tActiveOffset + nodeIndex*tNodeOffset + nodeIndex*tMixtureOffset;    
+    RealVector::iterator pi = transitionProbabilities.begin() + activeProbability[nodeIndex]*tActiveOffset + nodeIndex*tNodeOffset + nodeIndex*tMixtureOffset;
     
     data[ nodeIndex ] = true;
     

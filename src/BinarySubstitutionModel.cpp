@@ -2922,7 +2922,7 @@ void BinarySubstitutionModel::redrawValue( void ) {
 			taxa.push_back( new DiscreteBinaryTaxonData("") );
     }
     
-    double total = 1.0;
+    /*double total = 1.0;
 
     if(coding != AscertainmentBias::ALL && numSites > 0)
     {
@@ -2938,21 +2938,8 @@ void BinarySubstitutionModel::redrawValue( void ) {
         for ( size_t i = 0; i < numSiteFrequencies; ++i )
         	for ( size_t j = 0; j < numSiteRates; ++j )
         		total += perMixtureCorrections[i*numSiteRates*numCorrectionMasks + j*numCorrectionMasks];
-    }
 
-    double sampling = getSamplingRate();
-    std::fill(countDistribution.begin(), countDistribution.end(), 0);
-
-    // then sample site-patterns using rejection sampling,
-    // rejecting those that match the unobservable ones.
-    for ( size_t i = 0; i < numSites; i++ )
-    {
-    	size_t rateIndex = 0;
-    	size_t freqIndex = 0;
-
-    	if(coding != AscertainmentBias::ALL && numSites > 0)
-		{
-			// draw the state
+        // draw the state
 			double u = rng->uniform01()*total;
 
 			double tmp = 0.0;
@@ -2968,23 +2955,32 @@ void BinarySubstitutionModel::redrawValue( void ) {
 					}
 				}
 			}
-		}
-		else
-		{
-			// draw the state
-			double u = rng->uniform01();
+    }*/
 
-			rateIndex = (int)(u*numSiteRates);
+    double sampling = getSamplingRate();
+    std::fill(countDistribution.begin(), countDistribution.end(), 0);
 
-			u = rng->uniform01();
-			freqIndex = (int)(u*numSiteFrequencies);
-		}
+    // then sample site-patterns using rejection sampling,
+    // rejecting those that match the unobservable ones.
+    for ( size_t i = 0; i < numSites; i++ )
+    {
+    	size_t rateIndex = 0;
+    	size_t freqIndex = 0;
+
+    	// draw the state
+		double u = rng->uniform01();
+
+		rateIndex = (int)(u*numSiteRates);
+
+		u = rng->uniform01();
+		freqIndex = (int)(u*numSiteFrequencies);
+
 
         std::vector<RealNumber> siteData(numNodes, 0.0);
 
         RealNumber rf = getStationaryFrequency(rootIndex, freqIndex);
         // draw the root state
-        double u = rng->uniform01();
+        u = rng->uniform01();
         if(u < rf)
             siteData[rootIndex] = 1.0;
 
