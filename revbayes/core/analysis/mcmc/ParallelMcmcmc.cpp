@@ -404,7 +404,7 @@ void ParallelMcmcmc::readStream(size_t burnin)
 		if(k == burnin)
 			chains[chainIdxByHeat[0]]->monitor(0);
 		else if(k > burnin)
-			chains[chainIdxByHeat[0]]->monitor(currentGeneration);
+			chains[chainIdxByHeat[0]]->monitor(k);
 
 		if(stream.eof())
 			break;
