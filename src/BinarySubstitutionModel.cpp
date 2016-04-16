@@ -2994,6 +2994,8 @@ void BinarySubstitutionModel::redrawValue( void ) {
 
         countDistribution[charCounts.second]++;
 
+        std::cerr << i << "\t" << rateIndex << "\t" << charCounts.second << std::endl;
+
         if( !isSitePatternCompatible(charCounts, 0) )
         {
 			i--;
