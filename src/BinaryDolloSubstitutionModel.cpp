@@ -1756,35 +1756,39 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
     double sampling = getSamplingRate();
     std::fill(countDistribution.begin(), countDistribution.end(), 0);
 
+    std::vector<double> total(numNodes,0.0);
+
     // then sample site-patterns using rejection sampling,
     // rejecting those that match the unobservable ones.
     for ( size_t i = 0; i < numSites; i++ )
     {
         double u = rng->uniform01();
-        double total = 0.0;
+        double t = 0.0;
                 
         // simulate a birth for this character
         // by sampling nodes in proportion to the per node survival probs
         size_t birthNode = 0;
-        while(total < u*perMaskCorrections[0])
+        while(t < u*perMaskCorrections[0])
         {
             for(size_t mixture = 0; mixture < numSiteRates; mixture++)
             {
-                total += perMixtureCorrections[birthNode*numSiteRates + mixture];
+                t += perMixtureCorrections[birthNode*numSiteRates + mixture];
             }
             
-            if(total < u*perMaskCorrections[0])
+            if(t < u*perMaskCorrections[0])
                 birthNode++;
         }
         
         // then sample a rate category conditional on survival from this node
         // by sampling in proportion to the per mixture surivival probs
-        total = 0.0;
-        for(size_t mixture = 0; mixture < this->numSiteRates; mixture++)
-            total += perMixtureCorrections[birthNode*numSiteRates + mixture];
+        if(total[birthNode] == 0.0)
+        {
+			for(size_t mixture = 0; mixture < this->numSiteRates; mixture++)
+				total[birthNode] += perMixtureCorrections[birthNode*numSiteRates + mixture];
+        }
 
 
-        u = rng->uniform01()*total;
+        u = rng->uniform01()*total[birthNode];
         size_t rateIndex = 0;
 
         double tmp = 0.0;

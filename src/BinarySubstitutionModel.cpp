@@ -2921,10 +2921,9 @@ void BinarySubstitutionModel::redrawValue( void ) {
 		else
 			taxa.push_back( new DiscreteBinaryTaxonData("") );
     }
-
-    std::vector<size_t> perSiteRates;
-    std::vector<size_t> perSiteFrequencies;
     
+    double total = 1.0;
+
     if(coding != AscertainmentBias::ALL && numSites > 0)
     {
         // first sample a total number of characters (M) from the marginal posterior: 
@@ -2936,51 +2935,9 @@ void BinarySubstitutionModel::redrawValue( void ) {
         //numSites = Statistics::Binomial::rv( M_minus_N + N, exp(perMaskCorrections[0]), *rng);
     
         // sample the rate categories in proportion to the total probability (correction) for each mixture.
-        double total = 0.0;
         for ( size_t i = 0; i < numSiteFrequencies; ++i )
         	for ( size_t j = 0; j < numSiteRates; ++j )
         		total += perMixtureCorrections[i*numSiteRates*numCorrectionMasks + j*numCorrectionMasks];
-    
-        for ( size_t i = 0; i < numSites; ++i )
-        {
-            // draw the state
-            double u = rng->uniform01()*total;
-            size_t rateIndex = 0;
-            size_t freqIndex = 0;
-    
-            double tmp = 0.0;
-            while(tmp < u){
-                tmp += perMixtureCorrections[freqIndex*numSiteRates*numCorrectionMasks + rateIndex*numCorrectionMasks];
-                if(tmp < u)
-                {
-                    rateIndex++;
-                    if(rateIndex == numSiteRates)
-                    {
-                    	freqIndex++;
-                    	rateIndex = 0;
-                    }
-                }
-            }
-    
-            perSiteRates.push_back( rateIndex );
-            perSiteFrequencies.push_back( freqIndex );
-        }
-    }
-    else
-    {
-        for ( size_t i = 0; i < numSites; ++i )
-        {
-            // draw the state
-            double u = rng->uniform01();
-            
-            size_t rateIndex = (int)(u*numSiteRates);
-            perSiteRates.push_back( rateIndex );
-
-            u = rng->uniform01();
-            size_t freqIndex = (int)(u*numSiteFrequencies);
-    
-            perSiteFrequencies.push_back( rateIndex );
-        }
     }
 
     double sampling = getSamplingRate();
@@ -2990,11 +2947,42 @@ void BinarySubstitutionModel::redrawValue( void ) {
     // rejecting those that match the unobservable ones.
     for ( size_t i = 0; i < numSites; i++ )
     {
-        size_t rateIndex = perSiteRates[i];
+    	size_t rateIndex = 0;
+    	size_t freqIndex = 0;
+
+    	if(coding != AscertainmentBias::ALL && numSites > 0)
+		{
+			// draw the state
+			double u = rng->uniform01()*total;
+
+			double tmp = 0.0;
+			while(tmp < u){
+				tmp += perMixtureCorrections[freqIndex*numSiteRates*numCorrectionMasks + rateIndex*numCorrectionMasks];
+				if(tmp < u)
+				{
+					rateIndex++;
+					if(rateIndex == numSiteRates)
+					{
+						freqIndex++;
+						rateIndex = 0;
+					}
+				}
+			}
+		}
+		else
+		{
+			// draw the state
+			double u = rng->uniform01();
+
+			rateIndex = (int)(u*numSiteRates);
+
+			u = rng->uniform01();
+			freqIndex = (int)(u*numSiteFrequencies);
+		}
 
         std::vector<RealNumber> siteData(numNodes, 0.0);
 
-        RealNumber rf = getStationaryFrequency(rootIndex, perSiteFrequencies[i]);
+        RealNumber rf = getStationaryFrequency(rootIndex, freqIndex);
         // draw the root state
         double u = rng->uniform01();
         if(u < rf)
@@ -3002,7 +2990,7 @@ void BinarySubstitutionModel::redrawValue( void ) {
 
         // recursively simulate the sequences
         std::pair<size_t, size_t> charCounts;
-        simulate( root, siteData, rateIndex, perSiteFrequencies[i], charCounts);
+        simulate( root, siteData, rateIndex, freqIndex, charCounts);
 
         countDistribution[charCounts.second]++;
 
