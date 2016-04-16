@@ -41,8 +41,8 @@ PosteriorPredictiveCountDistributionMonitor::PosteriorPredictiveCountDistributio
     filename    = m.filename;
     append      = m.append;
     
-    if (m.outStream.is_open())
-    	openStream();
+    //if (m.outStream.is_open())
+    //	openStream();
 }
 
 
