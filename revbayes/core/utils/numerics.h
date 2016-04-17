@@ -11,7 +11,7 @@
 
 #include "Exception.h"
 
-#ifdef __SSE__
+#ifdef __SSE3__
 #define SSE_ENABLED
 #define SIMD_ENABLED
 #endif

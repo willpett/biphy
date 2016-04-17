@@ -160,7 +160,7 @@ void BinarySubstitutionModel::resizeLikelihoodVectors( void ) {
         activeCorrectionOffset  	= numNodes*correctionNodeOffset;
 
         correctionLikelihoods = RealVector(2*activeCorrectionOffset, 0.0);
-        perMixtureCorrections = RealVector(numSiteRates*numSiteFrequencies, 0.0);
+        perMixtureCorrections = RealVector(numSiteRates*numSiteFrequencies*numCorrectionMasks, 0.0);
         perMaskCorrections    = RealVector(numCorrectionMasks, 0.0);
         
         if(useScaling)
@@ -210,7 +210,7 @@ void BinarySubstitutionModel::resizeLikelihoodVectors( void ) {
     
     // reset the transitionProbability vector
     tRateOffset    	= 4;
-    tMixtureOffset 	= numSiteRates*4;
+    tMixtureOffset 	= numSiteRates*tRateOffset;
     tNodeOffset 	= numSiteFrequencies*tMixtureOffset;
     tActiveOffset 	= (numNodes - 1)*tNodeOffset;
     
@@ -655,7 +655,7 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
 #ifdef SIMD_ENABLED
 			for (size_t site = 0; site < numSIMDBlocks ; ++site)
 			{
-				size_t offset = rate*rateOffset + freq*tMixtureOffset + site*siteOffset;
+				size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
 				SIMDRegister *          p_site_mixture    = (SIMDRegister *)&*(p_node  + offset);
 				SIMDRegister *     p_site_mixture_left    = (SIMDRegister *)&*(p_left  + offset);
@@ -747,7 +747,7 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
 			// compute the per site probabilities
 			for (size_t site = 0; site < numPatterns ; ++site)
 			{
-				size_t offset = rate*rateOffset + freq*frequencyOffset + site*siteOffset;
+				size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
 				RealVector::iterator          p_site_mixture          = p_node + offset;
 				RealVector::const_iterator    p_site_mixture_left     = p_left + offset;
@@ -956,7 +956,7 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
 			// compute the per site probabilities
 			for (size_t site = 0; site < numPatterns ; ++site)
 			{
-				size_t offset = rate*rateOffset + freq*frequencyOffset + site*siteOffset;
+				size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
 				RealVector::iterator          p_site_mixture          = p_node   + offset;
 				RealVector::const_iterator    p_site_mixture_left     = p_left   + offset;
@@ -1034,7 +1034,7 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
 				// iterate over all sites
 				for (size_t pattern = 0; pattern < numPatterns; pattern++)
 				{
-					RealVector::iterator     p_site_mixture      = p_node + mixture*mixtureOffset + freq*frequencyOffset + pattern*siteOffset;
+					RealVector::iterator     p_site_mixture      = p_node + rate*rateOffset + freq*mixtureOffset + pattern*siteOffset;
 
 					// is this site a gap?
 					if ( td->getGap(siteIndices[pattern2site[pattern]]) )
@@ -1573,6 +1573,8 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
     // get the index of the root node
     size_t rootIndex = root.getIndex();
 
+	double logSampling = log(getSamplingRate());
+
     // get the pointers to the partial likelihoods of the left and right subtree
     RealVector::iterator p_node  = partialLikelihoods.begin() + activeLikelihood[rootIndex] * activeLikelihoodOffset  + rootIndex*nodeOffset;
    
@@ -1606,8 +1608,6 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
 	// sum the log-likelihoods for all sites together
 	RealNumber sumPartialProbs = 0.0;
 
-	double logSampling = log(getSamplingRate());
-
 	for (size_t block = 0; block < numSIMDBlocks; block++)
 	{
 		for (size_t ss = 0; ss < REALS_PER_SIMD_REGISTER; ss++)
@@ -1630,16 +1630,17 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
 		}
 	}
 #else
-		for (size_t pattern = 0; pattern < numPatterns; ++pattern)
-		{
-			// get the pointers to the likelihoods for this site and mixture category
-			RealVector::iterator   p_site_mixture     = p_node + pattern*siteOffset + rate*rateOffset + freq*mixtureOffset;
+			for (size_t pattern = 0; pattern < numPatterns; ++pattern)
+			{
+				// get the pointers to the likelihoods for this site and mixture category
+				RealVector::iterator   p_site_mixture     = p_node + pattern*siteOffset + rate*rateOffset + freq*mixtureOffset;
 
-			per_site_Likelihoods[pattern] += p_site_mixture[0] + p_site_mixture[1];
+				per_site_Likelihoods[pattern] += p_site_mixture[0] + p_site_mixture[1];
 
-		}
+			}
 
-	} // end-for over all mixtures (=rate categories)
+		} // end-for over all mixtures (=rate categories)
+	}
 
 	// sum the log-likelihoods for all sites together
 	double sumPartialProbs = 0.0;
@@ -1947,7 +1948,7 @@ void BinarySubstitutionModel::scale( size_t nodeIndex, size_t left, size_t right
 				for (size_t rate = 0; rate < numSiteRates; ++rate)
 				{
 					// get the pointers to the likelihood for this mixture category
-					size_t offset = rate*rateOffset + freq*frequencyOffset + site*siteOffset;
+					size_t offset = rate*rateOffset + freq*mixtureOffset + site*siteOffset;
 
 					RealVector::iterator          p_site_mixture          = p_node + offset;
 
