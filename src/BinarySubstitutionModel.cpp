@@ -2319,7 +2319,7 @@ void BinarySubstitutionModel::updateTransitionProbabilities() {
         if(nodeIndex == numNodes - 1)
             continue;
         
-        RealNumber rate = getClockRate(nodeIndex);
+        RealNumber clockRate = getClockRate(nodeIndex);
         
         RealNumber brlen = getBranchLength(nodeIndex);
     
@@ -2340,7 +2340,7 @@ void BinarySubstitutionModel::updateTransitionProbabilities() {
 
 				RealVector::iterator p_node_mixture = p_node + rate*tRateOffset + freq*tMixtureOffset;
 
-    			RealNumber expPart = exp( - mu * rate * brlen * r );
+    			RealNumber expPart = exp( - mu * clockRate * brlen * r );
 
         		p_node_mixture[0] = pi0 + pi1 * expPart;
 				p_node_mixture[1] = pi1 - pi1 * expPart;
