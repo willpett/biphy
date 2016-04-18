@@ -1804,6 +1804,8 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
         std::pair<size_t, size_t> charCounts;
         simulate( root, siteData, rateIndices[i], charCounts);
 
+        charCounts.first = numTaxa - charCounts.second;
+
         if( !isSitePatternCompatible(charCounts, 0) )
         {
             i--;
@@ -1867,10 +1869,9 @@ void BinaryDolloSubstitutionModel::simulate( const TopologyNode &node, std::vect
                     childState = 0.0;   
             }
             
+            // count if survived at tip
             if(childState == 1.0)
                 charCounts.second++;
-            else if(childState == 0.0)
-                charCounts.first++;
         }
         else
         {
