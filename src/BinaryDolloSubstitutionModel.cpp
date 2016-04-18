@@ -1721,11 +1721,11 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
     if(numSites == 0)
         return; 
     
-    // delete the old value first
-    delete this->value;
-
     this->dagNode->touch();
     updateTransitionProbabilities();
+
+    // delete the old value first
+    delete this->value;
 
     // create a new character data object
     if(continuous)
@@ -1737,14 +1737,18 @@ void BinaryDolloSubstitutionModel::redrawValue( void ) {
     
     std::vector< BinaryTaxonData* > taxa;
 
-    if(continuous)
-        taxa = std::vector< BinaryTaxonData* >(numTaxa, new ContinuousBinaryTaxonData("") );
-    else
-        taxa = std::vector< BinaryTaxonData* >(numTaxa, new DiscreteBinaryTaxonData("") );
+    for(size_t i = 0; i < numTaxa; i++)
+	{
+		if(continuous)
+			taxa.push_back( new ContinuousBinaryTaxonData("") );
+		else
+			taxa.push_back( new DiscreteBinaryTaxonData("") );
+	}
 
     std::vector<size_t> rateIndices;
     std::vector<size_t> birthNodes;
-    if(coding != AscertainmentBias::ALL && numSites > 0)
+
+    if(coding != AscertainmentBias::ALL)
     {
         /*
         // first sample the raw character birth rate from the marginal posterior 

@@ -389,16 +389,13 @@ void ParallelMcmcmc::readStream(size_t burnin)
 
 	for (int k=0; k==k; k++)
     {
-		stream >> currentGeneration;
 		if(!stream)
 			throw(Exception("premature end of stream"));
 
 		fromStream(stream, false, k >= burnin);
 		//std::cerr << ".";
-		if(k == burnin)
-			chains[chainIdxByHeat[0]]->monitor(0);
-		else if(k > burnin)
-			chains[chainIdxByHeat[0]]->monitor(k);
+		if(k >= burnin)
+			chains[chainIdxByHeat[0]]->monitor(k - burnin);
 
 		if(stream.eof())
 			break;
