@@ -8,8 +8,8 @@
 #include "UniformTopologyDistribution.h"
 #include "Constants.h"
 
-UniformTopologyDistribution::UniformTopologyDistribution(const std::vector<std::string> &tn, const Clade &o, bool r) : TypedDistribution<Tree>( new Tree() ),
-		numTaxa( tn.size() ), taxonNames( tn ), rooted(r), outgroup( o ) {
+UniformTopologyDistribution::UniformTopologyDistribution(const std::vector<std::string> &tn, const Clade &o, bool r, bool inrigid) : TypedDistribution<Tree>( new Tree() ),
+		numTaxa( tn.size() ), taxonNames( tn ), rooted(r), outgroup( o ), rigid(inrigid) {
     
     double branchLnFact = 0.0;
     double nodeLnFact = 0.0;
@@ -33,7 +33,8 @@ UniformTopologyDistribution::UniformTopologyDistribution(const UniformTopologyDi
     taxonNames( v.taxonNames ),
     outgroup( v.outgroup),
     logTreeTopologyProb( v.logTreeTopologyProb ),
-    rooted(v.rooted)
+    rooted(v.rooted),
+	rigid(v.rigid)
 {
     //rearrangeTree();
 }
@@ -45,14 +46,22 @@ UniformTopologyDistribution::~UniformTopologyDistribution() {
 
 void UniformTopologyDistribution::setValue( Tree *v ) {
 
+	TreeChangeEventHandler handler = value->getTreeChangeEventHandler();
+
 	TypedDistribution<Tree>::setValue(v);
+
+	value->getTreeChangeEventHandler() = handler;
 
 	resetNodeIndices();
 }
 
 void UniformTopologyDistribution::setValue( const Tree &v ) {
 
+	TreeChangeEventHandler handler = value->getTreeChangeEventHandler();
+
 	TypedDistribution<Tree>::setValue(v);
+
+	value->getTreeChangeEventHandler() = handler;
 
 	resetNodeIndices();
 }
@@ -109,46 +118,47 @@ bool UniformTopologyDistribution::matchesConstraints( void ) {
 
     const TopologyNode &root = value->getRoot();
     
-    bool match = true;
-    
-    if(hasOutgroup())
-    {
-        match = false;
-            
-        const std::vector<TopologyNode*> children = root.getChildren();
-        
-        for(std::vector<TopologyNode*>::const_iterator it = children.begin(); it != children.end(); it++)
-        {
-            std::vector<std::string> taxa;
-            (*it)->getTaxa(taxa);
-            
-            bool childFound = true;
-            for (std::vector<std::string>::const_iterator y_it = outgroup.begin(); y_it != outgroup.end(); ++y_it)
-            {
-                bool found = false;
-                for (std::vector<std::string>::const_iterator it = taxa.begin(); it != taxa.end(); ++it)
-                {
-                    if ( (*y_it) == (*it) )
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                
-                if (!found)
-                {
-                    childFound = false;
-                    break;
-                }
-            }
-            
-            if(childFound && taxa.size() == outgroup.size())
-            {
-                match = true;
-                break;
-            }
-        }
-    }
+    bool match = !hasOutgroup();
+
+	const std::vector<TopologyNode*> children = root.getChildren();
+
+	for(std::vector<TopologyNode*>::const_iterator it = children.begin(); it != children.end(); it++)
+	{
+		if(rigid && (*it)->getIndex() > numTaxa - 1 + children.size())
+			return false;
+
+		if(hasOutgroup())
+		{
+			std::vector<std::string> taxa;
+			(*it)->getTaxa(taxa);
+
+			bool childFound = true;
+			for (std::vector<std::string>::const_iterator y_it = outgroup.begin(); y_it != outgroup.end(); ++y_it)
+			{
+				bool found = false;
+				for (std::vector<std::string>::const_iterator it = taxa.begin(); it != taxa.end(); ++it)
+				{
+					if ( (*y_it) == (*it) )
+					{
+						found = true;
+						break;
+					}
+				}
+
+				if (!found)
+				{
+					childFound = false;
+					break;
+				}
+			}
+
+			if(childFound && taxa.size() == outgroup.size())
+			{
+				match = true;
+				break;
+			}
+		}
+	}
     
     return match;
 }
@@ -238,21 +248,21 @@ void UniformTopologyDistribution::simulateTree( void ) {
 
 void UniformTopologyDistribution::resetNodeIndices()
 {
-	TopologyNode& leftChild = value->getRoot().getChild(0);
-	TopologyNode& rightChild = value->getRoot().getChild(1);
-
-	size_t leftIndex = leftChild.getIndex();
-	size_t rightIndex = rightChild.getIndex();
-
-	if(leftIndex > numTaxa + 1)
+	if(rigid)
 	{
-		value->getNode(numTaxa).setIndex(leftIndex);
-		leftChild.setIndex(numTaxa);
-	}
-	if(rightIndex > numTaxa + 1)
-	{
-		value->getNode(numTaxa+1).setIndex(rightIndex);
-		rightChild.setIndex(numTaxa+1);
+		const std::vector<TopologyNode*> children = value->getRoot().getChildren();
+
+		size_t k = 0;
+		for(size_t i = 0; i < children.size(); i++)
+		{
+			size_t childIndex = children[i]->getIndex();
+
+			if(childIndex > numTaxa - 1 + children.size())
+			{
+				value->getNode(numTaxa + i).setIndex(childIndex);
+				children[i]->setIndex(numTaxa + i);
+			}
+		}
 	}
 
 	for (size_t i=0; i<numTaxa; i++)

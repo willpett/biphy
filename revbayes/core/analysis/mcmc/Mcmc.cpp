@@ -449,7 +449,7 @@ unsigned long Mcmc::nextCycle(bool advanceCycle) {
 #ifdef DEBUG_MCMC
     std::vector<DagNode *>& dagNodes = model.getDagNodes();
 #endif
-    
+
     size_t proposals = round( schedule->getNumberMovesPerIteration() );
     for (size_t i=0; i<proposals; i++) 
     {

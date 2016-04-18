@@ -574,7 +574,7 @@ double BinarySubstitutionModel::computeLnProbability( void )
         lnProb = sumRootLikelihood();
 
     }
-    //std::cerr << lnProb << std::endl; 
+    //std::cerr << lnProb << std::endl;
     return lnProb;
 }
 
@@ -2475,7 +2475,7 @@ void BinarySubstitutionModel::touchSpecialization( DagNode* affecter) {
 
 
 void BinarySubstitutionModel::fireTreeChangeEvent( const TopologyNode &n ) {
-    
+
     // call a recursive flagging of all node above (closer to the root) and including this node
     recursivelyFlagNodeDirty( n );
 }

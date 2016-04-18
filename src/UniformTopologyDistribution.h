@@ -26,7 +26,7 @@
 class UniformTopologyDistribution : public TypedDistribution<Tree> {
     
 public:
-    UniformTopologyDistribution(const std::vector<std::string> &tn, const Clade &o = Clade(std::vector<std::string>()), bool rooted = false);
+    UniformTopologyDistribution(const std::vector<std::string> &tn, const Clade &o = Clade(std::vector<std::string>()), bool rooted = false, bool rigid = false);
     UniformTopologyDistribution(const UniformTopologyDistribution &n);                                                                                          //!< Copy constructor
     virtual                                            ~UniformTopologyDistribution(void);                                                                    //!< Virtual destructor
     
@@ -52,6 +52,7 @@ private:
     
     // members
     bool                                                rooted;
+    bool												rigid;
     unsigned int                                        numTaxa;
     std::vector<std::string>                            taxonNames;
     Clade                                               outgroup;

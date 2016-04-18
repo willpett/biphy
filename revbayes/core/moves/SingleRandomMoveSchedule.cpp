@@ -44,6 +44,6 @@ Move* SingleRandomMoveSchedule::nextMove( unsigned long gen ) {
         u -= weights[index];
         ++index;
     }
-    
+
     return moves[index];
 }

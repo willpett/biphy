@@ -448,9 +448,9 @@ void Biphy::initModel( void ) {
     std::vector<std::string> names = data->getTaxonNames();
     
     //StochasticNode<TimeTree> *tau = new StochasticNode<TimeTree>( "tau", new UniformConstrainedTimeTreeDistribution(one,names,constraints,outgroup) );
-    StochasticNode<Tree> *tau = new StochasticNode<Tree>( "tau", new UniformTopologyDistribution(names, outgroup, rooted) );
+    StochasticNode<Tree> *tau = new StochasticNode<Tree>( "tau", new UniformTopologyDistribution(names, outgroup, rooted, rootprior == RootPrior::RIGID) );
     if(trees.size() > 0){
-        tau->setValue(trees[0], true);
+        tau->setValue(trees[0]);
         tau->setIgnoreRedraw(true);
     }
 

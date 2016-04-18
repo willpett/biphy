@@ -210,7 +210,7 @@ double StochasticNode<valueType>::getLnProbability( void ) {
 template<class valueType>
 double StochasticNode<valueType>::getLnProbabilityRatio( void ) {
     
-    return this->heat * ( getLnProbability() - storedLnProb );
+	return this->heat * ( getLnProbability() - storedLnProb );
 }
 
 

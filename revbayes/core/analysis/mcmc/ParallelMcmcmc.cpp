@@ -163,7 +163,6 @@ void ParallelMcmcmc::run(int generations)
     // print file header
     if (currentGeneration == 0){
         chains[0]->monitor(0);
-		stream << currentGeneration << "\n";
 		toStream(stream);
     }
 
@@ -223,7 +222,6 @@ void ParallelMcmcmc::run(int generations)
 		if(currentGeneration % every*swapInterval == 0){
 			//std::cerr << "-----\n";
 			std::stringstream output;
-			output << currentGeneration << "\n";
 			toStream(output);
 
 			if(!saveall){
@@ -334,7 +332,6 @@ bool ParallelMcmcmc::restore(void){
 	size_t lastsample = pos;
 
 	while(!stream.eof()){
-		stream >> currentGeneration;
 		fromStream(stream,false);
 
 		lastsample = pos;
@@ -344,16 +341,14 @@ bool ParallelMcmcmc::restore(void){
 	stream.clear();
 	stream.seekg(lastsample);
 
-	stream >> currentGeneration;
 	fromStream(stream);
-
-	//exit(1);
 
 	return true;
 }
 
 void ParallelMcmcmc::fromStream(std::istream& is, bool keep, bool keepCold){
 	int index = 0;
+	is >> currentGeneration;
 	for ( size_t i = 0; i < numChains; i++){
 		if(numChains > 1){
 			is >> index;
@@ -369,15 +364,13 @@ void ParallelMcmcmc::fromStream(std::istream& is, bool keep, bool keepCold){
 		chainIdxByHeat[i] = index;
 		if(i == 0)
 			activeIndex = index;
-
-		//if(keep)
-		//	std::cerr << index << "\t" << chains[index]->getChainHeat() << " * " << chains[index]->getModelLnProbability() << "\t= " << chains[index]->getChainHeat()*chains[index]->getModelLnProbability() << std::endl;
 	}
 }
 
 void ParallelMcmcmc::toStream(std::ostream& os){
 	std::stringstream sample;
 	sample.precision(std::numeric_limits<double>::digits10+2);
+	sample << currentGeneration << "\n";
 	for ( size_t i = 0; i < numChains; i++){
 		if(numChains > 1)
 			sample << chainIdxByHeat[i] << "\n";
@@ -394,9 +387,7 @@ void ParallelMcmcmc::readStream(size_t burnin)
 
 	stream.open(filename.c_str(), std::fstream::in);
 
-	// print file header
-
-    for (int k=0; k==k; k++)
+	for (int k=0; k==k; k++)
     {
 		stream >> currentGeneration;
 		if(!stream)

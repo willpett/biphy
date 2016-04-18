@@ -73,7 +73,7 @@ Tree& Tree::operator=(const Tree &t)
         nodes.clear();
         delete root;
         root = NULL;
-        
+
         binary      = t.binary;
         numTips     = t.numTips;
         numNodes    = t.numNodes;
@@ -659,16 +659,17 @@ void Tree::setRoot( TopologyNode* r, bool resetIndex )
     // bootstrap all nodes from the root and add the in a pre-order traversal
     fillNodesByPhylogeneticTraversal(r);
 
-    if ( resetIndex == true )
+    if ( resetIndex )
     {
         for (unsigned int i = 0; i < nodes.size(); ++i)
         {
-            nodes[i]->setIndex(i);
+            if(nodes[i]->getIndex() == -1)
+            	nodes[i]->setIndex(i);
         }
     }
     else
     {
-        orderNodesByIndex();
+    	orderNodesByIndex();
     }
 
     numNodes = nodes.size();

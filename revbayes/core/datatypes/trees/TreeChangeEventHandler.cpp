@@ -18,7 +18,7 @@ TreeChangeEventHandler::TreeChangeEventHandler(void) :
 }
 
 TreeChangeEventHandler::TreeChangeEventHandler(const TreeChangeEventHandler &h)  :
-    listeners()
+    listeners(h.listeners)
 {
     
 }
@@ -38,7 +38,7 @@ TreeChangeEventHandler& TreeChangeEventHandler::operator=(const TreeChangeEventH
     
     if ( this != &h )
     {
-        listeners.clear();
+        listeners = h.listeners;
     }
     
     return *this;
