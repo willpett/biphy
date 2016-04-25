@@ -206,7 +206,7 @@ double Mcmc::getLnPosterior(bool recompute)
     return lnProbability;
 }
 
-double Mcmc::getModelLnProbability(void)
+double Mcmc::getModelLnProbability(bool clamped)
 {
     const std::vector<DagNode*> &n = model->getDagNodes();
     double pp = 0.0;
@@ -214,6 +214,9 @@ double Mcmc::getModelLnProbability(void)
         //std::cerr << (*it)->getName() << "\t" << (*it)->getLnProbability();
         //std::cerr << std::endl;
         //(*it)->touch();
+        if(clamped && !(*it)->isClamped())
+            continue;
+
         pp += (*it)->getLnProbability();
     }
     return pp;

@@ -38,7 +38,7 @@ int main (int argc, const char * argv[])
 	int numChains = 1;
 	int swapInterval = 1;
 	double delta = 0.5;
-	double sigma = 1;
+	double sigma = 0.3;
 
 	bool saveall = true;
 	bool nexus = false;
@@ -53,17 +53,29 @@ int main (int argc, const char * argv[])
 	Biphy *chain = NULL;
 
 	try	{
-		if (argc == 2)	{
+		if (argc == 3 || argc == 2)	{
+		    bool ss = false;
+
 			name = argv[1];
 			if (name == "-help" || name == "--help" || name == "-h")	{
 				throw(0);
+			}
+			else if(name == "-ss")
+			{
+			    ss = true;
+			    if(argc == 3)
+			    {
+			        name = argv[2];
+			    }
+			    else
+			        throw(0);
 			}
 			if(!fexists(name+".stream")){
 				cerr << "run '" << name << "' does not exist\n";
 				exit(1);
 			}
 
-			chain = new Biphy(name);
+			chain = new Biphy(name,ss);
 		}else if (argc == 1){
 			throw(0);
 		}else{

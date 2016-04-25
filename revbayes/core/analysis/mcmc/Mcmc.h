@@ -44,7 +44,7 @@ public:
     size_t                                              getChainIndex(void);
     size_t                                              getNumNodes(void);
     double                                              getLnPosterior(bool recompute = false);
-    double                                              getModelLnProbability(void);
+    double                                              getModelLnProbability(bool clamped = false);
     std::vector<Monitor*>&                              getMonitors(void);
     bool                                                isChainActive(void);
     void                                                monitor(unsigned long g);

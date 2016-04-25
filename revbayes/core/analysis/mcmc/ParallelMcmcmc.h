@@ -26,7 +26,7 @@ class ParallelMcmcmc : Cloneable {
     
 public:
     ParallelMcmcmc(Model* m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string fn = "", std::string sT="random", int ev = 1,
-                int nc=4, int np=4, int si=1000, double dt=0.1, double st=1.0, double sh=1.0, bool saveall = false);
+                int nc=4, int np=4, int si=1000, double dt=0.1, double st=1.0, double sh=1.0, bool saveall = false, std::string steppingStone="");
     ParallelMcmcmc(const ParallelMcmcmc &m);
     virtual                                            ~ParallelMcmcmc(void);                                                          //!< Virtual destructor
     
@@ -46,6 +46,7 @@ private:
 
     void												fromStream(std::istream& is, bool keep = true, bool keepCold = false);
     void												toStream(std::ostream& os);
+    void                                                monitorSteppingStone(size_t gen);
 
     size_t                                              numChains;
     size_t                                              numProcesses;
@@ -68,6 +69,8 @@ private:
     double                                              sigma;        // scales power in heating schedule
     double                                              startingHeat; // default 1.0
     
+    std::string                                         steppingStone;
+
 };
 
 
