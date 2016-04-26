@@ -80,7 +80,7 @@ class Biphy {
     	Biphy(const std::string name, const std::string cvfile, int ppred, bool dolloMapping, bool site, bool ancestral, int burnin = 0, int every = 1);
     	
     	/* restart mode */
-    	Biphy(const std::string name, bool stepping = false);
+    	Biphy(const std::string name, size_t stepping = 0);
         
         void									init();
         void                                    run();
@@ -149,7 +149,7 @@ class Biphy {
         bool                                    perSiteLnProbs;
         bool                                    ancestral;
         bool									asymmbeta;
-        bool                                    steppingStone;
+        size_t                                  steppingStones;
 
         Clade                                   outgroup;
 

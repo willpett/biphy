@@ -15,7 +15,7 @@
  
 #define DEBUG_PMC3 0
 
-ParallelMcmcmc::ParallelMcmcmc(Model* m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string fn, std::string sT, int ev, int nc, int np, int si, double dt, double st, double sh, bool saveall, std::string ss) : Cloneable( ),
+ParallelMcmcmc::ParallelMcmcmc(Model* m, const std::vector<Move*> &moves, const std::vector<Monitor*> &mons, std::string fn, std::string sT, int ev, int nc, int np, int si, double dt, double st, double sh, bool saveall, size_t ss) : Cloneable( ),
 			filename(fn),
 			numChains(nc),
 			numProcesses(np),
@@ -27,15 +27,17 @@ ParallelMcmcmc::ParallelMcmcmc(Model* m, const std::vector<Move*> &moves, const 
 			sigma(st),
 			startingHeat(sh),
 			saveall(saveall),
-			steppingStone(ss)
+			steppingStones(ss)
 {
     activeIndex = 0;
     std::vector<Monitor*> mons2 = mons;
 
-    if(steppingStone != "")
+    if(steppingStones > 0)
         mons2.clear();
     
-    for (size_t i = 0; i < numChains; i++)
+    size_t numMcmc = std::max(steppingStones,numChains);
+
+    for (size_t i = 0; i < numMcmc; i++)
     {
         // get chain heat
         double b = computeBeta(delta,sigma,i) * startingHeat;
@@ -55,27 +57,22 @@ ParallelMcmcmc::ParallelMcmcmc(Model* m, const std::vector<Move*> &moves, const 
     //std::cout << "\n";
     
     
+    numMcmc = steppingStones > 0 ? steppingStones : numChains;
+
+    if (numMcmc < numProcesses)
+        numProcesses = numMcmc;
+
     // assign chains to processors
 #if defined (USE_LIB_OPENMP)
     omp_set_num_threads((unsigned)numProcesses);
 #endif
     
-    if (numChains < numProcesses)
-        numProcesses = numChains;
-    
     chainsPerProcess.resize(numProcesses);
-    for (size_t i = 0, j = 0; i < numChains; i++, j++)
+    for (size_t i = 0, j = 0; i < numMcmc; i++, j++)
     {
         if (j >= numProcesses)
             j = 0;
         chainsPerProcess[j].push_back(i);
-    }
-
-    for (size_t i = 0; i < numChains; i++)
-    {
-        
-        ;//std::cout << i << ": " << chains[i]->getChainHeat() << " ";
-        ;//std::cout << chains[i]->getLnPosterior() << "\n";
     }
 }
 
@@ -90,7 +87,7 @@ ParallelMcmcmc::ParallelMcmcmc(const ParallelMcmcmc &m)
     filename = m.filename;
     every = m.every;
     saveall = m.saveall;
-    steppingStone = m.steppingStone;
+    steppingStones = m.steppingStones;
 
     chainIdxByHeat = m.chainIdxByHeat;
     swapInterval = m.swapInterval;
@@ -132,9 +129,9 @@ double ParallelMcmcmc::computeBeta(double d, double s, size_t idx)
     //double beta = pow(1 + d, -pow(idx,s));
     double beta = 1.0/(1.0 + d * idx);
 
-    if(steppingStone != "")
+    if(steppingStones > 0)
     {
-        beta = pow(double(numChains - 1 - idx)/numChains, 1.0 / sigma );
+        beta = pow(double(steppingStones - 1 - idx)/steppingStones, 1.0 / sigma );
     }
 
 	// this is the heat function used by mrbayes
@@ -170,16 +167,16 @@ void ParallelMcmcmc::run(int generations)
 	if(stream.is_open())
 		stream.close();
 
-	if(steppingStone != "")
+	if(steppingStones > 0)
 	{
-	    stream.open( steppingStone.c_str(), std::fstream::out);
+	    stream.open( (filename+".ss").c_str(), std::fstream::out);
 
 	    monitorSteppingStone(0);
 	}
 	// print file header
 	else if (currentGeneration == 0)
 	{
-	    stream.open( filename.c_str(), std::fstream::out | std::fstream::app);
+	    stream.open( (filename+".stream").c_str(), std::fstream::out | std::fstream::app);
 
         chains[0]->monitor(0);
 		toStream(stream);
@@ -235,7 +232,7 @@ void ParallelMcmcmc::run(int generations)
 
         currentGeneration += swapInterval;
 
-        if(steppingStone == "")
+        if(steppingStones == 0)
         {
             swapChains();
 
@@ -248,7 +245,7 @@ void ParallelMcmcmc::run(int generations)
 
                 if(!saveall){
                     stream.close();
-                    stream.open( filename.c_str(), std::fstream::trunc | std::fstream::out);
+                    stream.open( (filename+".stream").c_str(), std::fstream::trunc | std::fstream::out);
                 }
                 stream << output.str();
             }
@@ -353,7 +350,7 @@ bool ParallelMcmcmc::restore(void){
 	if(stream.is_open())
 		stream.close();
 
-	stream.open(filename.c_str(), std::fstream::in);
+	stream.open((filename+".stream").c_str(), std::fstream::in);
 
 	size_t pos = stream.tellg();
 	size_t lastsample = pos;
@@ -365,10 +362,43 @@ bool ParallelMcmcmc::restore(void){
 		pos = stream.tellg();
 	}
 
-	stream.clear();
-	stream.seekg(lastsample);
+	if(steppingStones > 0)
+	{
+	    int index = 0;
+	    for ( size_t i = 0; i < steppingStones; i++)
+	    {
+	        stream.clear();
+	        stream.seekg(lastsample);
 
-	fromStream(stream);
+	        stream >> currentGeneration;
+
+	        if(numChains > 1){
+	            stream >> index;
+	        }
+
+	        chains[i]->fromStream(stream);
+	        chains[i]->setChainActive(i == 0);
+	        chains[i]->setChainHeat(computeBeta(delta,sigma,i));
+	        chainIdxByHeat[i] = i;
+	    }
+	    activeIndex = 0;
+	    if(numChains > steppingStones)
+	    {
+	        for ( size_t i = steppingStones; i < numChains; i++)
+	        {
+	            delete chains[i];
+	        }
+	        chains.resize(steppingStones);
+	    }
+	    numChains = steppingStones;
+	}
+	else
+	{
+	    stream.clear();
+        stream.seekg(lastsample);
+
+        fromStream(stream);
+	}
 
 	return true;
 }
@@ -412,7 +442,7 @@ void ParallelMcmcmc::readStream(size_t burnin)
 	if(stream.is_open())
 		stream.close();
 
-	stream.open(filename.c_str(), std::fstream::in);
+	stream.open((filename+".stream").c_str(), std::fstream::in);
 
 	for (int k=0; k==k; k++)
     {
@@ -452,11 +482,11 @@ void ParallelMcmcmc::monitorSteppingStone(size_t gen)
         {
             double b = 0.0;
             if(k == 0)
-                b = 1.0 - chains[chainIdxByHeat[k]]->getChainHeat();
+                b = 1.0 - chains[k]->getChainHeat();
             else
-                b = chains[chainIdxByHeat[k-1]]->getChainHeat() - chains[chainIdxByHeat[k]]->getChainHeat();
+                b = chains[k-1]->getChainHeat() - chains[k]->getChainHeat();
 
-            m += b*chains[chainIdxByHeat[k]]->getModelLnProbability(true);
+            m += b*chains[k]->getModelLnProbability(true);
         }
         ss << "\t" << m << std::endl;
         stream << ss.str();

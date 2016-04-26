@@ -123,10 +123,10 @@ Biphy::Biphy(const std::string n, const std::string cv, int pp, bool dm, bool si
 }
 
 
-Biphy::Biphy(const std::string n, bool stepping) :
+Biphy::Biphy(const std::string n, size_t stepping) :
         name( n ), readstream(false), restart(true), cvfile("None"), ppred(-1), perSiteLnProbs(false), outgroup(std::vector<std::string>())
 {
-    steppingStone = stepping;
+    steppingStones = stepping;
     open();
 }
 
@@ -795,7 +795,7 @@ void Biphy::initModel( void ) {
         //if(dolloMapping)
         //  monitors.push_back( new BinaryDolloCompatibleMonitor<BranchLengthTree>( charactermodel, every, name+".dollo.fa") );
     }
-    else if(!steppingStone)
+    else if(steppingStones == 0)
     {
         if(trees.empty() || branchprior == BranchPrior::EXPONENTIAL || branchprior == BranchPrior::DIRICHLET)
         {
@@ -820,12 +820,11 @@ void Biphy::initMCMC( void ) {
 
     bool useParallelMcmcmc = (numChains > 1);
 
-    if(!readstream && !steppingStone)
+    if(!readstream && steppingStones == 0)
         monitors.push_back( new FileMonitor( monitoredNodes, every, name+".trace", "\t", false, true, false, useParallelMcmcmc || restart, useParallelMcmcmc, false ) );
 
     double startingHeat = 1.0;
-    std::string ssfile = steppingStone ? name + ".ss" : "";
-    mcmc = new ParallelMcmcmc(model, moves, monitors, name+".stream", "single", every, numChains, numChains, swapInterval, delta, sigma, startingHeat, saveall, ssfile);
+    mcmc = new ParallelMcmcmc(model, moves, monitors, name, "single", every, numChains, numChains, swapInterval, delta, sigma, startingHeat, saveall, steppingStones);
 }
 
 
@@ -841,7 +840,10 @@ void Biphy::run( void ) {
         mcmc->readStream(until);
     }else{
         if(restart)
+        {
+            std::cout << "restarting chain\n";
             mcmc->restore();
+        }
 
         std::cout << "running\n";
         mcmc->run(until);

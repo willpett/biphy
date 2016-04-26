@@ -53,8 +53,8 @@ int main (int argc, const char * argv[])
 	Biphy *chain = NULL;
 
 	try	{
-		if (argc == 3 || argc == 2)	{
-		    bool ss = false;
+		if (argc == 4 || argc == 2)	{
+		    size_t ss = 0;
 
 			name = argv[1];
 			if (name == "-help" || name == "--help" || name == "-h")	{
@@ -62,13 +62,16 @@ int main (int argc, const char * argv[])
 			}
 			else if(name == "-ss")
 			{
-			    ss = true;
-			    if(argc == 3)
-			    {
-			        name = argv[2];
-			    }
-			    else
-			        throw(0);
+			    if (argc != 4)  {
+                    cerr << "error in command: -ss <int>\n\n";
+                    exit(1);
+                }
+                if (! IsInt(argv[2])) {
+                    cerr << "error in command: -ss <int>\n\n";
+                    exit(1);
+                }
+                ss = atoi(argv[2]);
+                name = argv[3];
 			}
 			if(!fexists(name+".stream")){
 				cerr << "run '" << name << "' does not exist\n";
