@@ -15,7 +15,6 @@ ${BIPHY_DIR}/CrossValidationScoreMonitor.cpp
 ${BIPHY_DIR}/PosteriorPredictiveStateFrequencyMonitor.cpp
 ${BIPHY_DIR}/PosteriorPredictiveCountDistributionMonitor.cpp
 ${BIPHY_DIR}/MappingMonitor.cpp
-${BIPHY_DIR}/LnCorrectionFunction.cpp
 )
 add_library(biphy-lib ${BIPHY_FILES})
 target_link_libraries(biphy-lib rb-core)

@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
+#include <cmath>
 
 #include "Exception.h"
 
@@ -22,13 +23,10 @@
 #define SIMD_ENABLED
 #endif
 
-#ifdef DOUBLE_PRECISION
-    typedef double RealNumber;
-#else
-#ifdef SIMD_ENABLED
-#define SSE_CORRECTION_ENABLED
-#endif
+#ifdef SINGLE_PRECISION
     typedef float RealNumber;
+#else
+    typedef double RealNumber;
 #endif
     
 #ifdef SSE_ENABLED
@@ -38,56 +36,57 @@
 #include <pmmintrin.h>
 #include "sse_mathfun.h"
 
-#ifdef DOUBLE_PRECISION
-    typedef __m128d SIMDRegister;
-#define       _mm_load1_pX(A) _mm_load1_pd(A)
-#define        _mm_set1_pX(A)  _mm_set1_pd(A)
-#define       _mm_mul_pX(A,B) _mm_mul_pd(A,B)
-#define       _mm_add_pX(A,B) _mm_add_pd(A,B)
-#define       _mm_max_pX(A,B) _mm_max_pd(A,B)
-#define       _mm_div_pX(A,B) _mm_div_pd(A,B)
-#define _mm_cmpneq_pX(A,B) _mm_cmpneq_pd(A,B)
-#define    _mm_and_pX(A,B)    _mm_and_pd(A,B)
-#else
+#ifdef SINGLE_PRECISION
     typedef __m128 SIMDRegister;
-#define       _mm_load1_pX(A) _mm_load1_ps(A)
-#define        _mm_set1_pX(A)  _mm_set1_ps(A)
-#define       _mm_mul_pX(A,B) _mm_mul_ps(A,B)
-#define       _mm_add_pX(A,B) _mm_add_ps(A,B)
-#define       _mm_max_pX(A,B) _mm_max_ps(A,B)
-#define       _mm_div_pX(A,B) _mm_div_ps(A,B)
-#define          log_pX(A)          log_ps(A)
-#define _mm_cmpneq_pX(A,B) _mm_cmpneq_ps(A,B)
-#define    _mm_and_pX(A,B)    _mm_and_ps(A,B)
+#define       SIMD_LOAD1(A)    _mm_load1_ps(A)
+#define       SIMD_SET1(A)     _mm_set1_ps(A)
+#define       SIMD_MUL(A,B)    _mm_mul_ps(A,B)
+#define       SIMD_ADD(A,B)    _mm_add_ps(A,B)
+#define       SIMD_MAX(A,B)    _mm_max_ps(A,B)
+#define       SIMD_DIV(A,B)    _mm_div_ps(A,B)
+#define       SIMD_LOG(A)      log_ps(A)
+#define       SIMD_CMPNEQ(A,B) _mm_cmpneq_ps(A,B)
+#define       SIMD_AND(A,B)    _mm_and_ps(A,B)
+#else
+    typedef __m128d SIMDRegister;
+#define       SIMD_LOAD1(A)    _mm_load1_pd(A)
+#define       SIMD_SET1(A)     _mm_set1_pd(A)
+#define       SIMD_MUL(A,B)    _mm_mul_pd(A,B)
+#define       SIMD_ADD(A,B)    _mm_add_pd(A,B)
+#define       SIMD_MAX(A,B)    _mm_max_pd(A,B)
+#define       SIMD_DIV(A,B)    _mm_div_pd(A,B)
+#define       SIMD_CMPNEQ(A,B) _mm_cmpneq_pd(A,B)
+#define       SIMD_AND(A,B)    _mm_and_pd(A,B)
 #endif
 
 #elif defined AVX_ENABLED
-
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include <pmmintrin.h>
 #include <immintrin.h>
 #include "avx_mathfun.h"
 
-#ifdef DOUBLE_PRECISION
-    typedef __m256d SIMDRegister;
-#define _mm256_broadcast_sX(A) _mm256_broadcast_sd(A)
-#define     _mm256_mul_pX(A,B)     _mm256_mul_pd(A,B)
-#define     _mm256_add_pX(A,B)     _mm256_add_pd(A,B)
-#define     _mm256_max_pX(A,B)     _mm256_max_pd(A,B)
-#define     _mm256_div_pX(A,B)     _mm256_div_pd(A,B)
-#define   _mm256_cmp_pX(A,B,C)   _mm256_cmp_pd(A,B,C)
-#define     _mm256_and_pX(A,B)     _mm256_and_pd(A,B)
-#else
+#ifdef SINGLE_PRECISION
     typedef __m256 SIMDRegister;
-#define _mm256_broadcast_sX(A) _mm256_broadcast_ss(A)
-#define     _mm256_mul_pX(A,B)     _mm256_mul_ps(A,B)
-#define     _mm256_add_pX(A,B)     _mm256_add_ps(A,B)
-#define     _mm256_max_pX(A,B)     _mm256_max_ps(A,B)
-#define     _mm256_div_pX(A,B)     _mm256_div_ps(A,B)
-#define           log256_pX(A)           log256_ps(A)
-#define   _mm256_cmp_pX(A,B,C)   _mm256_cmp_ps(A,B,C)
-#define     _mm256_and_pX(A,B)     _mm256_and_ps(A,B)
+#define     SIMD_LOAD1(A)      _mm256_broadcast_ss(A)
+#define     SIMD_SET1(A)       _mm256_set1_ps(A)
+#define     SIMD_MUL(A,B)      _mm256_mul_ps(A,B)
+#define     SIMD_ADD(A,B)      _mm256_add_ps(A,B)
+#define     SIMD_MAX(A,B)      _mm256_max_ps(A,B)
+#define     SIMD_DIV(A,B)      _mm256_div_ps(A,B)
+#define     SIMD_LOG(A)        log256_ps(A)
+#define     SIMD_CMPNEQ(A,B,C) _mm256_cmp_ps(A,B,0x14) // 0x14 neq
+#define     SIMD_AND(A,B)      _mm256_and_ps(A,B)
+#else
+    typedef __m256d SIMDRegister;
+#define     SIMD_LOAD1(A)      _mm256_broadcast_sd(A)
+#define     SIMD_SET1(A)       _mm256_set1_pd(A)
+#define     SIMD_MUL(A,B)      _mm256_mul_pd(A,B)
+#define     SIMD_ADD(A,B)      _mm256_add_pd(A,B)
+#define     SIMD_MAX(A,B)      _mm256_max_pd(A,B)
+#define     SIMD_DIV(A,B)      _mm256_div_pd(A,B)
+#define     SIMD_CMPNEQ(A,B,C) _mm256_cmp_pd(A,B,0x14)
+#define     SIMD_AND(A,B)      _mm256_and_pd(A,B)
 #endif
 
 #endif
@@ -95,6 +94,21 @@
 #ifdef SIMD_ENABLED
     
 const size_t REALS_PER_SIMD_REGISTER = sizeof(SIMDRegister)/sizeof(RealNumber);
+
+#ifndef SINGLE_PRECISION
+inline SIMDRegister SIMD_LOG(SIMDRegister& inreg)
+{
+    SIMDRegister outreg;
+    RealNumber* in  = (RealNumber*)&inreg;
+    RealNumber* out = (RealNumber*)&outreg;
+    for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
+    {
+        out[i] = log(in[i]);
+    }
+
+    return outreg;
+}
+#endif
     
 /**
  * Allocator for aligned data.

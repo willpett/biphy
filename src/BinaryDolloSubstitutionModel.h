@@ -15,7 +15,6 @@ public:
     // public member functions
     // pure virtual
     virtual BinaryDolloSubstitutionModel*                 				clone(void) const;
-
     // non-virtual
     virtual void                                                        redrawValue(void);
     const std::vector< DiscreteBinaryTaxonData >&                       getMapping(void);
@@ -28,9 +27,11 @@ protected:
     // helper method for this and derived classes
     RealVector                                                          integrationFactors;
     size_t                                                              activeIntegrationOffset;
+    std::vector<std::vector<size_t> >                                   maskNodeObservationCounts;
     
     // virtual methods that may be overwritten, but then the derived class should call this methods
     void                                                                resizeLikelihoodVectors(void);
+    virtual void                                                        getIncludedSiteIndices();
     
     // pure virtual methods
     virtual void                                                        computeNodeLikelihood(const TopologyNode &n, size_t nIdx, size_t l, size_t r);

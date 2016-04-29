@@ -37,7 +37,7 @@ int main (int argc, const char * argv[])
 
 	int numChains = 1;
 	int swapInterval = 1;
-	double delta = 0.5;
+	double delta = 0.05;
 	double sigma = 0.3;
 
 	bool saveall = true;
@@ -47,8 +47,6 @@ int main (int argc, const char * argv[])
 	bool persite = false;
 	bool ancestral = false;
 	bool asymmbeta = false;
-
-	bool percoding = false;
 
 	Biphy *chain = NULL;
 
@@ -105,9 +103,6 @@ int main (int argc, const char * argv[])
 				else if (s == "-o")	{
 					i++;
 					outgroupfile = argv[i];
-				}
-				else if (s == "-percoding"){
-					percoding = true;
 				}
 				else if (s == "-s"){
 					saveall = false;
@@ -464,7 +459,7 @@ int main (int argc, const char * argv[])
 					remove((name+".treelist.nex").c_str());
 			}
 
-			chain = new Biphy(name,datafile,cvfile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,dbeta,asymmbeta,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus,percoding);
+			chain = new Biphy(name,datafile,cvfile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,dbeta,asymmbeta,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
 		}else{
 			if(!fexists(name+".stream")){
 				cerr << "run '" << name << "' does not exist\n";

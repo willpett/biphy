@@ -15,7 +15,6 @@
 #include "ExponentialDistribution.h"
 #include "FileMonitor.h"
 #include "GammaDistribution.h"
-#include "LnCorrectionFunction.h"
 #include "LogitFunction.h"
 #include "MappingMonitor.h"
 #include "MeanFunction.h"
@@ -69,8 +68,7 @@ Biphy::Biphy(const std::string n,
         double de,
         double si,
         bool sav,
-        bool nex,
-		bool pc) :
+        bool nex) :
     dataFile( df ),
 	cvfile(cv),
     name( n ),
@@ -96,8 +94,7 @@ Biphy::Biphy(const std::string n,
     branchprior(br),
     rootprior(rt),
     nexus(nex),
-    outgroup(std::vector<std::string>()),
-	percoding(pc)
+    outgroup(std::vector<std::string>())
 {
     save();
 }
@@ -164,7 +161,6 @@ void Biphy::open( void ) {
     is >> rootmin;
     is >> rootmax;
     is >> nexus;
-    is >> percoding;
 
     is.close();
 }
@@ -196,7 +192,6 @@ void Biphy::save( void ) {
     os << rootmin << "\n";
     os << rootmax << "\n";
     os << nexus << "\n";
-    os << percoding << "\n";
 
     os.close();
 }
@@ -396,13 +391,19 @@ void Biphy::printConfiguration( void ) {
     }
 
     std::cout << "\n";
-    
-#if defined SSE_ENABLED
-    std::cout << "using SSE likelihood calculator\n\n";
-#elif defined AVX_ENABLED
-    std::cout << "using AVX likelihood calculator\n\n";
+    std::cout << "using";
+#ifdef SINGLE_PRECISION
+    std::cout << " single-precision";
 #else
-    std::cout << "using generic likelihood calculator\n\n";
+    std::cout << " double-precision";
+#endif
+    
+#ifdef SSE_ENABLED
+    std::cout << " SSE likelihood calculator\n\n";
+#elif defined AVX_ENABLED
+    std::cout << " AVX likelihood calculator\n\n";
+#else
+    std::cout << " generic likelihood calculator\n\n";
 #endif
 }
 
@@ -773,9 +774,6 @@ void Biphy::initModel( void ) {
     	moves.push_back( new BetaSimplexMove(samplingRate, 1000.0, true, 0.02 ) );
     	monitoredNodes.push_back( samplingRate );
     }
-
-    if(percoding)
-    	monitoredNodes.push_back( new DeterministicNode<std::vector<RealNumber> >("asc", new LnCorrectionFunction(charactermodel)));
 
     bool useParallelMcmcmc = (numChains > 1);
 

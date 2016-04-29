@@ -52,7 +52,6 @@ public:
     const Tree*												            getTree() const;
     
     RealNumber                                                          getLnCorrection() const;
-    std::vector<RealNumber>                                             getLnCorrections() const;
     RealVector                                                          getPerSiteLnProbs() const;
     std::vector<int>													getCountDistribution( void ) const;
     
@@ -108,8 +107,8 @@ protected:
     size_t                                                              numNodes;
     size_t                                                              numTaxa;
     size_t                                                              numPatterns;
-#ifdef SIMD_ENABLED
     size_t                                                              numAllocatedPatterns;
+#ifdef SIMD_ENABLED
     size_t                                                              numSIMDBlocks;
 #endif
     bool                                                                verbose;
@@ -150,7 +149,7 @@ protected:
     bool                                                                frequencyVariationAcrossSites;
     bool                                                                branchHeterogeneousClockRates;
     bool                                                                branchHeterogeneousFrequencies;
-    
+
     // convenience variables available for derived classes too
     std::set<size_t>                                                    changedNodes;
     std::vector<bool>                                                   dirtyNodes;

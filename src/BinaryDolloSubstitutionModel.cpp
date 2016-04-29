@@ -19,7 +19,8 @@ BinaryDolloSubstitutionModel::BinaryDolloSubstitutionModel(const TypedDagNode<Tr
 
 BinaryDolloSubstitutionModel::BinaryDolloSubstitutionModel(const BinaryDolloSubstitutionModel &n) : BinarySubstitutionModel(n),
     integrationFactors(n.integrationFactors),
-    activeIntegrationOffset(n.activeIntegrationOffset)
+    activeIntegrationOffset(n.activeIntegrationOffset),
+    maskNodeObservationCounts(n.maskNodeObservationCounts)
 {   
 }
 
@@ -33,6 +34,135 @@ BinaryDolloSubstitutionModel* BinaryDolloSubstitutionModel::clone( void ) const
 {
     
     return new BinaryDolloSubstitutionModel( *this );
+}
+
+void BinaryDolloSubstitutionModel::getIncludedSiteIndices( void )
+{
+    correctionMaskCounts.clear();
+    maskObservationCounts.clear();
+    maskNodeObservationCounts.clear();
+    correctionMaskMatrix.clear();
+    site2mask.clear();
+    std::fill(countDistribution.begin(), countDistribution.end(), 0);
+
+    // find the unique site patterns and compute their respective frequencies
+    std::vector<TopologyNode*> nodes = tau->getValue().getNodes();
+    size_t tips = tau->getValue().getNumberOfTips();
+
+    // create a vector with the correct site indices
+    // some of the sites may have been excluded
+    siteIndices.clear();
+    size_t siteIndex = 0;
+    size_t incompatible = 0;
+
+    std::map<std::string, size_t> maskIndices;
+
+    if(coding != AscertainmentBias::ALL)
+    {
+        // if we are using a correction, add a correction mask with 0 gaps.
+        // it is required when simulating data, but not necessarily used
+        // in computing the likelihood (e.g. if all sites have at least one gap)
+
+        std::string gapless(tips, ' ');
+        std::vector<bool> mask(tips, false);
+
+        maskIndices[gapless] = 0;
+
+        correctionMaskCounts.push_back(0);
+        maskNodeObservationCounts.push_back(std::vector<size_t>(nodes.size(), 1));
+        maskObservationCounts.push_back(tips);
+        correctionMaskMatrix.push_back(mask);
+    }
+
+    for (size_t i = 0; i < this->value->getNumberOfCharacters(); ++i)
+    {
+        std::pair<size_t, size_t> charCounts;
+        size_t numGap = 0;
+
+        std::string mask = "";
+        std::vector<bool> maskData;
+        std::vector<size_t> observationCounts(nodes.size(), 1);
+        for (std::vector<TopologyNode*>::iterator it = nodes.begin(); it != nodes.end(); ++it)
+        {
+            if ( (*it)->isTip() )
+            {
+                const BinaryTaxonData* taxon = this->value->getTaxonData( (*it)->getName() );
+                RealNumber c = taxon->getCharacter(siteIndex);
+
+                bool gap = taxon->getGap(siteIndex);
+
+                if(gap)
+                {
+                    if(coding != AscertainmentBias::ALL)
+                        mask += "-";
+                    numGap++;
+                }
+                else
+                {
+                    if(coding != AscertainmentBias::ALL)
+                        mask += " ";
+
+                    if(c == 1.0)
+                        charCounts.second++;
+                    else if(c == 0.0)
+                        charCounts.first++;
+                }
+
+                if(coding != AscertainmentBias::ALL)
+                    maskData.push_back(gap);
+
+                observationCounts[(*it)->getIndex()] = !gap;
+            }
+        }
+
+        if( !isSitePatternCompatible(charCounts, numGap) )
+        {
+            incompatible++;
+        }
+        else
+        {
+            countDistribution[charCounts.second]++;
+
+            siteIndices.push_back(siteIndex);
+
+            if(coding != AscertainmentBias::ALL)
+            {
+                // increase the count for this mask
+                std::map<std::string, size_t>::iterator it = maskIndices.find(mask);
+                if(it != maskIndices.end())
+                {
+                    correctionMaskCounts[it->second]++;
+
+                    site2mask.push_back(maskIndices[mask]);
+                }
+                else
+                {
+                    maskIndices[mask] = correctionMaskCounts.size();
+
+                    site2mask.push_back(maskIndices[mask]);
+
+                    correctionMaskCounts.push_back(1);
+                    maskObservationCounts.push_back(tips - numGap);
+                    maskNodeObservationCounts.push_back(observationCounts);
+                    correctionMaskMatrix.push_back(maskData);
+                }
+            }
+        }
+
+        siteIndex++;
+    }
+
+    // resize our datset to account for the newly excluded characters
+    numSites = siteIndices.size();
+    N = numSites;
+
+    // warn if we have to exclude some incompatible characters
+    if(incompatible > 0 && verbose)
+        std::cerr << "Warning: There are " << incompatible << " characters incompatible with the specified coding bias. These characters will be excluded." << std::endl;
+
+    // readjust the number of correction sites to account for masked sites
+    if(coding != AscertainmentBias::ALL)
+        numCorrectionMasks = correctionMaskCounts.size();
 }
 
 void BinaryDolloSubstitutionModel::resizeLikelihoodVectors( void ) {
@@ -137,27 +267,9 @@ void BinaryDolloSubstitutionModel::computeNodeLikelihood(const TopologyNode &nod
     RealVector::iterator        int_left  = integrationFactors.begin() + activeProbability[left]*activeIntegrationOffset  + left*numSiteRates;  
     RealVector::iterator        int_right = integrationFactors.begin() + activeProbability[right]*activeIntegrationOffset + right*numSiteRates;                    
             
-    //SIMDRegister * leftScaleFactors  = (SIMDRegister *)&*(perNodeSiteLogScalingFactors.begin() + activeLikelihood[left]*activeScalingOffset + left*numAllocatedPatterns);
-    //SIMDRegister * rightScaleFactors = (SIMDRegister *)&*(perNodeSiteLogScalingFactors.begin() + activeLikelihood[right]*activeScalingOffset + right*numAllocatedPatterns);
-    
-    SIMDRegister          m1, m2, m3, m4, mIntL, mIntR, zero;/*, mask, one;
+    SIMDRegister          m1, m2, m3, m4, mIntL, mIntR, zero;
 
-    if(useScaling)
-    {
-#ifdef AVX_ENABLED
-        one = _mm256_set1_ps (1.0);
-        zero = _mm256_set1_ps (0.0);
-#else
-        one = _mm_set1_pX (1.0);
-        zero = _mm_set1_pX (0.0);
-#endif
-    }*/
-    
-#ifdef AVX_ENABLED
-        zero = _mm256_set1_ps (0.0);
-#else
-        zero = _mm_set1_pX (0.0);
-#endif
+        zero = SIMD_SET1 (0.0);
         
 #endif
     
@@ -173,13 +285,8 @@ void BinaryDolloSubstitutionModel::computeNodeLikelihood(const TopologyNode &nod
         
         if(!useScaling)
         {
-#ifdef AVX_ENABLED
-            mIntL = _mm256_broadcast_ss (&int_left[mixture]); 
-            mIntR = _mm256_broadcast_ss (&int_right[mixture]); 
-#else
-            mIntL = _mm_load1_pX (&int_left[mixture]);
-            mIntR = _mm_load1_pX (&int_right[mixture]);
-#endif
+            mIntL = SIMD_LOAD1 (&int_left[mixture]);
+            mIntR = SIMD_LOAD1 (&int_right[mixture]);
         }
         
         for (size_t site = 0; site < numSIMDBlocks ; ++site)
@@ -189,80 +296,39 @@ void BinaryDolloSubstitutionModel::computeNodeLikelihood(const TopologyNode &nod
             SIMDRegister *          p_site_mixture    = (SIMDRegister *)&*(p_node  + offset);
             SIMDRegister *     p_site_mixture_left    = (SIMDRegister *)&*(p_left  + offset);
             SIMDRegister *    p_site_mixture_right    = (SIMDRegister *)&*(p_right + offset);
-            
-#ifdef AVX_ENABLED
+
             /* compute the ancestral map */
-            p_site_mixture[0] = _mm256_mul_ps (p_site_mixture_left[0], p_site_mixture_right[0]);
+            p_site_mixture[0] = SIMD_MUL (p_site_mixture_left[0], p_site_mixture_right[0]);
             
             /* compute the survival probabilities */
-            m1 = _mm256_broadcast_ss (&t_left[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
+            m1 = SIMD_LOAD1 (&t_left[0]);
+            m1 = SIMD_MUL (m1, p_site_mixture_left[0]);
             
-            m2 = _mm256_broadcast_ss (&t_left[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
+            m2 = SIMD_LOAD1 (&t_left[1]);
+            m2 = SIMD_MUL (m2, p_site_mixture_left[1]);
             
-            m3 = _mm256_add_ps (m1, m2);
+            m3 = SIMD_ADD (m1, m2);
             
-            m1 = _mm256_broadcast_ss (&t_right[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
+            m1 = SIMD_LOAD1 (&t_right[0]);
+            m1 = SIMD_MUL (m1, p_site_mixture_right[0]);
             
-            m2 = _mm256_broadcast_ss (&t_right[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
+            m2 = SIMD_LOAD1 (&t_right[1]);
+            m2 = SIMD_MUL (m2, p_site_mixture_right[1]);
             
-            m1 = _mm256_add_ps (m1, m2);
-            p_site_mixture[1] = _mm256_mul_ps (m1, m3);
-            
-            if(!useScaling)
-            {
-                /* compute the integrated likelihood */
-                m1 = _mm256_mul_ps (mIntL, p_site_mixture_left[1]);
-                m1 = _mm256_add_ps (m1, p_site_mixture_left[2]);
-                
-                m2 = _mm256_mul_ps (mIntR, p_site_mixture_right[1]);
-                m2 = _mm256_add_ps (m2, p_site_mixture_right[2]);
-                            
-                //if only one child has descendants, it can potentially be an ancestral node
-                m3 = _mm256_cmp_ps (p_site_mixture_left[0], zero, 0x14);
-                m4 = _mm256_cmp_ps (p_site_mixture_right[0], zero, 0x14);
-                
-                m3 = _mm256_and_ps(m3, m2);
-                m4 = _mm256_and_ps(m4, m1);
-                
-                p_site_mixture[2] = _mm256_add_ps (m3, m4);
-            }
-#else
-            /* compute the ancestral map */
-            p_site_mixture[0] = _mm_mul_pX (p_site_mixture_left[0], p_site_mixture_right[0]);
-            
-            /* compute the survival probabilities */
-            m1 = _mm_load1_pX (&t_left[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm_load1_pX (&t_left[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm_add_pX (m1, m2);
-            
-            m1 = _mm_load1_pX (&t_right[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm_load1_pX (&t_right[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm_add_pX (m1, m2);
-            p_site_mixture[1] = _mm_mul_pX (m1, m3);
+            m1 = SIMD_ADD (m1, m2);
+            p_site_mixture[1] = SIMD_MUL (m1, m3);
             
             if(!useScaling)
             {
                 // sum up the the integrated likelihood terms for ancestral nodes
                 
                 //get the term from the left node
-                m1 = _mm_mul_pX (mIntL, p_site_mixture_left[1]);
-                m1 = _mm_add_pX (m1, p_site_mixture_left[2]);
+                m1 = SIMD_MUL (mIntL, p_site_mixture_left[1]);
+                m1 = SIMD_ADD (m1, p_site_mixture_left[2]);
                 
                 //get the term from the right node
-                m2 = _mm_mul_pX (mIntR, p_site_mixture_right[1]);
-                m2 = _mm_add_pX (m2, p_site_mixture_right[2]);
+                m2 = SIMD_MUL (mIntR, p_site_mixture_right[1]);
+                m2 = SIMD_ADD (m2, p_site_mixture_right[2]);
                 
                 // if only one child has descendants, it can potentially be an ancestral node
                 //
@@ -270,75 +336,15 @@ void BinaryDolloSubstitutionModel::computeNodeLikelihood(const TopologyNode &nod
                 // if p_site_mixture_left[0] > 0  and p_site_mixture_right[0] == 0.0 , then p_site_mixture[2] = m2
                 // if p_site_mixture_left[0] > 0  and p_site_mixture_right[0] > 0.0  , then p_site_mixture[2] = m1 + m2
                 // if p_site_mixture_left[0] == 0 and p_site_mixture_right[0] == 0.0 , then p_site_mixture[2] = 0.0
-                m3 = _mm_cmpneq_pX (p_site_mixture_left[0], zero);
-                m4 = _mm_cmpneq_pX (p_site_mixture_right[0], zero);
+                m3 = SIMD_CMPNEQ (p_site_mixture_left[0], zero);
+                m4 = SIMD_CMPNEQ (p_site_mixture_right[0], zero);
                 
-                m3 = _mm_and_pX(m3, m2);
-                m4 = _mm_and_pX(m4, m1);
+                m3 = SIMD_AND(m3, m2);
+                m4 = SIMD_AND(m4, m1);
                 
-                p_site_mixture[2] = _mm_add_pX (m3, m4);
+                p_site_mixture[2] = SIMD_ADD (m3, m4);
                                 
-            }/* commented for posterity, but this code profiles slower than the sequential alternative
-            else
-            {
-                // use log-sum-exp to sum up the integrated likelihood terms
-                // left 
-                if(left < numTaxa)
-                    m1 = zero;
-                else
-                    m1 = _mm_add_pX ( leftScaleFactors[site], log_pX (p_site_mixture_left[1]) );
-                m1 = _mm_add_pX ( m1, mIntL );
-                
-                m2 = _mm_sub_ps (m1, p_site_mixture_left[2]); // p_site_mixture...[2] will always be max, but could be zero for the first one
-                
-                // exp
-                m2 = exp_ps(m2);
-                // sum
-                m2 = _mm_add_pX(m2, one);
-                // log
-                m2 = log_pX(m2);
-                
-                m2 = _mm_add_pX (m2, p_site_mixture_left[2]);
-                
-                mask = _mm_cmpneq_pX (zero, p_site_mixture_left[2]);
-                m2 = _mm_and_pX(mask, m2);
-                m1 = _mm_andnot_ps(mask, m1);
-                m1 = _mm_add_pX(m1, m2);
-                
-                m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
-                
-                // right 
-                if(right < numTaxa)
-                    m2 = zero;
-                else
-                    m2 = _mm_add_pX ( rightScaleFactors[site], log_pX (p_site_mixture_right[1]) );
-                m2 = _mm_add_pX ( m2, mIntR );
-                
-                m3 = _mm_sub_ps (m2, p_site_mixture_right[2]); // p_site_mixture...[2] will always be max?
-
-                m3 = exp_ps(m3);
-                
-                m3 = _mm_add_pX(m3, one);
-                
-                m3 = log_pX(m3);
-                
-                m3 = _mm_add_pX (m3, p_site_mixture_right[2]);
-
-                mask = _mm_cmpneq_pX (zero, p_site_mixture_right[2]);
-                m3 = _mm_and_pX(mask, m3);
-                m2 = _mm_andnot_ps(mask, m2);
-                m2 = _mm_add_pX(m2, m3);
-                
-                m2 = _mm_mul_pX (m2, p_site_mixture_left[0]);
-                
-                m1 = _mm_add_pX (m1, m2);
-                            
-                //if only one child has descendants, it can potentially be an ancestral node
-                mask = _mm_cmpneq_pX (p_site_mixture_left[0], p_site_mixture_right[0]);
-                
-                p_site_mixture[2] = _mm_and_pX(mask, m1);
-            }*/
-#endif
+            }
 #else   
         // compute the per site probabilities
         for (size_t site = 0; site < numPatterns ; ++site)
@@ -392,11 +398,8 @@ void BinaryDolloSubstitutionModel::computeNodeLikelihood(const TopologyNode &nod
     RealVector::iterator       int_middle = integrationFactors.begin() + activeProbability[middle]*activeIntegrationOffset + middle*numSiteRates; 
         
     SIMDRegister          m1, m2, m3, m4, m5, mIntL, mIntR, mIntM, zero;
-#ifdef AVX_ENABLED
-    zero = _mm256_set1_ps (0.0);
-#else
-    zero = _mm_set1_pX (0.0);
-#endif
+
+    zero = SIMD_SET1 (0.0);
         
 #endif    
     
@@ -413,15 +416,9 @@ void BinaryDolloSubstitutionModel::computeNodeLikelihood(const TopologyNode &nod
         
         if(!useScaling)
         {
-#ifdef AVX_ENABLED
-            mIntL = _mm256_broadcast_ss (&int_left[mixture]); 
-            mIntR = _mm256_broadcast_ss (&int_right[mixture]); 
-            mIntM = _mm256_broadcast_ss (&int_middle[mixture]); 
-#else
-            mIntL = _mm_load1_pX (&int_left[mixture]);
-            mIntR = _mm_load1_pX (&int_right[mixture]);
-            mIntM = _mm_load1_pX (&int_middle[mixture]);
-#endif
+            mIntL = SIMD_LOAD1 (&int_left[mixture]);
+            mIntR = SIMD_LOAD1 (&int_right[mixture]);
+            mIntM = SIMD_LOAD1 (&int_middle[mixture]);
         }
         
         for (size_t site = 0; site < numSIMDBlocks ; ++site)
@@ -432,143 +429,70 @@ void BinaryDolloSubstitutionModel::computeNodeLikelihood(const TopologyNode &nod
             SIMDRegister *     p_site_mixture_left    = (SIMDRegister *)&*(p_left  + offset);
             SIMDRegister *    p_site_mixture_right    = (SIMDRegister *)&*(p_right + offset);
             SIMDRegister *   p_site_mixture_middle    = (SIMDRegister *)&*(p_middle + offset);
-            
-#ifdef AVX_ENABLED
+
             /*compute the ancestral map */
-            p_site_mixture[0] = _mm256_mul_ps (p_site_mixture_left[0], p_site_mixture_right[0]);
-            p_site_mixture[0] = _mm256_mul_ps (p_site_mixture[0], p_site_mixture_middle[0]);
+            p_site_mixture[0] = SIMD_MUL (p_site_mixture_left[0], p_site_mixture_right[0]);
+            p_site_mixture[0] = SIMD_MUL (p_site_mixture[0], p_site_mixture_middle[0]);
             
             /*compute the survival probabilities */
-            m1 = _mm256_broadcast_ss (&t_left[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_left[0]);
+            m1 = SIMD_LOAD1 (&t_left[0]);
+            m1 = SIMD_MUL (m1, p_site_mixture_left[0]);
             
-            m2 = _mm256_broadcast_ss (&t_left[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_left[1]);
+            m2 = SIMD_LOAD1 (&t_left[1]);
+            m2 = SIMD_MUL (m2, p_site_mixture_left[1]);
             
-            m3 = _mm256_add_ps (m1, m2);
+            m3 = SIMD_ADD (m1, m2);
             
             
-            m1 = _mm256_broadcast_ss (&t_right[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_right[0]);
+            m1 = SIMD_LOAD1 (&t_right[0]);
+            m1 = SIMD_MUL (m1, p_site_mixture_right[0]);
             
-            m2 = _mm256_broadcast_ss (&t_right[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_right[1]);
+            m2 = SIMD_LOAD1 (&t_right[1]);
+            m2 = SIMD_MUL (m2, p_site_mixture_right[1]);
             
-            m1 = _mm256_add_ps (m1, m2);
-            m3 = _mm256_mul_ps (m1, m3);
+            m1 = SIMD_ADD (m1, m2);
+            m3 = SIMD_MUL (m1, m3);
             
                         
-            m1 = _mm256_broadcast_ss (&t_middle[0]);
-            m1 = _mm256_mul_ps (m1, p_site_mixture_middle[0]);
+            m1 = SIMD_LOAD1 (&t_middle[0]);
+            m1 = SIMD_MUL (m1, p_site_mixture_middle[0]);
             
-            m2 = _mm256_broadcast_ss (&t_middle[1]);
-            m2 = _mm256_mul_ps (m2, p_site_mixture_middle[1]);
+            m2 = SIMD_LOAD1 (&t_middle[1]);
+            m2 = SIMD_MUL (m2, p_site_mixture_middle[1]);
             
-            m1 = _mm256_add_ps (m1, m2);
-            p_site_mixture[1] = _mm256_mul_ps (m1, m3);    
+            m1 = SIMD_ADD (m1, m2);
+            p_site_mixture[1] = SIMD_MUL (m1, m3);
             
             if(!useScaling)
             {
                 /*compute the integrated likelihood */
-                m1 = _mm256_mul_ps (mIntL, p_site_mixture_left[1]);
-                m1 = _mm256_add_ps (m1, p_site_mixture_left[2]);
+                m1 = SIMD_MUL (mIntL, p_site_mixture_left[1]);
+                m1 = SIMD_ADD (m1, p_site_mixture_left[2]);
                 
-                m2 = _mm256_cmp_ps (p_site_mixture_right[0], zero, 0x14);
-                m3 = _mm256_cmp_ps (p_site_mixture_middle[0], zero, 0x14);
+                m2 = SIMD_CMPNEQ (p_site_mixture_right[0], zero);
+                m3 = SIMD_CMPNEQ (p_site_mixture_middle[0], zero);
                 
-                m4 = _mm256_and_ps(m2, m3);
-                m1 = _mm256_and_ps(m4, m1);
+                m4 = SIMD_AND(m2, m3);
+                m1 = SIMD_AND(m4, m1);
                 
-                m2 = _mm256_mul_ps (mIntR, p_site_mixture_right[1]);
-                m2 = _mm256_add_ps (m2, p_site_mixture_right[2]);
+                m2 = SIMD_MUL (mIntR, p_site_mixture_right[1]);
+                m2 = SIMD_ADD (m2, p_site_mixture_right[2]);
                 
-                m4 = _mm256_cmp_ps (p_site_mixture_left[0], zero, 0x14);
+                m4 = SIMD_CMPNEQ (p_site_mixture_left[0], zero);
                                 
-                m5 = _mm256_and_ps(m3, m4);
-                m2 = _mm256_and_ps(m5, m2);
+                m5 = SIMD_AND(m3, m4);
+                m2 = SIMD_AND(m5, m2);
                 
-                p_site_mixture[2] = _mm256_add_ps(m1, m2);
+                p_site_mixture[2] = SIMD_ADD(m1, m2);
                 
-                m1 = _mm256_mul_ps (mIntM, p_site_mixture_middle[1]);
-                m1 = _mm256_add_ps (m1, p_site_mixture_middle[2]);
+                m1 = SIMD_MUL (mIntM, p_site_mixture_middle[1]);
+                m1 = SIMD_ADD (m1, p_site_mixture_middle[2]);
                 
-                m5 = _mm256_and_ps(m2, m4);
-                m5 = _mm256_and_ps(m5, m1);
+                m5 = SIMD_AND(m2, m4);
+                m5 = SIMD_AND(m5, m1);
                 
-                p_site_mixture[2] = _mm256_add_ps(p_site_mixture[2], m5);
-                
-                /*  if only one child has descendants, then it can potentially be an ancestral node */
-                // if p_site_mixture_left[0] == 0 and p_site_mixture_right[0] > 0.0  and p_site_mixture_middle[0] > 0.0  , then p_site_mixture[2] = m1
-                // if p_site_mixture_left[0] > 0  and p_site_mixture_right[0] == 0.0 and p_site_mixture_middle[0] > 0.0  , then p_site_mixture[2] = m2
-                // if p_site_mixture_left[0] > 0  and p_site_mixture_right[0] > 0.0  and p_site_mixture_middle[0] == 0.0 , then p_site_mixture[2] = m3
-                // if p_site_mixture_left[0] > 0  and p_site_mixture_right[0] > 0.0  and p_site_mixture_middle[0] > 0.0  , then p_site_mixture[2] = m1+m2+m3
-                // otherwise p_site_mixture[2] = 0.0
+                p_site_mixture[2] = SIMD_ADD(p_site_mixture[2], m5);
             }
-#else
-            /*compute the ancestral map */
-            p_site_mixture[0] = _mm_mul_pX (p_site_mixture_left[0], p_site_mixture_right[0]);
-            p_site_mixture[0] = _mm_mul_pX (p_site_mixture[0], p_site_mixture_middle[0]);
-            
-            /*compute the survival probabilities */
-            m1 = _mm_load1_pX (&t_left[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_left[0]);
-            
-            m2 = _mm_load1_pX (&t_left[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_left[1]);
-            
-            m3 = _mm_add_pX (m1, m2);
-            
-            
-            m1 = _mm_load1_pX (&t_right[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_right[0]);
-            
-            m2 = _mm_load1_pX (&t_right[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_right[1]);
-            
-            m1 = _mm_add_pX (m1, m2);
-            m3 = _mm_mul_pX (m1, m3);
-            
-                        
-            m1 = _mm_load1_pX (&t_middle[0]);
-            m1 = _mm_mul_pX (m1, p_site_mixture_middle[0]);
-            
-            m2 = _mm_load1_pX (&t_middle[1]);
-            m2 = _mm_mul_pX (m2, p_site_mixture_middle[1]);
-            
-            m1 = _mm_add_pX (m1, m2);
-            p_site_mixture[1] = _mm_mul_pX (m1, m3);
-            
-            if(!useScaling)
-            {
-                /*compute the integrated likelihood */
-                m1 = _mm_mul_pX (mIntL, p_site_mixture_left[1]);
-                m1 = _mm_add_pX (m1, p_site_mixture_left[2]);
-                
-                m2 = _mm_cmpneq_pX (p_site_mixture_right[0], zero);
-                m3 = _mm_cmpneq_pX (p_site_mixture_middle[0], zero);
-                
-                m4 = _mm_and_pX(m2, m3);
-                m1 = _mm_and_pX(m4, m1);
-                
-                m2 = _mm_mul_pX (mIntR, p_site_mixture_right[1]);
-                m2 = _mm_add_pX (m2, p_site_mixture_right[2]);
-                
-                m4 = _mm_cmpneq_pX (p_site_mixture_left[0], zero);
-                                
-                m5 = _mm_and_pX(m3, m4);
-                m2 = _mm_and_pX(m5, m2);
-                
-                p_site_mixture[2] = _mm_add_pX(m1, m2);
-                
-                m1 = _mm_mul_pX (mIntM, p_site_mixture_middle[1]);
-                m1 = _mm_add_pX (m1, p_site_mixture_middle[2]);
-                
-                m5 = _mm_and_pX(m2, m4);
-                m5 = _mm_and_pX(m5, m1);
-                
-                p_site_mixture[2] = _mm_add_pX(p_site_mixture[2], m5);
-            }
-#endif
 #else        
                                 
         // compute the per site probabilities
@@ -650,6 +574,11 @@ void BinaryDolloSubstitutionModel::computeNodeCorrection(const TopologyNode &nod
 
 void BinaryDolloSubstitutionModel::computeNodeCorrection(const TopologyNode &node, size_t nodeIndex, size_t left, size_t right, size_t middle)
 {
+    for(size_t mask = 0; mask < numCorrectionMasks; mask++)
+    {
+        maskNodeObservationCounts[mask][nodeIndex] = maskNodeObservationCounts[mask][left] + maskNodeObservationCounts[mask][right] + maskNodeObservationCounts[mask][middle];
+    }
+
     // get the pointers to the partial likelihoods for this node and the two descendant subtrees
     RealVector::const_iterator   p_left   = correctionLikelihoods.begin() + activeLikelihood[left]*activeCorrectionOffset + left*correctionNodeOffset;
     RealVector::const_iterator   p_right  = correctionLikelihoods.begin() + activeLikelihood[right]*activeCorrectionOffset + right*correctionNodeOffset;
@@ -715,6 +644,11 @@ void BinaryDolloSubstitutionModel::computeNodeCorrection(const TopologyNode &nod
 
 void BinaryDolloSubstitutionModel::computeNodeCorrection(const TopologyNode &node, size_t nodeIndex, size_t left, size_t right)
 {
+    for(size_t mask = 0; mask < numCorrectionMasks; mask++)
+    {
+        maskNodeObservationCounts[mask][nodeIndex] = maskNodeObservationCounts[mask][left] + maskNodeObservationCounts[mask][right];
+    }
+
     // get the pointers to the partial likelihoods for this node and the two descendant subtrees
     RealVector::const_iterator   p_left  = correctionLikelihoods.begin() + activeLikelihood[left]*activeCorrectionOffset + left*correctionNodeOffset;
     RealVector::const_iterator   p_right = correctionLikelihoods.begin() + activeLikelihood[right]*activeCorrectionOffset + right*correctionNodeOffset;
@@ -830,13 +764,18 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                     	prob += uI_i[0]*sampling;
                     
                     // if there is only one observed tip, then don't double-count singleton gains
-                    if((coding & AscertainmentBias::NOPRESENCESITES) && maskObservationCounts[mask] > 1)
+                    if((coding & AscertainmentBias::NOPRESENCESITES) && maskNodeObservationCounts[mask][nodeIndex] == maskObservationCounts[mask] && maskObservationCounts[mask] > 1)
                         prob += uC_i[1];
                 
                     // if there are only two observed tips, then don't double-count singleton gains
                     // if there is only one observed tip, then don't double-count absence sites
                     if((coding & AscertainmentBias::NOSINGLETONABSENCE) && maskObservationCounts[mask] > 2)
-                        prob += uI_i[1];
+                    {
+                        if(maskNodeObservationCounts[mask][nodeIndex] == maskObservationCounts[mask])
+                            prob += uI_i[1];
+                        else if(maskNodeObservationCounts[mask][nodeIndex] == maskObservationCounts[mask] - 1)
+                            prob += uC_i[1];
+                    }
                     
                     if(useScaling && prob > 0.0)
                     {
@@ -899,85 +838,20 @@ RealNumber BinaryDolloSubstitutionModel::sumUncorrectedRootLikelihood( void )
         SIMDRegister * mTotals = (SIMDRegister *)&per_site_Likelihoods[0];
         SIMDRegister m1,m2,mInt;//,mask,one,zero;
     
-    /*if(useScaling)
-    {
-#ifdef AVX_ENABLED
-        one  = _mm256_set1_ps (1.0);
-        zero = _mm256_set1_ps (0.0);
-#else
-        one  = _mm_set1_pX (1.0);
-        zero = _mm_set1_pX (0.0);
-#endif
-    }
-        SIMDRegister* rootScaleFactors        = (SIMDRegister*)&*(perNodeSiteLogScalingFactors.begin() + activeLikelihood[rootIndex]*activeScalingOffset + rootIndex*numAllocatedPatterns);
-    */
-    
         for (size_t mixture = 0; mixture < numSiteRates; mixture++)
         {
-#ifdef AVX_ENABLED
-            mInt = _mm256_broadcast_ss (&integrationFactor[mixture]); // log-scaled if useScaling
-#else
-            mInt = _mm_load1_pX (&integrationFactor[mixture]); // log-scaled if useScaling
-#endif
+            mInt = SIMD_LOAD1 (&integrationFactor[mixture]); // log-scaled if useScaling
         
             for (size_t site = 0; site < numSIMDBlocks; site++)
             { 
                 // the root node is always an ancestral node
                 SIMDRegister * p_site_mixture = (SIMDRegister *)&*(p_node + mixture*mixtureOffset + site*siteOffset); 
-#ifdef AVX_ENABLED
-                m1 = _mm256_mul_ps(mInt, p_site_mixture[1]);
-                m1 = _mm256_add_ps(m1, p_site_mixture[2]);
+
+                m1 = SIMD_MUL(mInt, p_site_mixture[1]);
+                m1 = SIMD_ADD(m1, p_site_mixture[2]);
                 
-                mTotals[site] = _mm256_add_ps(m1, mTotals[site]);
+                mTotals[site] = SIMD_ADD(m1, mTotals[site]);
             }
-#else
-                //if(!useScaling)
-                //{
-                m1 = _mm_mul_pX(mInt, p_site_mixture[1]);
-                m1 = _mm_add_pX(m1, p_site_mixture[2]);
-                
-                mTotals[site] = _mm_add_pX (m1, mTotals[site]);
-                /*} commented for posterity, but this code profiles slower than the sequential alternative
-                else
-                {
-                    // use log-sum-exp to add the integrated likelihoods
-                    m1 = _mm_add_pX ( rootScaleFactors[site], log_pX (p_site_mixture[1]) );
-                    m1 = _mm_add_pX ( m1, mInt );
-                    
-                    m2 = _mm_sub_ps (m1, p_site_mixture[2]);
-                    
-                    // exp
-                    m2 = exp_ps(m2);
-                    // sum
-                    m2 = _mm_add_pX(m2, one);
-                    // log
-                    m2 = log_pX(m2);
-                    
-                    m2 = _mm_add_pX(m2, p_site_mixture[2]);
-                    
-                    mask = _mm_cmpneq_pX (zero, p_site_mixture[2]);
-                    m2 = _mm_and_pX(mask, m2);
-                    m1 = _mm_andnot_ps(mask, m1);
-                    m1 = _mm_add_pX(m1, m2);
-                    
-                    m2 = _mm_sub_ps (m1, mTotals[site]);
-                    
-                    // exp
-                    m2 = exp_ps(m2);
-                    // sum
-                    m2 = _mm_add_pX(m2, one);
-                    // log
-                    m2 = log_pX(m2);
-                    
-                    m2 = _mm_add_pX(m2, mTotals[site]);
-                    
-                    mask = _mm_cmpneq_pX (zero, mTotals[site]);
-                    m2 = _mm_and_pX(mask, m2);
-                    m1 = _mm_andnot_ps(mask, m1);
-                    mTotals[site] = _mm_add_pX(m1, m2);
-                }*/
-            }
-#endif
         }
 
         for (size_t pattern = 0; pattern < numPatterns; pattern++)
@@ -1163,40 +1037,11 @@ void BinaryDolloSubstitutionModel::scale( size_t nodeIndex, size_t left, size_t 
                 if(mixture == 0)
                     max = p_site_mixture[1];
                 else
-#ifdef AVX_ENABLED
-                    max = _mm256_max_ps(max, p_site_mixture[1]);
-#else
-                    max = _mm_max_pX(max, p_site_mixture[1]);
-#endif
+                    max = SIMD_MAX(max, p_site_mixture[1]);
             }
             
-#ifdef AVX_ENABLED
-            p_scaler[site] = _mm256_add_ps(p_scaler_left[site],p_scaler_right[site]);
-#ifdef DOUBLE_PRECISION
-            SIMDRegister tmp = max;
-            double* ptmp = (double*)&tmp;
-            double* pmax = (double*)&max;
-            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
-            	ptmp[i] = log(pmax[i]);
-
-            p_scaler[site] = _mm256_add_pX(p_scaler[site], tmp);
-#else
-            p_scaler[site] = _mm256_add_pX(p_scaler[site], log256_ps(max));
-#endif
-#else
-            p_scaler[site] = _mm_add_pX(p_scaler_left[site], p_scaler_right[site]);
-#ifdef DOUBLE_PRECISION
-            SIMDRegister tmp = max;
-            double* ptmp = (double*)&tmp;
-            double* pmax = (double*)&max;
-            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
-            	ptmp[i] = log(pmax[i]);
-
-            p_scaler[site] = _mm_add_pX(p_scaler[site], tmp);
-#else
-            p_scaler[site] = _mm_add_pX(p_scaler[site], log_ps(max));
-#endif
-#endif
+            p_scaler[site] = SIMD_ADD(p_scaler_left[site], p_scaler_right[site]);
+            p_scaler[site] = SIMD_ADD(p_scaler[site], SIMD_LOG(max));
 
             // compute the per site probabilities
             for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
@@ -1205,14 +1050,7 @@ void BinaryDolloSubstitutionModel::scale( size_t nodeIndex, size_t left, size_t 
                 size_t offset = mixture*mixtureOffset + site*siteOffset;
 
                 SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
-                bool nop = true;
-#ifdef AVX_ENABLED
-                p_site_mixture[1] = _mm256_div_ps(p_site_mixture[1], max);
-#else
-                
-                p_site_mixture[1] = _mm_div_pX(p_site_mixture[1], max);
-                nop = true;
-#endif
+                p_site_mixture[1] = SIMD_DIV(p_site_mixture[1], max);
 
             }
 #else
@@ -1261,11 +1099,7 @@ void BinaryDolloSubstitutionModel::scale( size_t nodeIndex, size_t left, size_t 
 #ifdef SIMD_ENABLED
         for (size_t site = 0; site < numSIMDBlocks ; ++site)
         {
-#ifdef AVX_ENABLED
-            p_scaler[site] = _mm256_add_ps(p_scaler_left[site],p_scaler_right[site]);
-#else
-            p_scaler[site] = _mm_add_pX(p_scaler_left[site], p_scaler_right[site]);
-#endif
+            p_scaler[site] = SIMD_ADD(p_scaler_left[site], p_scaler_right[site]);
         }
 #else
         for (size_t site = 0; site < numPatterns ; ++site)
@@ -1316,41 +1150,11 @@ void BinaryDolloSubstitutionModel::scale( size_t nodeIndex, size_t left, size_t 
                 if(mixture == 0)
                     max = p_site_mixture[1];
                 else
-#ifdef AVX_ENABLED
-                    max = _mm256_max_ps(max, p_site_mixture[1]);
-#else
-                    max = _mm_max_pX(max, p_site_mixture[1]);
-#endif
+                    max = SIMD_MAX(max, p_site_mixture[1]);
             }
-#ifdef AVX_ENABLED
-            p_scaler[site] = _mm256_add_ps(p_scaler_left[site], p_scaler_right[site]);
-            p_scaler[site] = _mm256_add_ps(p_scaler[site], p_scaler_middle[site]);
-#ifdef DOUBLE_PRECISION
-            SIMDRegister tmp = max;
-            double* ptmp = (double*)&tmp;
-            double* pmax = (double*)&max;
-            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
-            	ptmp[i] = log(pmax[i]);
-
-            p_scaler[site] = _mm256_add_ps(p_scaler[site], tmp);
-#else
-            p_scaler[site] = _mm256_add_ps(p_scaler[site], log256_ps(max));
-#endif
-#else
-            p_scaler[site] = _mm_add_pX(p_scaler_left[site], p_scaler_right[site]);
-            p_scaler[site] = _mm_add_pX(p_scaler[site], p_scaler_middle[site]);
-#ifdef DOUBLE_PRECISION
-            SIMDRegister tmp = max;
-            double* ptmp = (double*)&tmp;
-            double* pmax = (double*)&max;
-            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
-            	ptmp[i] = log(pmax[i]);
-
-            p_scaler[site] = _mm_add_pX(p_scaler[site], tmp);
-#else
-            p_scaler[site] = _mm_add_pX(p_scaler[site], log_pX(max));
-#endif
-#endif
+            p_scaler[site] = SIMD_ADD(p_scaler_left[site], p_scaler_right[site]);
+            p_scaler[site] = SIMD_ADD(p_scaler[site], p_scaler_middle[site]);
+            p_scaler[site] = SIMD_ADD(p_scaler[site], SIMD_LOG(max));
 
             // compute the per site probabilities
             for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
@@ -1359,11 +1163,7 @@ void BinaryDolloSubstitutionModel::scale( size_t nodeIndex, size_t left, size_t 
                 size_t offset = mixture*mixtureOffset + site*siteOffset;
 
                 SIMDRegister *          p_site_mixture = (SIMDRegister*)&*(p_node + offset);
-#ifdef AVX_ENABLED
-                p_site_mixture[1] = _mm256_div_ps(p_site_mixture[1], max);
-#else
-                p_site_mixture[1] = _mm_div_pX(p_site_mixture[1], max);
-#endif
+                p_site_mixture[1] = SIMD_DIV(p_site_mixture[1], max);
 
             }
 #else
@@ -1412,13 +1212,8 @@ void BinaryDolloSubstitutionModel::scale( size_t nodeIndex, size_t left, size_t 
 #ifdef SIMD_ENABLED
         for (size_t site = 0; site < numSIMDBlocks ; ++site)
         {
-#ifdef AVX_ENABLED
-            p_scaler[site] = _mm256_add_ps(p_scaler_left[site], p_scaler_right[site]);
-            p_scaler[site] = _mm256_add_ps(p_scaler[site], p_scaler_middle[site]);
-#else
-            p_scaler[site] = _mm_add_pX(p_scaler_left[site], p_scaler_right[site]);
-            p_scaler[site] = _mm_add_pX(p_scaler[site], p_scaler_middle[site]);
-#endif
+            p_scaler[site] = SIMD_ADD(p_scaler_left[site], p_scaler_right[site]);
+            p_scaler[site] = SIMD_ADD(p_scaler[site], p_scaler_middle[site]);
         }
 #else
         for (size_t site = 0; site < numPatterns ; ++site)
@@ -1449,35 +1244,41 @@ void BinaryDolloSubstitutionModel::scaleCorrection( size_t nodeIndex, size_t lef
             
             for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*4;
+                for (size_t c = 0; c < 4/REALS_PER_SIMD_REGISTER; ++c)
+                {
+                    size_t offset = mixture*correctionMixtureOffset + mask*4 + c*REALS_PER_SIMD_REGISTER;
+
+                    SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
                     
-                SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
-                
-                if(mixture == 0)
-                    max = *u_i;
-                else
-                    max = _mm_max_pX(max, *u_i);
+                    if(mixture == 0)
+                        max = *u_i;
+                    else
+                        max = SIMD_MAX(max, *u_i);
+                }
             }
             
             RealNumber maximum = 0.0;
             
             RealNumber* tmp = (RealNumber*)&max;
             
-            for(size_t i = 0; i < 4; i++)
+            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
                 maximum = std::max(maximum, tmp[i]);
 
             p_scaler[mask] = p_scaler_left[mask] + p_scaler_right[mask] + log(maximum);
             
-            max = _mm_load1_pX(&maximum);
+            max = SIMD_LOAD1(&maximum);
             
             // compute the per site probabilities
             for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*4;
+                for (size_t c = 0; c < 4/REALS_PER_SIMD_REGISTER; ++c)
+                {
+                    size_t offset = mixture*correctionMixtureOffset + mask*4 + c*REALS_PER_SIMD_REGISTER;
+
+                    SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
                     
-                SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
-                
-                *u_i = _mm_div_pX(*u_i, max);
+                    *u_i = SIMD_DIV(*u_i, max);
+                }
             }
         }
 #else
@@ -1554,36 +1355,42 @@ void BinaryDolloSubstitutionModel::scaleCorrection( size_t nodeIndex, size_t lef
             
             for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*4;
-                    
-                SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
+                for (size_t c = 0; c < 4/REALS_PER_SIMD_REGISTER; ++mixture)
+                {
+                    size_t offset = mixture*correctionMixtureOffset + mask*4 + c*REALS_PER_SIMD_REGISTER;
 
-                if(mixture == 0)
-                    max = *u_i;
-                else
-                    max = _mm_max_pX(max, *u_i);
+                    SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
+
+                    if(mixture == 0)
+                        max = *u_i;
+                    else
+                        max = SIMD_MAX(max, *u_i);
+                }
             }
             
             RealNumber maximum = 0.0;
             
             RealNumber* tmp = (RealNumber*)&max;
             
-            for(size_t i = 0; i < 4; i++)
+            for(size_t i = 0; i < REALS_PER_SIMD_REGISTER; i++)
                 maximum = std::max(maximum, tmp[i]);
 
             p_scaler[mask] = p_scaler_left[mask] + p_scaler_right[mask] + p_scaler_middle[mask] + log(maximum);
             
 
-            max = _mm_load1_pX(&maximum);
+            max = SIMD_LOAD1(&maximum);
             
             // compute the per site probabilities
             for (size_t mixture = 0; mixture < numSiteRates; ++mixture)
             {
-                size_t offset = mixture*correctionMixtureOffset + mask*4;
+                for (size_t c = 0; c < 4/REALS_PER_SIMD_REGISTER; ++c)
+                {
+                    size_t offset = mixture*correctionMixtureOffset + mask*4 + c*REALS_PER_SIMD_REGISTER;
+
+                    SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
                     
-                SIMDRegister *   u_i  = (SIMDRegister *)&*(p_node  + offset);
-                
-                *u_i = _mm_div_pX(*u_i, max);
+                    *u_i = SIMD_DIV(*u_i, max);
+                }
             }
         }
 #else
@@ -1848,10 +1655,11 @@ void BinaryDolloSubstitutionModel::simulate( const TopologyNode &node, std::vect
     for (std::vector< TopologyNode* >::const_iterator it = children.begin(); it != children.end(); ++it)
     {
         const TopologyNode &child = *(*it);
+        size_t childIndex = child.getIndex();
 
-        RealVector::iterator pi = transitionProbabilities.begin() + activeProbability[nodeIndex]*tActiveOffset + nodeIndex*tNodeOffset + rateIndex*tMixtureOffset;
+        RealVector::iterator pi = transitionProbabilities.begin() + activeProbability[childIndex]*tActiveOffset + childIndex*tNodeOffset + rateIndex*tMixtureOffset;
         
-        RealNumber& childState = data[ child.getIndex() ];
+        RealNumber& childState = data[ childIndex ];
         
         childState = 1.0;
         
@@ -1860,7 +1668,7 @@ void BinaryDolloSubstitutionModel::simulate( const TopologyNode &node, std::vect
             //random survival at tips
             if(continuous)
             {
-                childState = pi[1]/(pi[0] + pi[1]);
+                childState = pi[1];
             }
             else
             {
@@ -1870,7 +1678,7 @@ void BinaryDolloSubstitutionModel::simulate( const TopologyNode &node, std::vect
             }
             
             // count if survived at tip
-            if(childState == 1.0)
+            if(childState > 0.0)
                 charCounts.second++;
         }
         else
