@@ -16,17 +16,12 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3 -O3 ${OpenMP_C_FLAGS}")
 
 #-Wa,-q -mavx 
 
-
-set(REVBAYES_DIR ${CMAKE_SOURCE_DIR}/revbayes)
-set(BIPHY_DIR ${CMAKE_SOURCE_DIR}/src)
-
-add_subdirectory(revbayes)
-include_directories(${RBCORE_INCLUDES})
+set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(src)
-include_directories(src)
+include_directories(${SRC_INCLUDES})
 
 set(TARGET_NAME "biphy")
-add_executable(${TARGET_NAME} ${BIPHY_DIR}/main.cpp)
+add_executable(${TARGET_NAME} ${SRC_DIR}/main.cpp)
 set_target_properties(${TARGET_NAME} PROPERTIES PREFIX "../")
-target_link_libraries(${TARGET_NAME} rb-core biphy-lib gomp)
+target_link_libraries(${TARGET_NAME} biphy-core gomp)

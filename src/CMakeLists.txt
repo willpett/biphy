@@ -1,20 +1,262 @@
-set(BIPHY_FILES
-${BIPHY_DIR}/BinarySubstitutionModel.cpp
-${BIPHY_DIR}/BinaryDolloSubstitutionModel.cpp
-${BIPHY_DIR}/Biphy.cpp
-${BIPHY_DIR}/CladeReader.cpp
-${BIPHY_DIR}/MultiMove.cpp
-${BIPHY_DIR}/NewickTreeMonitor.cpp
-${BIPHY_DIR}/NexusTreeMonitor.cpp
-${BIPHY_DIR}/TruncatedDistributionUnnormalized.cpp
-${BIPHY_DIR}/UniformTopologyDistribution.cpp
-${BIPHY_DIR}/NegativeBinomialDistribution.cpp
-${BIPHY_DIR}/NewickTreeMonitor.cpp
-${BIPHY_DIR}/NexusTreeMonitor.cpp
-${BIPHY_DIR}/CrossValidationScoreMonitor.cpp
-${BIPHY_DIR}/PosteriorPredictiveStateFrequencyMonitor.cpp
-${BIPHY_DIR}/PosteriorPredictiveCountDistributionMonitor.cpp
-${BIPHY_DIR}/MappingMonitor.cpp
+set(INCLUDE_DIRS
+    ${SRC_DIR}
+    ${SRC_DIR}/core
+    ${SRC_DIR}/core/math
+    ${SRC_DIR}/core/math/distributions
+    ${SRC_DIR}/core/monitors
+    ${SRC_DIR}/core/io
+    ${SRC_DIR}/core/moves
+    ${SRC_DIR}/core/moves/mixture
+    ${SRC_DIR}/core/moves/simple
+    ${SRC_DIR}/core/ncl
+    ${SRC_DIR}/core/functions
+    ${SRC_DIR}/core/functions/discrete
+    ${SRC_DIR}/core/functions/builtin
+    ${SRC_DIR}/core/functions/distribution
+    ${SRC_DIR}/core/functions/continuous
+    ${SRC_DIR}/core/functions/continuous/bivariate
+    ${SRC_DIR}/core/functions/phylogenetics
+    ${SRC_DIR}/core/utils
+    ${SRC_DIR}/core/dag
+    ${SRC_DIR}/core/dag/StochasticNodes
+    ${SRC_DIR}/core/dag/DeterministicNodes
+    ${SRC_DIR}/core/statistics
+    ${SRC_DIR}/core/statistics/mixture
+    ${SRC_DIR}/core/statistics/tree
+    ${SRC_DIR}/core/datatypes
+    ${SRC_DIR}/core/datatypes/characterhistory
+    ${SRC_DIR}/core/datatypes/math
+    ${SRC_DIR}/core/datatypes/character
+    ${SRC_DIR}/core/datatypes/phylogenetics
+    ${SRC_DIR}/core/datatypes/phylogenetics/ratematrix
+    ${SRC_DIR}/core/datatypes/phylogenetics/ratemap
+    ${SRC_DIR}/core/datatypes/trees
+    ${SRC_DIR}/core/analysis
+    ${SRC_DIR}/core/analysis/mcmc
+    ${SRC_DIR}/core/distributions
+    ${SRC_DIR}/core/distributions/math
 )
-add_library(biphy-lib ${BIPHY_FILES})
-target_link_libraries(biphy-lib rb-core)
+set(SRC_INCLUDES ${INCLUDE_DIRS} PARENT_SCOPE)
+include_directories(${INCLUDE_DIRS})
+set(LIB_FILES
+${SRC_DIR}/BinarySubstitutionModel.cpp
+${SRC_DIR}/BinaryDolloSubstitutionModel.cpp
+${SRC_DIR}/Biphy.cpp
+${SRC_DIR}/core
+${SRC_DIR}/core/math
+${SRC_DIR}/core/math/RandomNumberGenerator.cpp
+${SRC_DIR}/core/math/MathHelper.h
+${SRC_DIR}/core/math/MathHelper.cpp
+${SRC_DIR}/core/math/MathFunctions.h
+${SRC_DIR}/core/math/RandomNumberFactory.cpp
+${SRC_DIR}/core/math/MathVector.h
+${SRC_DIR}/core/math/MathVector.cpp
+${SRC_DIR}/core/math/StatisticsHelper.h
+${SRC_DIR}/core/math/MathCombinatorialFunctions.h
+${SRC_DIR}/core/math/MathLogic.cpp
+${SRC_DIR}/core/math/RandomNumberGenerator.h
+${SRC_DIR}/core/math/MathCombinatorialFunctions.cpp
+${SRC_DIR}/core/math/MathFunctions.cpp
+${SRC_DIR}/core/math/RandomNumberFactory.h
+${SRC_DIR}/core/math/StatisticsHelper.cpp
+${SRC_DIR}/core/math/distributions
+${SRC_DIR}/core/math/distributions/DistributionBinomial.h
+${SRC_DIR}/core/math/distributions/DistributionBinomial.cpp
+${SRC_DIR}/core/math/distributions/DistributionNegativeBinomial.h
+${SRC_DIR}/core/math/distributions/DistributionNegativeBinomial.cpp
+${SRC_DIR}/core/math/distributions/DistributionDirichlet.h
+${SRC_DIR}/core/math/distributions/DistributionBeta.h
+${SRC_DIR}/core/math/distributions/DistributionDirichlet.cpp
+${SRC_DIR}/core/math/distributions/DistributionUniform.cpp
+${SRC_DIR}/core/math/distributions/DistributionGamma.cpp
+${SRC_DIR}/core/math/distributions/DistributionUniform.h
+${SRC_DIR}/core/math/distributions/DistributionBeta.cpp
+${SRC_DIR}/core/math/distributions/DistributionNormal.h
+${SRC_DIR}/core/math/distributions/DistributionExponential.h
+${SRC_DIR}/core/math/distributions/DistributionNormal.cpp
+${SRC_DIR}/core/math/distributions/DistributionGamma.h
+${SRC_DIR}/core/math/distributions/DistributionPoisson.cpp
+${SRC_DIR}/core/math/distributions/DistributionPoisson.h
+${SRC_DIR}/core/math/distributions/DistributionExponential.cpp
+${SRC_DIR}/core/math/MathLogic.h
+${SRC_DIR}/core/monitors
+${SRC_DIR}/core/monitors/ScreenMonitor.h
+${SRC_DIR}/core/monitors/FileMonitor.h
+${SRC_DIR}/core/monitors/Monitor.h
+${SRC_DIR}/core/monitors/FileMonitor.cpp
+${SRC_DIR}/core/monitors/Monitor.cpp
+${SRC_DIR}/core/monitors/ScreenMonitor.cpp
+${SRC_DIR}/core/monitors/NewickTreeMonitor.cpp
+${SRC_DIR}/core/monitors/NexusTreeMonitor.cpp
+${SRC_DIR}/core/monitors/CrossValidationScoreMonitor.cpp
+${SRC_DIR}/core/monitors/PosteriorPredictiveStateFrequencyMonitor.cpp
+${SRC_DIR}/core/monitors/PosteriorPredictiveCountDistributionMonitor.cpp
+${SRC_DIR}/core/monitors/MappingMonitor.cpp
+${SRC_DIR}/core/monitors/NewickTreeMonitor.cpp
+${SRC_DIR}/core/monitors/NexusTreeMonitor.cpp
+${SRC_DIR}/core/io
+${SRC_DIR}/core/io/BinaryCharacterDataReader.h
+${SRC_DIR}/core/io/BinaryCharacterDataReader.cpp
+${SRC_DIR}/core/io/FastaWriter.cpp
+${SRC_DIR}/core/io/NewickTreeReader.cpp
+${SRC_DIR}/core/io/NewickTreeReader.h
+${SRC_DIR}/core/io/NewickConverter.cpp
+${SRC_DIR}/core/io/DelimitedDataReader.h
+${SRC_DIR}/core/io/DelimitedDataReader.cpp
+${SRC_DIR}/core/io/FastaWriter.h
+${SRC_DIR}/core/io/NewickConverter.h
+${SRC_DIR}/core/io/CladeReader.cpp
+${SRC_DIR}/core/io/CladeReader.h
+${SRC_DIR}/core/moves
+${SRC_DIR}/core/moves/mixture
+${SRC_DIR}/core/moves/mixture/MixtureAllocationMove.h
+${SRC_DIR}/core/moves/SequenctialMoveSchedule.h
+${SRC_DIR}/core/moves/MoveSchedule.cpp
+${SRC_DIR}/core/moves/SingleRandomMoveSchedule.cpp
+${SRC_DIR}/core/moves/AbstractMove.h
+${SRC_DIR}/core/moves/Move.h
+${SRC_DIR}/core/moves/AbstractMove.cpp
+${SRC_DIR}/core/moves/SequenctialMoveSchedule.cpp
+${SRC_DIR}/core/moves/MoveSchedule.h
+${SRC_DIR}/core/moves/Move.cpp
+${SRC_DIR}/core/moves/RandomMoveSchedule.cpp
+${SRC_DIR}/core/moves/Proposal.h
+${SRC_DIR}/core/moves/RandomMoveSchedule.h
+${SRC_DIR}/core/moves/TreePoposal.h
+${SRC_DIR}/core/moves/MultiMove.cpp
+${SRC_DIR}/core/moves/MultiMove.h
+${SRC_DIR}/core/moves/simple
+${SRC_DIR}/core/moves/simple/SimpleMove.h
+${SRC_DIR}/core/moves/simple/SimplexMove.h
+${SRC_DIR}/core/moves/simple/SimplexSingleElementScale.h
+${SRC_DIR}/core/moves/simple/SubtreePruneRegraft.h
+${SRC_DIR}/core/moves/simple/SubtreePruneRegraft.cpp
+${SRC_DIR}/core/moves/simple/SimplexMove.cpp
+${SRC_DIR}/core/moves/simple/ScaleMove.cpp
+${SRC_DIR}/core/moves/simple/SlidingMove.cpp
+${SRC_DIR}/core/moves/simple/SimpleMove.cpp
+${SRC_DIR}/core/moves/simple/ScaleMove.h
+${SRC_DIR}/core/moves/simple/BetaSimplexMove.h
+${SRC_DIR}/core/moves/simple/BetaSimplexMove.cpp
+${SRC_DIR}/core/moves/simple/SimplexSingleElementScale.cpp
+${SRC_DIR}/core/moves/SingleRandomMoveSchedule.h
+${SRC_DIR}/core/functions
+${SRC_DIR}/core/functions/discrete
+${SRC_DIR}/core/functions/discrete/ConstantFunction.h
+${SRC_DIR}/core/functions/discrete/DiscreteFunction.h
+${SRC_DIR}/core/functions/builtin
+${SRC_DIR}/core/functions/builtin/MeanFunction.cpp
+${SRC_DIR}/core/functions/builtin/NormalizeVectorFunction.cpp
+${SRC_DIR}/core/functions/builtin/MeanFunction.h
+${SRC_DIR}/core/functions/builtin/NormalizeVectorFunction.h
+${SRC_DIR}/core/functions/builtin/EntropyFunction.h
+${SRC_DIR}/core/functions/builtin/EntropyFunction.cpp
+${SRC_DIR}/core/functions/Function.cpp
+${SRC_DIR}/core/functions/distribution
+${SRC_DIR}/core/functions/distribution/DiscreteBetaValuesFunction.h
+${SRC_DIR}/core/functions/distribution/DiscreteBetaValuesFunction.cpp
+${SRC_DIR}/core/functions/distribution/QuantileFunction.h
+${SRC_DIR}/core/functions/distribution/QuantileFunction.cpp
+${SRC_DIR}/core/functions/continuous
+${SRC_DIR}/core/functions/continuous/bivariate
+${SRC_DIR}/core/functions/continuous/bivariate/BinaryDivision.h
+${SRC_DIR}/core/functions/continuous/bivariate/BinaryAddition.h
+${SRC_DIR}/core/functions/continuous/bivariate/BinarySubtraction.h
+${SRC_DIR}/core/functions/continuous/bivariate/BinaryMultiplication.h
+${SRC_DIR}/core/functions/continuous/ContinuousFunction.cpp
+${SRC_DIR}/core/functions/continuous/ContinuousFunction.h
+${SRC_DIR}/core/functions/continuous/LogitFunction.h
+${SRC_DIR}/core/functions/TypedFunction.h
+${SRC_DIR}/core/functions/Function.h
+${SRC_DIR}/core/functions/VectorFunction.h
+${SRC_DIR}/core/functions/VectorIndexOperator.h
+${SRC_DIR}/core/utils
+${SRC_DIR}/core/utils/FileManager.cpp
+${SRC_DIR}/core/utils/FileManager.h
+${SRC_DIR}/core/utils/Constants.h
+${SRC_DIR}/core/utils/Options.h
+${SRC_DIR}/core/utils/Settings.h
+${SRC_DIR}/core/utils/Exception.h
+${SRC_DIR}/core/utils/StringUtilities.h
+${SRC_DIR}/core/utils/Exception.cpp
+${SRC_DIR}/core/utils/StringUtilities.cpp
+${SRC_DIR}/core/utils/TreeUtilities.cpp
+${SRC_DIR}/core/utils/Utilities.cpp
+${SRC_DIR}/core/utils/Utilities.h
+${SRC_DIR}/core/utils/numerics.h
+${SRC_DIR}/core/utils/avx_mathfun.h
+${SRC_DIR}/core/utils/sse_mathfun.h
+${SRC_DIR}/core/utils/Settings.cpp
+${SRC_DIR}/core/utils/TreeUtilities.h
+${SRC_DIR}/core/utils/IsDerivedFrom.h
+${SRC_DIR}/core/dag
+${SRC_DIR}/core/dag/DynamicNode.h
+${SRC_DIR}/core/dag/TypedDagNode.h
+${SRC_DIR}/core/dag/DagNode.h
+${SRC_DIR}/core/dag/DagNode.cpp
+${SRC_DIR}/core/dag/StochasticNodes
+${SRC_DIR}/core/dag/StochasticNodes/ContinuousStochasticNode.cpp
+${SRC_DIR}/core/dag/StochasticNodes/StochasticNode.h
+${SRC_DIR}/core/dag/StochasticNodes/ContinuousStochasticNode.h
+${SRC_DIR}/core/dag/ConstantNode.h
+${SRC_DIR}/core/dag/DeterministicNodes
+${SRC_DIR}/core/dag/DeterministicNodes/DeterministicNode.h
+${SRC_DIR}/core/statistics
+${SRC_DIR}/core/statistics/tree
+${SRC_DIR}/core/statistics/tree/TreeLengthStatistic.h
+${SRC_DIR}/core/datatypes
+${SRC_DIR}/core/datatypes/Cloner.h
+${SRC_DIR}/core/datatypes/phylogenetics
+${SRC_DIR}/core/datatypes/phylogenetics/BinaryCharacterData.h
+${SRC_DIR}/core/datatypes/phylogenetics/BinaryCharacterData.cpp
+${SRC_DIR}/core/datatypes/phylogenetics/BinaryTaxonData.h
+${SRC_DIR}/core/datatypes/phylogenetics/BinaryTaxonData.cpp
+${SRC_DIR}/core/datatypes/phylogenetics/ContinuousBinaryCharacterData.h
+${SRC_DIR}/core/datatypes/phylogenetics/ContinuousBinaryCharacterData.cpp
+${SRC_DIR}/core/datatypes/phylogenetics/DiscreteBinaryTaxonData.h
+${SRC_DIR}/core/datatypes/phylogenetics/DiscreteBinaryTaxonData.cpp
+${SRC_DIR}/core/datatypes/phylogenetics/ContinuousBinaryTaxonData.h
+${SRC_DIR}/core/datatypes/phylogenetics/ContinuousBinaryTaxonData.cpp
+${SRC_DIR}/core/datatypes/Cloneable.h
+${SRC_DIR}/core/datatypes/trees
+${SRC_DIR}/core/datatypes/trees/TreeChangeEventHandler.h
+${SRC_DIR}/core/datatypes/trees/TreeChangeEventListener.h
+${SRC_DIR}/core/datatypes/trees/Clade.h
+${SRC_DIR}/core/datatypes/trees/Tree.cpp
+${SRC_DIR}/core/datatypes/trees/TreeChangeEventHandler.cpp
+${SRC_DIR}/core/datatypes/trees/Clade.cpp
+${SRC_DIR}/core/datatypes/trees/TopologyNode.cpp
+${SRC_DIR}/core/datatypes/trees/Tree.h
+${SRC_DIR}/core/datatypes/trees/TopologyNode.h
+${SRC_DIR}/core/analysis
+${SRC_DIR}/core/analysis/mcmc
+${SRC_DIR}/core/analysis/mcmc/Mcmc.cpp
+${SRC_DIR}/core/analysis/mcmc/ParallelMcmcmc.cpp
+${SRC_DIR}/core/analysis/mcmc/Mcmc.h
+${SRC_DIR}/core/analysis/mcmc/ParallelMcmcmc.h
+${SRC_DIR}/core/analysis/Model.h
+${SRC_DIR}/core/analysis/Model.cpp
+${SRC_DIR}/core/distributions
+${SRC_DIR}/core/distributions/math
+${SRC_DIR}/core/distributions/math/ContinuousDistribution.h
+${SRC_DIR}/core/distributions/math/DirichletDistribution.h
+${SRC_DIR}/core/distributions/math/ContinuousDistribution.cpp
+${SRC_DIR}/core/distributions/math/GammaDistribution.cpp
+${SRC_DIR}/core/distributions/math/GammaDistribution.h
+${SRC_DIR}/core/distributions/math/UniformDistribution.cpp
+${SRC_DIR}/core/distributions/math/ExponentialDistribution.h
+${SRC_DIR}/core/distributions/math/DirichletDistribution.cpp
+${SRC_DIR}/core/distributions/math/ExponentialDistribution.cpp
+${SRC_DIR}/core/distributions/math/BetaDistribution.h
+${SRC_DIR}/core/distributions/math/BetaDistribution.cpp
+${SRC_DIR}/core/distributions/math/NormalDistribution.h
+${SRC_DIR}/core/distributions/math/NormalDistribution.cpp
+${SRC_DIR}/core/distributions/math/NegativeBinomialDistribution.cpp
+${SRC_DIR}/core/distributions/Distribution.h
+${SRC_DIR}/core/distributions/Distribution.cpp
+${SRC_DIR}/core/distributions/MixtureDistribution.h
+${SRC_DIR}/core/distributions/TypedDistribution.h
+${SRC_DIR}/core/distributions/TruncatedDistributionUnnormalized.cpp
+${SRC_DIR}/core/distributions/UniformTopologyDistribution.cpp
+)
+add_library(biphy-core ${LIB_FILES})
