@@ -6,6 +6,7 @@
 #include "BinaryDivision.h"
 #include "BinaryDolloSubstitutionModel.h"
 #include "BinarySubstitutionModel.h"
+#include "BranchLengthFrequencyCompensatoryMove.h"
 #include "ConstantFunction.h"
 #include "CladeReader.h"
 #include "CrossValidationScoreMonitor.h"
@@ -686,6 +687,11 @@ void Biphy::initModel( void ) {
 
 			for (size_t i = 0 ; i < numBranches ; i ++ )
 				moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0*log(1.6), true, 0.3846/float(numBranches) ) );
+
+			if(modeltype == ModelPrior::HOMOGENEOUS)
+			{
+			    moves.push_back( new BranchLengthFrequencyCompensatoryMove((StochasticNode<double>*)phi, branchRates_nonConst, 1.0, true, 0.02 ) );
+			}
 		}
 		else if(branchprior == BranchPrior::DIRICHLET)
 		{
