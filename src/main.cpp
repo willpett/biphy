@@ -414,23 +414,23 @@ int main (int argc, const char * argv[])
 		cerr << "\nOptional constraints:\n";
 		cerr << "\t-t <file>\tfixed tree filename\n";
 		cerr << "\t-o <file>\toutgroup clade file\n";
-		cerr << "\t-rigid\trigid root frequency for heterogeneous models\n";
+		cerr << "\t-rigid\t\trigid root frequency for heterogeneous models\n";
 		cerr << "\t-rp <min> <max>\ttruncate root frequency on (min,max) (asymmetric reversible models only)\n";
 
 		cerr << "\nMCMCMC options:\n";
 		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
 		cerr << "\t-si <int>\tchain swap interval (default = 1)\n";
-		cerr << "\t-delta <float>\t(default = 0.1)\n";
-		cerr << "\t-sigma <float>\t(default = 1)\n";
+		cerr << "\t-delta <float>\t(default = 0.05)\n";
 
 		cerr << "\nOutput options:\n";
 		cerr << "\t-s\t\tdo not save entire output\n";
 		cerr << "\t-e\t\tsave nexus treefile\n";
 
 		cerr << "\nStream-reading options:\n";
-		cerr << "\t-ppred <int>\t\tposterior predictive simulation (0 or 1)\n";
+		cerr << "\t-ppred <int>\tposterior predictive simulation (0 or 1)\n";
 		cerr << "\t-cv <file>\tcross-validation test alignment\n";
 		cerr << "\t-a\t\tsimulate ancestral states\n";
+		cerr << "\t-ss <int>\tinitialize steppingstone sampler with <int> chains\n";
 
 		exit(1);
 	}
