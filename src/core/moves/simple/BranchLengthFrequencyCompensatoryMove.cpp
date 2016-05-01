@@ -79,12 +79,7 @@ double BranchLengthFrequencyCompensatoryMove::performSimpleMove( void )
     double u = rng->uniform01();
     double m = std::exp( lambda * ( u - 0.5 ) );
 
-    double scalingFactor = (1.0 + val*(m - 1.0));
-
-    // compute the Hastings ratio
-    double lnHastingsratio = 2.0*log(m) + log( m - val * (1.0 - val)*(m - 1.0)*(m - 1.0));
-    lnHastingsratio -= (branchlengths.size() - 4)*log(scalingFactor);
-    lnHastingsratio = abs(lnHastingsratio);
+    double scalingFactor = 1.0 + val*(m - 1.0);
 
     // set the new frequency
     val *= m/scalingFactor;
@@ -99,6 +94,9 @@ double BranchLengthFrequencyCompensatoryMove::performSimpleMove( void )
         branchlengths[i]->touch();
     }
     
+    // compute the Hastings ratio
+    double lnHastingsratio = log(m) + (branchlengths.size() - 2)*log(abs(scalingFactor));
+
     return lnHastingsratio;
 }
 
