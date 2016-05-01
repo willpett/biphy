@@ -24,6 +24,7 @@
 #include "NewickTreeReader.h"
 #include "NormalDistribution.h"
 #include "NormalizeVectorFunction.h"
+#include "PartialVectorScaleMove.h"
 #include "PerSiteLnProbMonitor.h"
 #include "PosteriorPredictiveStateFrequencyMonitor.h"
 #include "PosteriorPredictiveCountDistributionMonitor.h"
@@ -688,6 +689,11 @@ void Biphy::initModel( void ) {
 				moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0*log(1.6), true, 0.3846/float(numBranches) ) );
 
 			moves.push_back( new VectorScaleMove(branchRates_nonConst, log(1.6), true, 0.3846/float(numBranches) ) );
+
+			if(modeltype == ModelPrior::HOMOGENEOUS)
+			{
+			    moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)phi, branchRates_nonConst, 0.2, true, 0.3846/float(numBranches) ) );
+			}
 		}
 		else if(branchprior == BranchPrior::DIRICHLET)
 		{
