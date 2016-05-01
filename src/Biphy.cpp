@@ -688,11 +688,11 @@ void Biphy::initModel( void ) {
 			for (size_t i = 0 ; i < numBranches ; i ++ )
 				moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0*log(1.6), true, 0.3846/float(numBranches) ) );
 
-			moves.push_back( new VectorScaleMove(branchRates_nonConst, log(1.6), true, 0.3846/14 ) );
+			moves.push_back( new VectorScaleMove(branchRates_nonConst, log(1.6), true, 0.3846/10 ) );
 
 			if(modeltype == ModelPrior::HOMOGENEOUS)
 			{
-			    moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)phi, branchRates_nonConst, 0.2, true, 0.3846/7 ) );
+			    moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)phi, branchRates_nonConst, 0.2, true, 0.3846/10 ) );
 			}
 		}
 		else if(branchprior == BranchPrior::DIRICHLET)
