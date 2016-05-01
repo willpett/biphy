@@ -688,11 +688,11 @@ void Biphy::initModel( void ) {
 			for (size_t i = 0 ; i < numBranches ; i ++ )
 				moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0*log(1.6), true, 0.3846/float(numBranches) ) );
 
-			moves.push_back( new VectorScaleMove(branchRates_nonConst, log(1.6), true, 0.3846/float(numBranches) ) );
+			moves.push_back( new VectorScaleMove(branchRates_nonConst, log(1.6), true, 0.3846/14 ) );
 
 			if(modeltype == ModelPrior::HOMOGENEOUS)
 			{
-			    moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)phi, branchRates_nonConst, 0.2, true, 0.3846/float(numBranches) ) );
+			    moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)phi, branchRates_nonConst, 0.2, true, 0.3846/7 ) );
 			}
 		}
 		else if(branchprior == BranchPrior::DIRICHLET)
@@ -710,7 +710,7 @@ void Biphy::initModel( void ) {
 		monitoredNodes.push_back( mu );
 	}
 
-    if(modeltype > ModelPrior::HOMOGENEOUS)
+        if(modeltype > ModelPrior::HOMOGENEOUS)
 	{
 		for (size_t i = 0 ; i < numNodes ; i ++ )
 		{
@@ -720,20 +720,25 @@ void Biphy::initModel( void ) {
 				)
 			{
 				if(modeltype == ModelPrior::HIERARCHICAL)
-					moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 100.0, true, 0.5*0.0096/float(numBranches) ) );
+				{
+					moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 100.0, true, 0.5*0.096/float(numBranches) ) );
+					moves.push_back( new SlidingMove((StochasticNode<double>*)pi_stat[i], 0.05, true, 0.5*0.096/float(numBranches) ) );
+				}
 				else if(modeltype == ModelPrior::MIXTURE)
 					moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)pi_stat[i], 0.02 ) );
 			}
 		}
 	}
 
-    if(modeltype == ModelPrior::HOMOGENEOUS || (modeltype > ModelPrior::HOMOGENEOUS && (rootprior == RootPrior::TRUNCATED || rootprior == RootPrior::RIGID)) )
+        if(modeltype == ModelPrior::HOMOGENEOUS || (modeltype > ModelPrior::HOMOGENEOUS && (rootprior == RootPrior::TRUNCATED || rootprior == RootPrior::RIGID)) )
 	{
 		if(modeltype == ModelPrior::MIXTURE)
 			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 0.02 ) );
 		else
-			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1000.0, true, 0.02 ) );
-
+		{
+			moves.push_back( new SlidingMove((StochasticNode<double>*)phi, 0.2, true, 0.05 ) );
+			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1000.0, true, 0.1 ) );
+		}
 		if(modeltype == ModelPrior::HOMOGENEOUS || rootprior == RootPrior::RIGID || rootprior == RootPrior::TRUNCATED)
 			monitoredNodes.push_back( phi );
 	}
@@ -761,6 +766,7 @@ void Biphy::initModel( void ) {
         if(modeltype == ModelPrior::MIXTURE){
 			for (size_t i = 0 ; i < mixture; i ++ ) {
 				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 1000.0, true, 0.02 ) );
+				moves.push_back( new SlidingMove((StochasticNode<double>*)pi_cats[i], 0.2, true, 0.02 ) );
 			}
 			moves.push_back( new SimplexMove((StochasticNode<std::vector<double> >*)mix_probs, 10.0, mixture, 0.0, true, 0.02 ) );
 

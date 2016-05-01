@@ -23,12 +23,12 @@
 #include <string>
 
 #include "SimpleMove.h"
-#include "ContinuousStochasticNode.h"
+#include "StochasticNode.h"
 
 class SlidingMove : public SimpleMove {
 
     public:
-                                    SlidingMove( ContinuousStochasticNode *n, double d, bool tuning, double w );                     //!<  constructor
+                                    SlidingMove( StochasticNode<double> *n, double d, bool tuning, double w );                     //!<  constructor
 
         // Basic utility functions
         SlidingMove*                clone(void) const;                                                                  //!< Clone object
@@ -45,7 +45,7 @@ class SlidingMove : public SimpleMove {
 
         // parameters
         double                      delta;
-        ContinuousStochasticNode*   variable;
+        StochasticNode<double>*   variable;
         double                      storedValue;
 };
 

@@ -19,13 +19,13 @@
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
 #include "TypedDagNode.h"
-
+#include "ContinuousDistribution.h"
 #include <cmath>
 #include <cassert>
 #include "Exception.h"
 
 /* Constructor with value */
-SlidingMove::SlidingMove( ContinuousStochasticNode *n, double d, bool t, double w ) : SimpleMove( n, w, t ), delta( d ), variable( n ),storedValue( 0.0 ) {
+SlidingMove::SlidingMove( StochasticNode<double> *n, double d, bool t, double w ) : SimpleMove( n, w, t ), delta( d ), variable( n ),storedValue( 0.0 ) {
     
     // we need to allocate memory for the stored value
 }
@@ -57,8 +57,8 @@ double SlidingMove::performSimpleMove( void ) {
     // copy all value
     storedValue = val;
 
-    double min = variable->getMin();
-    double max = variable->getMax();
+    double min = static_cast<ContinuousDistribution *>( &(variable->getDistribution()) )->getMin();
+    double max = static_cast<ContinuousDistribution *>( &(variable->getDistribution()) )->getMax();
 
     double u      = rng->uniform01();
     double newVal = val + ( delta * ( u - 0.5 ) );
@@ -94,27 +94,12 @@ void SlidingMove::swapNode(DagNode *oldN, DagNode *newN) {
     // call the parent method
     SimpleMove::swapNode(oldN, newN);
     
-    variable = static_cast<ContinuousStochasticNode* >(newN);
+    variable = static_cast<StochasticNode<double>* >(newN);
 }
 
 
 void SlidingMove::tune( void ) 
 {
-    double rate = numAccepted / double(numTried);
-    
-    if ( rate > 0.44 ) 
-    {
-        double min = variable->getMin();
-        double max = variable->getMax();
-        if ( delta < (max-min)/3.0 ) // safety check that delta isn't increasing to propose values outside the boundary too often
-        {
-            delta *= (1.0 + ((rate-0.44)/0.56) );
-        }
-    }
-    else 
-    {
-        delta /= (2.0 - (0.44-rate)/0.44);
-    }
 }
 
 
