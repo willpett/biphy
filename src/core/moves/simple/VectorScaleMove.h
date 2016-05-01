@@ -1,5 +1,5 @@
-#ifndef BranchLengthFrequencyCompensatoryMove_H
-#define BranchLengthFrequencyCompensatoryMove_H
+#ifndef VectorScaleMove_H
+#define VectorScaleMove_H
 
 #include <ostream>
 #include <set>
@@ -8,13 +8,13 @@
 #include "SimpleMove.h"
 #include "ContinuousStochasticNode.h"
 
-class BranchLengthFrequencyCompensatoryMove : public SimpleMove {
+class VectorScaleMove : public SimpleMove {
 
 public:
-    BranchLengthFrequencyCompensatoryMove( StochasticNode<double> *pi, std::vector<ContinuousStochasticNode *> br, double l, bool tuning, double w);                                             //!<  constructor
+    VectorScaleMove( std::vector<ContinuousStochasticNode *> br, double l, bool tuning, double w);                                             //!<  constructor
 
     // Basic utility functions
-    BranchLengthFrequencyCompensatoryMove*                      clone(void) const;                                                                  //!< Clone object
+    VectorScaleMove*                      clone(void) const;                                                                  //!< Clone object
     void                            swapNode(DagNode *oldN, DagNode *newN);                                             //!< Swap the DAG nodes on which the move is working on
 
 protected:
@@ -28,10 +28,8 @@ private:
     // parameters
     double                          lambda;                                                                             //!< The scaling parameter of the move  
 
-    StochasticNode<double>*                 frequency;
-    std::vector<ContinuousStochasticNode* >   branchlengths;
-    double                                  storedFrequency;
-    std::vector<double>                     storedBranchlengths;
+    std::vector<ContinuousStochasticNode* >   variables;
+    std::vector<double>                     storedvariables;
 
 };
 
