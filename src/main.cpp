@@ -36,7 +36,7 @@ int main (int argc, const char * argv[])
 	bool overwrite = false;
 
 	int numChains = 1;
-	int swapInterval = 1;
+	int swapInterval = 10;
 	double delta = 0.05;
 	double sigma = 0.3;
 
@@ -419,7 +419,7 @@ int main (int argc, const char * argv[])
 
 		cerr << "\nMCMCMC options:\n";
 		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
-		cerr << "\t-si <int>\tchain swap interval (default = 1)\n";
+		cerr << "\t-si <int>\tchain swap interval (default = 10)\n";
 		cerr << "\t-delta <float>\t(default = 0.05)\n";
 
 		cerr << "\nOutput options:\n";
