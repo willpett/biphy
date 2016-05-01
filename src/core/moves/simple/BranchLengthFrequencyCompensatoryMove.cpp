@@ -95,7 +95,7 @@ double BranchLengthFrequencyCompensatoryMove::performSimpleMove( void )
     }
     
     // compute the Hastings ratio
-    double lnHastingsratio = log(m) + (branchlengths.size() - 2)*log(abs(scalingFactor));
+    double lnHastingsratio = log(m) + (branchlengths.size() - 2)*log(scalingFactor);
 
     return lnHastingsratio;
 }
