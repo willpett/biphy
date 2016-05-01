@@ -737,7 +737,7 @@ void Biphy::initModel( void ) {
 		else
 		{
 			moves.push_back( new SlidingMove((StochasticNode<double>*)phi, 0.2, true, 0.05 ) );
-			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1000.0, true, 0.1 ) );
+			moves.push_back( new BetaSimplexMove((StochasticNode<double>*)phi, 1000.0, true, 0.15 ) );
 		}
 		if(modeltype == ModelPrior::HOMOGENEOUS || rootprior == RootPrior::RIGID || rootprior == RootPrior::TRUNCATED)
 			monitoredNodes.push_back( phi );
