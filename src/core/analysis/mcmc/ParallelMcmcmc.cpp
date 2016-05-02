@@ -470,7 +470,7 @@ void ParallelMcmcmc::monitorSteppingStone(size_t gen)
         ss << "gen\tlnM";
         for (int k=0; k<numChains; k++)
         {
-            ss << "\tss" << k;
+            ss << "\tss" << k + 1;
         }
         ss << std::endl;
         stream << ss.str();
