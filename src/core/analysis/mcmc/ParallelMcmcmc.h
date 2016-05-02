@@ -69,7 +69,8 @@ private:
     double                                              sigma;        // scales power in heating schedule
     double                                              startingHeat; // default 1.0
     
-    size_t                                              steppingStones;
+    size_t                                              numSteppingStones;
+    std::vector<std::vector<double> >                   steppingStones;
 
 };
 

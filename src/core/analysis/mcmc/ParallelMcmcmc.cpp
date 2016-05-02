@@ -1,13 +1,14 @@
 #include "ParallelMcmcmc.h"
 #include "RandomNumberFactory.h"
 #include "RandomNumberGenerator.h"
+#include "MathFunctions.h"
 #include <iostream>
 #include <vector>
 #include <cmath>
 #include <sstream>
 #include <limits>
 #include <stdlib.h>
-#include "../../utils/Exception.h"
+#include "Exception.h"
 
 #if defined (USE_LIB_OPENMP)
     #include <omp.h>
@@ -27,15 +28,15 @@ ParallelMcmcmc::ParallelMcmcmc(Model* m, const std::vector<Move*> &moves, const 
 			sigma(st),
 			startingHeat(sh),
 			saveall(saveall),
-			steppingStones(ss)
+			numSteppingStones(ss)
 {
     activeIndex = 0;
     std::vector<Monitor*> mons2 = mons;
 
-    if(steppingStones > 0)
+    if(numSteppingStones > 0)
         mons2.clear();
     
-    size_t numMcmc = std::max(steppingStones,numChains);
+    size_t numMcmc = std::max(numSteppingStones,numChains);
 
     for (size_t i = 0; i < numMcmc; i++)
     {
@@ -56,8 +57,9 @@ ParallelMcmcmc::ParallelMcmcmc(Model* m, const std::vector<Move*> &moves, const 
     numNodes = chains[0]->getNumNodes();
     //std::cout << "\n";
     
+    steppingStones = std::vector<std::vector<double> >(numSteppingStones, std::vector<double>());
     
-    numMcmc = steppingStones > 0 ? steppingStones : numChains;
+    numMcmc = numSteppingStones > 0 ? numSteppingStones : numChains;
 
     if (numMcmc < numProcesses)
         numProcesses = numMcmc;
@@ -87,6 +89,7 @@ ParallelMcmcmc::ParallelMcmcmc(const ParallelMcmcmc &m)
     filename = m.filename;
     every = m.every;
     saveall = m.saveall;
+    numSteppingStones = m.numSteppingStones;
     steppingStones = m.steppingStones;
 
     chainIdxByHeat = m.chainIdxByHeat;
@@ -129,9 +132,9 @@ double ParallelMcmcmc::computeBeta(double d, double s, size_t idx)
     //double beta = pow(1 + d, -pow(idx,s));
     double beta = 1.0/(1.0 + d * idx);
 
-    if(steppingStones > 0)
+    if(numSteppingStones > 0)
     {
-        beta = pow(double(steppingStones - 1 - idx)/steppingStones, 1.0 / sigma );
+        beta = pow(double(numSteppingStones - 1 - idx)/numSteppingStones, 1.0 / sigma );
     }
 
 	// this is the heat function used by mrbayes
@@ -167,7 +170,7 @@ void ParallelMcmcmc::run(int generations)
 	if(stream.is_open())
 		stream.close();
 
-	if(steppingStones > 0)
+	if(numSteppingStones > 0)
 	{
 	    stream.open( (filename+".ss").c_str(), std::fstream::out);
 
@@ -232,7 +235,7 @@ void ParallelMcmcmc::run(int generations)
 
         currentGeneration += swapInterval;
 
-        if(steppingStones == 0)
+        if(numSteppingStones == 0)
         {
             swapChains();
 
@@ -362,10 +365,10 @@ bool ParallelMcmcmc::restore(void){
 		pos = stream.tellg();
 	}
 
-	if(steppingStones > 0)
+	if(numSteppingStones > 0)
 	{
 	    int index = 0;
-	    for ( size_t i = 0; i < steppingStones; i++)
+	    for ( size_t i = 0; i < numSteppingStones; i++)
 	    {
 	        stream.clear();
 	        stream.seekg(lastsample);
@@ -382,15 +385,15 @@ bool ParallelMcmcmc::restore(void){
 	        chainIdxByHeat[i] = i;
 	    }
 	    activeIndex = 0;
-	    if(numChains > steppingStones)
+	    if(numChains > numSteppingStones)
 	    {
-	        for ( size_t i = steppingStones; i < numChains; i++)
+	        for ( size_t i = numSteppingStones; i < numChains; i++)
 	        {
 	            delete chains[i];
 	        }
-	        chains.resize(steppingStones);
+	        chains.resize(numSteppingStones);
 	    }
-	    numChains = steppingStones;
+	    numChains = numSteppingStones;
 	}
 	else
 	{
@@ -464,11 +467,11 @@ void ParallelMcmcmc::monitorSteppingStone(size_t gen)
     if(gen == 0)
     {
         std::stringstream ss;
-        ss << "gen\tss";
-        /*for (int k=0; k<numChains; k++)
+        ss << "gen\tlnM";
+        for (int k=0; k<numChains; k++)
         {
-            ss << "\t" << k;
-        }*/
+            ss << "\tss" << k;
+        }
         ss << std::endl;
         stream << ss.str();
         stream.flush();
@@ -476,7 +479,6 @@ void ParallelMcmcmc::monitorSteppingStone(size_t gen)
     if(gen % every == 0)
     {
         std::stringstream ss;
-        ss << gen;
         double m = 0.0;
         for (int k=0; k<numChains; k++)
         {
@@ -486,10 +488,23 @@ void ParallelMcmcmc::monitorSteppingStone(size_t gen)
             else
                 b = chains[k-1]->getChainHeat() - chains[k]->getChainHeat();
 
-            m += b*chains[k]->getModelLnProbability(true);
+            b *= chains[k]->getModelLnProbability(true);
+
+            steppingStones[k].push_back(b);
+
+            if(gen != 0 && (gen / every) % 5 == 0)
+            {
+                steppingStones[k].erase(steppingStones[k].begin());
+            }
+
+            m += Math::log_sum_exp(steppingStones[k]);
+
+            ss << "\t" << b;
         }
-        ss << "\t" << m << std::endl;
-        stream << ss.str();
+        std::stringstream sss;
+        sss << gen << "\t" << m << ss.str() << std::endl;
+
+        stream << sss.str();
         stream.flush();
     }
 
