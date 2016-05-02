@@ -13,7 +13,7 @@
  *
  * Here we simply allocate and initialize the move object.
  */
-PartialVectorScaleMove::PartialVectorScaleMove( StochasticNode<double>* p, std::vector<ContinuousStochasticNode*> br, double l, bool t, double w ) : SimpleMove( p, w, t ),
+PartialVectorScaleMove::PartialVectorScaleMove( StochasticNode<double>* p, std::vector<ContinuousStochasticNode*> br, double l, bool t, double w ) : Move( p, w, t ),
         lambda( l ),
         partial(p),
         storedpartial(0.0),
@@ -64,7 +64,7 @@ const std::string& PartialVectorScaleMove::getMoveName( void ) const
  *
  * \return The hastings ratio.
  */
-double PartialVectorScaleMove::performSimpleMove( void )
+double PartialVectorScaleMove::performMove( double& probRatio )
 {
         
     // Get random number generator    
@@ -78,7 +78,7 @@ double PartialVectorScaleMove::performSimpleMove( void )
     double u = rng->uniform01();
     double m = std::exp( lambda * ( u - 0.5 ) );
 
-    double lnHastingsratio = log(m);
+    double hr = log(m);
 
 
     u = rng->uniform01();
@@ -90,7 +90,7 @@ double PartialVectorScaleMove::performSimpleMove( void )
         scaleFactor = val + m*(1.0 - val);
         val = val/scaleFactor;
 
-        lnHastingsratio += log(val) - log(storedpartial);
+        hr += log(val) - log(storedpartial);
     }
     else
     {
@@ -98,8 +98,19 @@ double PartialVectorScaleMove::performSimpleMove( void )
         scaleFactor = m*val + (1.0 - val);
         val = m*val/scaleFactor;
 
-        lnHastingsratio += log(1.0 - val) - log(1.0 - storedpartial);
+        hr += log(1.0 - val) - log(1.0 - storedpartial);
     }
+
+    hr += (variables.size() - 2)*log(scaleFactor);
+
+    if ( hr != hr || hr == Constants::Double::inf )
+    {
+        return Constants::Double::neginf;
+    }
+
+    probRatio = 0.0;
+
+    std::set<DagNode* > affectedNodes;
 
     // set the new branch lengths
     for(size_t i = 0; i < variables.size(); i++)
@@ -109,11 +120,34 @@ double PartialVectorScaleMove::performSimpleMove( void )
         br *= scaleFactor;
 
         variables[i]->touch();
+
+        probRatio += variables[i]->getLnProbabilityRatio();
+
+        if ( probRatio != Constants::Double::inf && probRatio != Constants::Double::neginf )
+        {
+            variables[i]->getAffectedNodes(affectedNodes);
+        }
     }
 
-    lnHastingsratio += (variables.size() - 2)*log(scaleFactor);
+    // touch the node
+    partial->touch();
 
-    return lnHastingsratio;
+    // calculate the probability ratio for the node we just changed
+    probRatio += partial->getLnProbabilityRatio();
+
+    if ( probRatio != Constants::Double::inf && probRatio != Constants::Double::neginf )
+    {
+        partial->getAffectedNodes(affectedNodes);
+
+        for (std::set<DagNode* >::iterator i=affectedNodes.begin(); i!=affectedNodes.end(); ++i)
+        {
+            DagNode* theAffectedNode = *i;
+            //std::cout << theAffectedNode->getName() << "  " << theAffectedNode->getLnProbabilityRatio() << " " << theAffectedNode->getLnProbability() << "\n";
+            probRatio += theAffectedNode->getLnProbabilityRatio();
+        }
+    }
+
+    return hr;
 }
 
 
@@ -132,6 +166,10 @@ void PartialVectorScaleMove::printParameterSummary(std::ostream &o) const
 
 }
 
+void PartialVectorScaleMove::acceptMove( void ) {
+
+}
+
 
 /**
  * Reject the move.
@@ -140,13 +178,15 @@ void PartialVectorScaleMove::printParameterSummary(std::ostream &o) const
  * where complex undo operations are known/implement, we need to revert
  * the value of the variable/DAG-node to its original value.
  */
-void PartialVectorScaleMove::rejectSimpleMove( void )
+void PartialVectorScaleMove::rejectMove( void )
 {
     partial->setValue(storedpartial);
+    partial->touch();
 
     for(size_t i = 0; i < variables.size(); i++)
     {
         variables[i]->setValue(storedvariables[i]);
+        variables[i]->touch();
     }
 }
 
@@ -159,9 +199,9 @@ void PartialVectorScaleMove::rejectSimpleMove( void )
  */
 void PartialVectorScaleMove::swapNode(DagNode *oldN, DagNode *newN)
 {
+    Move::swapNode(oldN, newN);
+
     // call the parent method
-    SimpleMove::swapNode(oldN, newN);
-    
     if(oldN == partial)
     {
         partial = static_cast<StochasticNode<double>* >(newN);
@@ -178,27 +218,3 @@ void PartialVectorScaleMove::swapNode(DagNode *oldN, DagNode *newN)
     }
     
 }
-
-
-/**
- * Tune the move to accept the desired acceptance ratio.
- *
- * The acceptance ratio for this move should be around 0.44.
- * If it is too large, then we increase the proposal size,
- * and if it is too small, then we decrease the proposal size.
- */
-void PartialVectorScaleMove::tune( void ) {
-    
-    double rate = numAccepted / double(numTried);
-    
-    if ( rate > 0.44 ) 
-    {
-        lambda *= (1.0 + ((rate-0.44)/0.56) );
-    }
-    else 
-    {
-        lambda /= (2.0 - rate/0.44 );
-    }
-    
-}
-

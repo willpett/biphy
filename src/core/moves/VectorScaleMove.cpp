@@ -13,13 +13,12 @@
  *
  * Here we simply allocate and initialize the move object.
  */
-VectorScaleMove::VectorScaleMove( std::vector<ContinuousStochasticNode*> br, double l, bool t, double w ) : SimpleMove( br.front(), w, t ),
+VectorScaleMove::VectorScaleMove( std::vector<ContinuousStochasticNode*> br, double l, bool t, double w ) : Move( br.front(), w, t ),
         lambda( l ),
         variables(br),
         storedvariables(std::vector<double>(br.size(), 0.0))
 {
-    // we need to allocate memory for the stored value
-    for(size_t i = 0; i < variables.size(); i++)
+    for(size_t i = 1; i < variables.size(); i++)
     {
         this->nodes.insert(variables[i]);
     }
@@ -62,7 +61,7 @@ const std::string& VectorScaleMove::getMoveName( void ) const
  *
  * \return The hastings ratio.
  */
-double VectorScaleMove::performSimpleMove( void )
+double VectorScaleMove::performMove( double& probRatio )
 {
         
     // Get random number generator    
@@ -72,6 +71,18 @@ double VectorScaleMove::performSimpleMove( void )
     double u = rng->uniform01();
     double m = std::exp( lambda * ( u - 0.5 ) );
 
+    // compute the Hastings ratio
+    double hr = log(m)*variables.size();
+
+    if ( hr != hr || hr == Constants::Double::inf )
+    {
+        return Constants::Double::neginf;
+    }
+
+    probRatio = 0.0;
+
+    std::set<DagNode* > affectedNodes;
+
     // set the new branch lengths
     for(size_t i = 0; i < variables.size(); i++)
     {
@@ -80,12 +91,26 @@ double VectorScaleMove::performSimpleMove( void )
         br *= m;
 
         variables[i]->touch();
-    }
-    
-    // compute the Hastings ratio
-    double lnHastingsratio = log(m)*variables.size();
 
-    return lnHastingsratio;
+        probRatio += variables[i]->getLnProbabilityRatio();
+
+        if ( probRatio != Constants::Double::inf && probRatio != Constants::Double::neginf )
+        {
+            variables[i]->getAffectedNodes(affectedNodes);
+        }
+    }
+
+    if ( probRatio != Constants::Double::inf && probRatio != Constants::Double::neginf )
+    {
+        for (std::set<DagNode* >::iterator i=affectedNodes.begin(); i!=affectedNodes.end(); ++i)
+        {
+            DagNode* theAffectedNode = *i;
+            //std::cout << theAffectedNode->getName() << "  " << theAffectedNode->getLnProbabilityRatio() << " " << theAffectedNode->getLnProbability() << "\n";
+            probRatio += theAffectedNode->getLnProbabilityRatio();
+        }
+    }
+
+    return hr;
 }
 
 
@@ -104,6 +129,9 @@ void VectorScaleMove::printParameterSummary(std::ostream &o) const
 
 }
 
+void VectorScaleMove::acceptMove( void ) {
+
+}
 
 /**
  * Reject the move.
@@ -112,11 +140,12 @@ void VectorScaleMove::printParameterSummary(std::ostream &o) const
  * where complex undo operations are known/implement, we need to revert
  * the value of the variable/DAG-node to its original value.
  */
-void VectorScaleMove::rejectSimpleMove( void )
+void VectorScaleMove::rejectMove( void )
 {
     for(size_t i = 0; i < variables.size(); i++)
     {
         variables[i]->setValue(new double(storedvariables[i]));
+        variables[i]->touch();
     }
 }
 
@@ -130,7 +159,7 @@ void VectorScaleMove::rejectSimpleMove( void )
 void VectorScaleMove::swapNode(DagNode *oldN, DagNode *newN)
 {
     // call the parent method
-    SimpleMove::swapNode(oldN, newN);
+    Move::swapNode(oldN, newN);
     
     for(size_t i = 0; i < variables.size(); i++)
     {
@@ -138,29 +167,6 @@ void VectorScaleMove::swapNode(DagNode *oldN, DagNode *newN)
         {
             variables[i] = static_cast<ContinuousStochasticNode* >(newN);
         }
-    }
-    
-}
-
-
-/**
- * Tune the move to accept the desired acceptance ratio.
- *
- * The acceptance ratio for this move should be around 0.44.
- * If it is too large, then we increase the proposal size,
- * and if it is too small, then we decrease the proposal size.
- */
-void VectorScaleMove::tune( void ) {
-    
-    double rate = numAccepted / double(numTried);
-    
-    if ( rate > 0.44 ) 
-    {
-        lambda *= (1.0 + ((rate-0.44)/0.56) );
-    }
-    else 
-    {
-        lambda /= (2.0 - rate/0.44 );
     }
     
 }

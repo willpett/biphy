@@ -139,10 +139,10 @@ ${SRC_DIR}/core/moves/simple/ScaleMove.h
 ${SRC_DIR}/core/moves/simple/BetaSimplexMove.h
 ${SRC_DIR}/core/moves/simple/BetaSimplexMove.cpp
 ${SRC_DIR}/core/moves/simple/SimplexSingleElementScale.cpp
-${SRC_DIR}/core/moves/simple/VectorScaleMove.cpp
-${SRC_DIR}/core/moves/simple/VectorScaleMove.h
-${SRC_DIR}/core/moves/simple/PartialVectorScaleMove.cpp
-${SRC_DIR}/core/moves/simple/PartialVectorScaleMove.h
+${SRC_DIR}/core/moves/VectorScaleMove.cpp
+${SRC_DIR}/core/moves/VectorScaleMove.h
+${SRC_DIR}/core/moves/PartialVectorScaleMove.cpp
+${SRC_DIR}/core/moves/PartialVectorScaleMove.h
 ${SRC_DIR}/core/moves/SingleRandomMoveSchedule.h
 ${SRC_DIR}/core/functions
 ${SRC_DIR}/core/functions/discrete
