@@ -790,7 +790,8 @@ void Biphy::initModel( void ) {
     
     if(dgam > 1)
     {
-        moves.push_back( new ScaleMove(shape, 0.2, true, 0.02) );
+        moves.push_back( new ScaleMove(shape, 0.1, true, 0.01) );
+        moves.push_back( new ScaleMove(shape, 0.4, true, 0.01) );
         monitoredNodes.push_back( shape );
     }
 
