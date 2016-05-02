@@ -497,7 +497,7 @@ void ParallelMcmcmc::monitorSteppingStone(size_t gen)
                 steppingStones[k].erase(steppingStones[k].begin());
             }
 
-            m += Math::log_sum_exp(steppingStones[k]);
+            m += Math::log_sum_exp(steppingStones[k]) - log(steppingStones.size());
 
             ss << "\t" << b;
         }
