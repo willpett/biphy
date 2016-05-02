@@ -671,7 +671,7 @@ void Biphy::initModel( void ) {
     charactermodel->clamp( data );
 
     if(trees.empty())
-        moves.push_back( new SubtreePruneRegraft(tau, 0.3848 , rootprior == RootPrior::RIGID) );
+        moves.push_back( new SubtreePruneRegraft(tau, 0.4 , rootprior == RootPrior::RIGID) );
 
     if(branchprior == BranchPrior::EXPONENTIAL || branchprior == BranchPrior::DIRICHLET)
 	{
@@ -686,7 +686,7 @@ void Biphy::initModel( void ) {
 			std::vector<Move*> br_moves;
 
 			for (size_t i = 0 ; i < numBranches ; i ++ )
-				moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0*log(1.6), true, 0.3846/float(numBranches) ) );
+				moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0*log(1.6), true, 0.4/float(numBranches) ) );
 
 			moves.push_back( new VectorScaleMove(branchRates_nonConst, 1.386/2, true, 0.3846/15 ) );
                         moves.push_back( new VectorScaleMove(branchRates_nonConst, 1.386, true, 0.3846/15 ) );
@@ -723,7 +723,15 @@ void Biphy::initModel( void ) {
 			{
 				if(modeltype == ModelPrior::HIERARCHICAL)
 				{
-					moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 100.0, true, 0.5*0.096/float(numBranches) ) );
+					moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 100.0, true, 0.02/float(numBranches) ) );
+					moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_stat[i], 1000.0, true, 0.02/float(numBranches) ) );
+					if(i != rootIndex)
+					{
+						std::vector<ContinuousStochasticNode* > nodes;
+						nodes.push_back(branchRates_nonConst[i]);
+						moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)pi_stat[i], nodes, 0.1, true, 0.3846/15 ) );
+						moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)pi_stat[i], nodes, 0.4, true, 0.3846/15 ) );
+					}
 					//moves.push_back( new SlidingMove((StochasticNode<double>*)pi_stat[i], 0.05, true, 0.5*0.096/float(numBranches) ) );
 				}
 				else if(modeltype == ModelPrior::MIXTURE)
@@ -756,22 +764,23 @@ void Biphy::initModel( void ) {
 
     if(modeltype > ModelPrior::HOMOGENEOUS || (modeltype == ModelPrior::MK && dbeta > 1))
     {
-        moves.push_back( new ScaleMove(beta1, 0.3, true, 0.0096/4) );
+        moves.push_back( new ScaleMove(beta1, 0.3, true, 0.001/4) );
         monitoredNodes.push_back( beta1 );
 
         if(modeltype > ModelPrior::HOMOGENEOUS || asymmbeta)
         {
-        	moves.push_back( new ScaleMove(beta2, 0.3, true, 0.0096/4) );
+        	moves.push_back( new ScaleMove(beta2, 0.3, true, 0.001/4) );
         	monitoredNodes.push_back( beta2 );
         }
 
         if(modeltype == ModelPrior::MIXTURE){
 			for (size_t i = 0 ; i < mixture; i ++ ) {
+				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 100.0, true, 0.02 ) );
 				moves.push_back( new BetaSimplexMove((StochasticNode<double>*)pi_cats[i], 1000.0, true, 0.02 ) );
 				//moves.push_back( new SlidingMove((StochasticNode<double>*)pi_cats[i], 0.2, true, 0.02 ) );
 			}
-			moves.push_back( new SimplexMove((StochasticNode<std::vector<double> >*)mix_probs, 10.0, mixture, 0.0, true, 0.02 ) );
-
+			moves.push_back( new SimplexMove((StochasticNode<std::vector<double> >*)mix_probs, 10.0, mixture, 0.0, true, 0.01 ) );
+			moves.push_back( new SimplexMove((StochasticNode<std::vector<double> >*)mix_probs, 100.0, mixture, 0.0, true, 0.01 ) );
 			//monitoredNodes.push_back(pi_mix);
 			//monitoredNodes.push_back(mix_probs);
 			monitoredNodes.push_back(new DeterministicNode<double >( "pi_ent", new EntropyFunction(pi_mix) ));
