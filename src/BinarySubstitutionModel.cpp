@@ -1799,25 +1799,31 @@ void BinarySubstitutionModel::updateTransitionProbabilities() {
         for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
         {
         	RealNumber pi1 = getStationaryFrequency(nodeIndex, freq);
-			RealNumber pi0 = 1.0 - pi1;
+		RealNumber pi0 = 1.0 - pi1;
 
-			RealNumber mu = 1.0/(2.0*pi1*pi0);
+		RealNumber mu = 1.0/(2.0*pi1*pi0);
 
-			for (size_t rate = 0; rate < numSiteRates; ++rate)
-			{
-				RealNumber r = 1.0;
-				if(rateVariationAcrossSites)
-					r = siteRates->getValue()[rate];
+		for (size_t rate = 0; rate < numSiteRates; ++rate)
+		{
+			RealNumber r = 1.0;
+			if(rateVariationAcrossSites)
+				r = siteRates->getValue()[rate];
 
-				RealVector::iterator p_node_mixture = p_node + rate*tRateOffset + freq*tMixtureOffset;
+			RealVector::iterator p_node_mixture = p_node + rate*tRateOffset + freq*tMixtureOffset;
 
     			RealNumber expPart = exp( - mu * clockRate * brlen * r );
 
         		p_node_mixture[0] = pi0 + pi1 * expPart;
-				p_node_mixture[1] = pi1 - pi1 * expPart;
-				p_node_mixture[2] = pi0 - pi0 * expPart;
-				p_node_mixture[3] = pi1 + pi0 * expPart;
-        	}
+			p_node_mixture[1] = pi1 - pi1 * expPart;
+			p_node_mixture[2] = pi0 - pi0 * expPart;
+			p_node_mixture[3] = pi1 + pi0 * expPart;
+        	
+			for(size_t i = 0; i < 4; i++)
+			{
+				if(p_node_mixture[i] <= 0.0 || p_node_mixture[i] >= 1.0)
+					p_node_mixture[i] = Constants::Double::nan;
+			}
+		}
         }
     }
 

@@ -1486,7 +1486,10 @@ void BinaryDolloSubstitutionModel::updateTransitionProbabilities() {
                 
                 RealNumber expPart = exp( - rate * brlen * r );
                 
-                RealVector::iterator p_node_mixture = p_node + mixture*tMixtureOffset;
+		if(expPart <= 0.0 || expPart >= 1.0)
+                	expPart = Constants::Double::nan; 
+                
+		RealVector::iterator p_node_mixture = p_node + mixture*tMixtureOffset;
                 
                 p_node_mixture[0] = 1.0 - expPart;
                 p_node_mixture[1] = expPart;

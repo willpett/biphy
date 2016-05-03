@@ -129,10 +129,15 @@ double Statistics::Gamma::cdf(double shape, double rate, double x) {
  */
 double Statistics::Gamma::quantile(double shape, double rate, double p) {
 
-	//if(shape < 0.0)
-	//	return 0.0;
-//	return Statistics::ChiSquare::quantile(p, 2.0 * shape) / (2.0 * rate);
-	return Statistics::Helper::pointChi2(p, 2.0 * shape) / (2.0 * rate); 
+	double ret = Constants::Double::nan;
+	try{
+		ret = Statistics::Helper::pointChi2(p, 2.0 * shape) / (2.0 * rate);
+	}
+	catch(...)
+	{
+		ret = Constants::Double::nan;
+	}
+	return ret <= 0 ? Constants::Double::nan : ret;
 }
 
 
