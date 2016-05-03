@@ -659,7 +659,9 @@ double Math::incompleteGamma(double x, double alpha, double scale) {
         pn2 = x + 1;
         pn3 = x * b;
         gin = pn2 / pn3;
-        
+       
+	int maxit = 10000000;
+	int i =0; 
         do {
             a++;
             b += 2;
@@ -689,7 +691,8 @@ double Math::incompleteGamma(double x, double alpha, double scale) {
                 pn2 /= overflow;
                 pn3 /= overflow;
             }
-        } while (true);
+	    i++;
+        } while (i < maxit);
         gin = 1 - factor * gin;
     } else {
         // series expansion
