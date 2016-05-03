@@ -1235,22 +1235,22 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
 					}
 				}
 
-				perMaskCorrections[mask] += prob;
+				RealNumber mixprob = 1.0 - prob;
+
+                                if(useScaling)
+                                {
+                                    mixprob = 1.0 - exp(log(prob) + logScalingFactor);
+                                }
+
+                                // impose a boundary
+                                if(mixprob <= 0)
+                                    mixprob = Constants::Double::nan;
+
+				perMaskCorrections[mask] += mixprob;
 
 				if(mask == 0)
 				{
-				    RealNumber mixprob = 1.0 - prob;
-
-				    if(useScaling)
-				    {
-				        mixprob = 1.0 - exp(log(prob) + logScalingFactor);
-				    }
-
-				    // impose a boundary
-                    if(mixprob <= 0)
-                        mixprob = 0;
-
-					perMixtureCorrections[freq*numSiteRates*numCorrectionMasks + rate*numCorrectionMasks] = mixprob;
+				    perMixtureCorrections[freq*numSiteRates*numCorrectionMasks + rate*numCorrectionMasks] = mixprob;
 				}
 			}
         }
@@ -1258,7 +1258,7 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
         // normalize and invert the probability
         perMaskCorrections[mask] /= numSiteRates*numSiteFrequencies;
 
-        if(useScaling)
+        /*if(useScaling)
         {
             perMaskCorrections[mask] = exp(log(perMaskCorrections[mask]) + logScalingFactor);
         }
@@ -1267,7 +1267,7 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
 
         if(perMaskCorrections[mask] <= 0)
         	perMaskCorrections[mask] = std::numeric_limits<RealNumber>::infinity();
-
+	*/
         // log transform
         perMaskCorrections[mask] = log(perMaskCorrections[mask]);
 
