@@ -235,10 +235,10 @@ void ParallelMcmcmc::run(int generations)
 
         currentGeneration += swapInterval;
 
+	swapChains();
+
         if(numSteppingStones == 0)
         {
-            swapChains();
-
             chains[chainIdxByHeat[0]]->monitor(currentGeneration);
 
             if(currentGeneration % every*swapInterval == 0){
@@ -484,11 +484,11 @@ void ParallelMcmcmc::monitorSteppingStone(size_t gen)
         {
             double b = 0.0;
             if(k == 0)
-                b = 1.0 - chains[k]->getChainHeat();
+                b = 1.0 - chains[chainIdxByHeat[k]]->getChainHeat();
             else
-                b = chains[k-1]->getChainHeat() - chains[k]->getChainHeat();
+                b = chains[chainIdxByHeat[k-1]]->getChainHeat() - chains[chainIdxByHeat[k]]->getChainHeat();
 
-            b *= chains[k]->getModelLnProbability(true);
+            b *= chains[chainIdxByHeat[k]]->getModelLnProbability(true);
 
             steppingStones[k].push_back(b);
 
