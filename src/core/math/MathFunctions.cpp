@@ -693,7 +693,10 @@ double Math::incompleteGamma(double x, double alpha, double scale) {
             }
 	    i++;
         } while (i < maxit);
-        gin = 1 - factor * gin;
+        if(i == maxit)
+            return -1;
+
+	gin = 1 - factor * gin;
     } else {
         // series expansion
         gin = 1;
