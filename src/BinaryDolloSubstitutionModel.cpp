@@ -789,7 +789,7 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                     }
 
                     if(prob <= 0.0)
-                    	prob = Constants::Double::nan;
+                    	prob = 0.0;Constants::Double::nan;
                                         
                     if(mask == 0)
                         perMixtureCorrections[nodeIndex*numSiteRates + mixture] = prob;
