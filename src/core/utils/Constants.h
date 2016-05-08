@@ -22,6 +22,8 @@
 #include <limits>
 #include <cstdlib>
 
+#include "numerics.h"
+
 namespace Constants {
     
 	namespace Double {
@@ -32,6 +34,13 @@ namespace Constants {
         const double    neginf      = -std::numeric_limits<double>::infinity();
 	}
     
+	namespace Real {
+        const RealNumber    inf         = std::numeric_limits<RealNumber>::infinity();
+        const RealNumber    max         = std::numeric_limits<RealNumber>::max();
+        const RealNumber    nan         = std::numeric_limits<RealNumber>::quiet_NaN();
+        const RealNumber    neginf      = -std::numeric_limits<RealNumber>::infinity();
+        }
+
     namespace Integer {
 		const int       inf         = std::numeric_limits<int>::infinity();
 // (unused)        const int       max         = std::numeric_limits<int>::max();

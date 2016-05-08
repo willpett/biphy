@@ -740,7 +740,8 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                 RealVector::const_iterator p_node = correctionLikelihoods.begin() + activeLikelihood[nodeIndex] * activeCorrectionOffset  + nodeIndex*correctionNodeOffset;
                         
                 RealNumber logScalingFactor = useScaling ? perNodeCorrectionLogScalingFactors[activeLikelihood[nodeIndex]*activeCorrectionScalingOffset + nodeIndex*numCorrectionMasks + mask] : 0.0;
-                 
+        	RealNumber one = useScaling ? exp(-logScalingFactor) : 1.0;
+         
                 RealVector::iterator integrationFactor = integrationFactors.begin() + activeProbability[nodeIndex]*activeIntegrationOffset + nodeIndex*numSiteRates;
                             
                 // iterate over all mixture categories
@@ -777,32 +778,23 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                             prob += uC_i[1];
                     }
                     
-                    if(useScaling && prob > 0.0)
+		    // impose a per-mixture boundary
+                    if(prob <= 0.0 || prob > one)
                     {
-                        RealNumber b = log(prob) + logScalingFactor + log(integrationFactor[mixture]);
-                        
-                        prob = integrationFactor[mixture] - exp(b);
-                    }
-                    else if(prob > 0.0)
-                    {
-                        prob = integrationFactor[mixture]*(1.0 - prob);
-                    }
-
-                    if(prob <= 0.0)
-                    	prob = 0.0;Constants::Double::nan;
-                                        
-                    if(mask == 0)
-                        perMixtureCorrections[nodeIndex*numSiteRates + mixture] = prob;
+			prob = Constants::Real::nan;
+		    }
                     
-                    perMaskCorrections[mask] += prob;
+		    RealNumber mixprob = integrationFactor[mixture] * (1.0 - prob / one);
+
+                    if(mask == 0)
+                        perMixtureCorrections[nodeIndex*numSiteRates + mixture] = mixprob;
+                    
+                    perMaskCorrections[mask] += mixprob;
                 }
             }
             
-            if(perMaskCorrections[mask] <= 0.0)
-            	perMaskCorrections[mask] = std::numeric_limits<RealNumber>::infinity();
-
             // normalize the log-probability
-            perMaskCorrections[mask] = log(perMaskCorrections[mask]) - log(RealNumber(numSiteRates));
+            perMaskCorrections[mask] = log(perMaskCorrections[mask]/numSiteRates);
             
             // apply the correction for this correction mask
             sumPartialProbs -= perMaskCorrections[mask]*correctionMaskCounts[mask];
@@ -860,7 +852,7 @@ RealNumber BinaryDolloSubstitutionModel::sumUncorrectedRootLikelihood( void )
             per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / numSiteRates );   
             
             per_site_Likelihoods[pattern] += (pattern2numPresent[pattern] == 1) ? logSampling : 0.0;
-
+	    
             sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
         }
     }
@@ -876,7 +868,7 @@ RealNumber BinaryDolloSubstitutionModel::sumUncorrectedRootLikelihood( void )
             per_site_Likelihoods[pattern] = Math::log_sum_exp(integratedNodeProbs, max) - log(RealNumber(numSiteRates)); 
             
             per_site_Likelihoods[pattern] += (pattern2numPresent[pattern] == 1) ? logSampling : 0.0;
-
+	    
             sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
         }
     }
@@ -904,7 +896,7 @@ RealNumber BinaryDolloSubstitutionModel::sumUncorrectedRootLikelihood( void )
         per_site_Likelihoods[pattern] -= log(RealNumber(numSiteRates));
 
         per_site_Likelihoods[pattern] += (pattern2numPresent[pattern] == 1) ? logSampling : 0.0;
-                             
+            
         sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
     }
 #endif
@@ -1486,11 +1478,10 @@ void BinaryDolloSubstitutionModel::updateTransitionProbabilities() {
                 
                 RealNumber expPart = exp( - rate * brlen * r );
                 
-		if(expPart <= 0.0 || expPart >= 1.0)
-                	expPart = Constants::Double::nan; 
+                expPart = (expPart <= 0.0 || expPart >= 1.0) ? Constants::Real::nan : expPart; 
                 
 		RealVector::iterator p_node_mixture = p_node + mixture*tMixtureOffset;
-                
+        
                 p_node_mixture[0] = 1.0 - expPart;
                 p_node_mixture[1] = expPart;
                 

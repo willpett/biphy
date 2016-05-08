@@ -834,7 +834,7 @@ void BinarySubstitutionModel::computeNodeLikelihood(const TopologyNode &node, si
 				p_site_mixture[1] = SIMD_MUL (m1, m3);
 
 				if(node.isRoot())
-					p_site_mixture[1] = SIMD_MUL (mrf1, p_site_mixture[1]);
+				    p_site_mixture[1] = SIMD_MUL (mrf1, p_site_mixture[1]);
 #else
 			// compute the per site probabilities
 			for (size_t site = 0; site < numPatterns ; ++site)
@@ -1187,6 +1187,7 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
     for(size_t mask = 0; mask < numCorrectionMasks; mask++)
     {   
         RealNumber logScalingFactor = useScaling ? perNodeCorrectionLogScalingFactors[activeLikelihood[nodeIndex]*activeCorrectionScalingOffset + nodeIndex*numCorrectionMasks + mask] : 0.0;
+	RealNumber one = useScaling ? exp(-logScalingFactor) : 1.0;
 
         // iterate over all mixture categories
         for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
@@ -1234,22 +1235,21 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
 						}
 					}
 				}
-
-				RealNumber mixprob = 1.0 - prob;
-
-                                if(useScaling)
+				
+				// impose a per-mixture boundary
+                                if(prob <= 0.0 || prob >= one)
                                 {
-                                    mixprob = 1.0 - exp(log(prob) + logScalingFactor);
+                                    prob = Constants::Real::nan;
                                 }
+			
+				perMaskCorrections[mask] += prob;
 
-                                // impose a boundary
-                                if(mixprob <= 0)
-                                    mixprob = Constants::Double::nan;
-
-				perMaskCorrections[mask] += mixprob;
-
+	
 				if(mask == 0)
 				{
+				    // 1/c - prob/c
+				    RealNumber mixprob = one - prob;
+
 				    perMixtureCorrections[freq*numSiteRates*numCorrectionMasks + rate*numCorrectionMasks] = mixprob;
 				}
 			}
@@ -1258,20 +1258,16 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
         // normalize and invert the probability
         perMaskCorrections[mask] /= numSiteRates*numSiteFrequencies;
 
-        /*if(useScaling)
-        {
-            perMaskCorrections[mask] = exp(log(perMaskCorrections[mask]) + logScalingFactor);
-        }
+	// impose a per-mask boundary
+        if(perMaskCorrections[mask] <= 0.0 || perMaskCorrections[mask] >= one)
+	{
+            perMaskCorrections[mask] = Constants::Real::nan;
+	}
 
-        perMaskCorrections[mask] = 1.0 - perMaskCorrections[mask];
-
-        if(perMaskCorrections[mask] <= 0)
-        	perMaskCorrections[mask] = std::numeric_limits<RealNumber>::infinity();
-	*/
-        // log transform
-        perMaskCorrections[mask] = log(perMaskCorrections[mask]);
-
-        // apply the correction for this correction mask
+	// log transform
+        perMaskCorrections[mask] = log(one - perMaskCorrections[mask]) + logScalingFactor;
+        
+	// apply the correction for this correction mask
         sumPartialProbs -= perMaskCorrections[mask]*correctionMaskCounts[mask];
     }
 
@@ -1287,7 +1283,7 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
     // get the index of the root node
     size_t rootIndex = root.getIndex();
 
-	double logSampling = log(getSamplingRate());
+    double logSampling = log(getSamplingRate());
 
     // get the pointers to the partial likelihoods of the left and right subtree
     RealVector::iterator p_node  = partialLikelihoods.begin() + activeLikelihood[rootIndex] * activeLikelihoodOffset  + rootIndex*nodeOffset;
@@ -1310,7 +1306,7 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
 				SIMDRegister *   p_site_mixture     = (SIMDRegister *)&*(p_node + pattern*siteOffset + rate*rateOffset + freq*mixtureOffset);
 
 				*mTotals = SIMD_ADD(*mTotals, SIMD_ADD(p_site_mixture[0], p_site_mixture[1]));
-
+				
 				mTotals++;
 
 			} // end-for over all mixtures (=rate categories)
@@ -1334,9 +1330,9 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
     // sum the log-likelihoods for all sites together
     RealNumber sumPartialProbs = 0.0;
 
-	for (size_t pattern = 0; pattern < numPatterns; pattern++)
+    for (size_t pattern = 0; pattern < numPatterns; pattern++)
     {
-        per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / (numSiteRates * numSiteFrequencies) );
+	per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / (numSiteRates * numSiteFrequencies) );
 
         if ( useScaling == true )
         {
@@ -1348,7 +1344,7 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
         sumPartialProbs += per_site_Likelihoods[pattern]*patternCounts[pattern];
     }
     
-	return sumPartialProbs;
+    return sumPartialProbs;
 }
 
 
@@ -1817,12 +1813,9 @@ void BinarySubstitutionModel::updateTransitionProbabilities() {
 			p_node_mixture[1] = pi1 - pi1 * expPart;
 			p_node_mixture[2] = pi0 - pi0 * expPart;
 			p_node_mixture[3] = pi1 + pi0 * expPart;
-        	
+			
 			for(size_t i = 0; i < 4; i++)
-			{
-				if(p_node_mixture[i] <= 0.0 || p_node_mixture[i] >= 1.0)
-					p_node_mixture[i] = Constants::Double::nan;
-			}
+				p_node_mixture[i] = p_node_mixture[i] <= 0.0 || p_node_mixture[i] >= 1.0 ? Constants::Real::nan : p_node_mixture[i];
 		}
         }
     }
