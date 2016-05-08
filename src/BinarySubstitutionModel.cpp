@@ -1187,7 +1187,7 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
     for(size_t mask = 0; mask < numCorrectionMasks; mask++)
     {   
         RealNumber logScalingFactor = useScaling ? perNodeCorrectionLogScalingFactors[activeLikelihood[nodeIndex]*activeCorrectionScalingOffset + nodeIndex*numCorrectionMasks + mask] : 0.0;
-	RealNumber one = useScaling ? exp(-logScalingFactor) : 1.0;
+        RealNumber one = useScaling ? exp(-logScalingFactor) : 1.0;
 
         // iterate over all mixture categories
         for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
@@ -1237,10 +1237,10 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
 				}
 				
 				// impose a per-mixture boundary
-                                if(prob <= 0.0 || prob >= one)
-                                {
-                                    prob = Constants::Real::nan;
-                                }
+                if(prob <= 0.0 || prob >= one)
+                {
+                    prob = Constants::Real::nan;
+                }
 			
 				perMaskCorrections[mask] += prob;
 
@@ -1258,16 +1258,16 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
         // normalize and invert the probability
         perMaskCorrections[mask] /= numSiteRates*numSiteFrequencies;
 
-	// impose a per-mask boundary
+        // impose a per-mask boundary
         if(perMaskCorrections[mask] <= 0.0 || perMaskCorrections[mask] >= one)
-	{
+        {
             perMaskCorrections[mask] = Constants::Real::nan;
-	}
+        }
 
-	// log transform
+        // log transform
         perMaskCorrections[mask] = log(one - perMaskCorrections[mask]) + logScalingFactor;
         
-	// apply the correction for this correction mask
+        // apply the correction for this correction mask
         sumPartialProbs -= perMaskCorrections[mask]*correctionMaskCounts[mask];
     }
 
@@ -1332,7 +1332,7 @@ RealNumber BinarySubstitutionModel::sumUncorrectedRootLikelihood( void )
 
     for (size_t pattern = 0; pattern < numPatterns; pattern++)
     {
-	per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / (numSiteRates * numSiteFrequencies) );
+        per_site_Likelihoods[pattern] = log( per_site_Likelihoods[pattern] / (numSiteRates * numSiteFrequencies) );
 
         if ( useScaling == true )
         {
@@ -1795,28 +1795,28 @@ void BinarySubstitutionModel::updateTransitionProbabilities() {
         for (size_t freq = 0; freq < numSiteFrequencies; ++freq)
         {
         	RealNumber pi1 = getStationaryFrequency(nodeIndex, freq);
-		RealNumber pi0 = 1.0 - pi1;
+            RealNumber pi0 = 1.0 - pi1;
 
-		RealNumber mu = 1.0/(2.0*pi1*pi0);
+            RealNumber mu = 1.0/(2.0*pi1*pi0);
 
-		for (size_t rate = 0; rate < numSiteRates; ++rate)
-		{
-			RealNumber r = 1.0;
-			if(rateVariationAcrossSites)
-				r = siteRates->getValue()[rate];
+            for (size_t rate = 0; rate < numSiteRates; ++rate)
+            {
+                RealNumber r = 1.0;
+                if(rateVariationAcrossSites)
+                    r = siteRates->getValue()[rate];
 
-			RealVector::iterator p_node_mixture = p_node + rate*tRateOffset + freq*tMixtureOffset;
+                RealVector::iterator p_node_mixture = p_node + rate*tRateOffset + freq*tMixtureOffset;
 
-    			RealNumber expPart = exp( - mu * clockRate * brlen * r );
+                RealNumber expPart = exp( - mu * clockRate * brlen * r );
 
-        		p_node_mixture[0] = pi0 + pi1 * expPart;
-			p_node_mixture[1] = pi1 - pi1 * expPart;
-			p_node_mixture[2] = pi0 - pi0 * expPart;
-			p_node_mixture[3] = pi1 + pi0 * expPart;
-			
-			for(size_t i = 0; i < 4; i++)
-				p_node_mixture[i] = p_node_mixture[i] <= 0.0 || p_node_mixture[i] >= 1.0 ? Constants::Real::nan : p_node_mixture[i];
-		}
+                p_node_mixture[0] = pi0 + pi1 * expPart;
+                p_node_mixture[1] = pi1 - pi1 * expPart;
+                p_node_mixture[2] = pi0 - pi0 * expPart;
+                p_node_mixture[3] = pi1 + pi0 * expPart;
+
+                for(size_t i = 0; i < 4; i++)
+                    p_node_mixture[i] = p_node_mixture[i] <= 0.0 || p_node_mixture[i] >= 1.0 ? Constants::Real::nan : p_node_mixture[i];
+            }
         }
     }
 

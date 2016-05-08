@@ -778,14 +778,14 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                             prob += uC_i[1];
                     }
                     
-		    // impose a per-mixture boundary
+                    // impose a per-mixture boundary
                     if(prob <= 0.0 || prob > one)
                     {
-			prob = Constants::Real::nan;
-		    }
-                    
-		    RealNumber mixprob = integrationFactor[mixture] * (1.0 - prob / one);
+                        prob = Constants::Real::nan;
+                    }
 
+                    RealNumber mixprob = integrationFactor[mixture] * (1.0 - prob / one);
+                    
                     if(mask == 0)
                         perMixtureCorrections[nodeIndex*numSiteRates + mixture] = mixprob;
                     
