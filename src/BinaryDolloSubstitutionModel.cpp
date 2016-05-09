@@ -784,7 +784,7 @@ RealNumber BinaryDolloSubstitutionModel::sumRootLikelihood( void )
                         prob = Constants::Real::nan;
                     }
 
-                    if(prob == 0.0 && !this->tau->getValue().getNode(nodeIndex).isTip())
+                    if((prob == 0.0 || prob == 1.0) && !this->tau->getValue().getNode(nodeIndex).isTip())
                         prob = Constants::Real::nan;
 
                     RealNumber mixprob = integrationFactor[mixture] * (1.0 - prob / one);
