@@ -26,7 +26,7 @@
 class UniformTopologyDistribution : public TypedDistribution<Tree> {
     
 public:
-    UniformTopologyDistribution(const std::vector<std::string> &tn, const Clade &o = Clade(std::vector<std::string>()), bool rooted = false, bool rigid = false);
+    UniformTopologyDistribution(const std::vector<std::string> &tn, const Clade &o = Clade(std::vector<std::string>()), bool rooted = false, bool rigid = false, const Tree* ct = NULL);
     UniformTopologyDistribution(const UniformTopologyDistribution &n);                                                                                          //!< Copy constructor
     virtual                                            ~UniformTopologyDistribution(void);                                                                    //!< Virtual destructor
     
@@ -39,10 +39,12 @@ public:
 	virtual void                    					setValue(Tree *v);
 	virtual void                    					setValue(const Tree &v);
 
+	std::vector<bool>                                   getConstrainedNodes() const;
+
 private:
     
     // helper functions
-    void                                                buildRandomBinaryTree(std::vector<TopologyNode *> &tips, unsigned int size);
+    void                                                simulateClade(std::vector<TopologyNode *> &tips);
     void                                                rearrangeRandomBinaryTree(std::vector<TopologyNode*> &tips, std::vector<TopologyNode *> &children);
     void                                                simulateTree(void);
     void                                                rearrangeTree(void);
@@ -56,6 +58,8 @@ private:
     unsigned int                                        numTaxa;
     std::vector<std::string>                            taxonNames;
     Clade                                               outgroup;
+    std::vector<Clade>                                  constraints;
+    std::map<Clade, double>                             constraint_brlens;
     double                                              logTreeTopologyProb;
 
     

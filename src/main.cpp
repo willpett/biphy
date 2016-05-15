@@ -20,7 +20,7 @@ int main (int argc, const char * argv[])
 	ModelPrior::Type modeltype = ModelPrior::HOMOGENEOUS;
 	int mixture = 0;
 
-	BranchPrior::Type branchprior = BranchPrior::DEFAULT;
+	BranchPrior::Type branchprior = BranchPrior::EXPONENTIAL;
 
 	int dgam = 4;
 	int dbeta = 0;
@@ -162,9 +162,6 @@ int main (int argc, const char * argv[])
 				}
 				else if (s == "-mk")	{
 					modeltype = ModelPrior::MK;
-				}
-				else if (s == "-ldir")	{
-					branchprior = BranchPrior::DIRICHLET;
 				}
 				else if (s == "-lexp")	{
 					branchprior = BranchPrior::EXPONENTIAL;
@@ -359,15 +356,8 @@ int main (int argc, const char * argv[])
 					cerr << "fixed branch length";
 				else if(branchprior == BranchPrior::STRICT)
 					cerr << "strict clock";
-				cerr << " prior is used only with fixed input tree file\n\n";
+				cerr << " prior is used only with input tree file\n\n";
 				exit(1);
-			}
-			else if(branchprior == BranchPrior::DEFAULT)
-			{
-				if(treefile == "None")
-					branchprior = BranchPrior::EXPONENTIAL;
-				else
-					branchprior = BranchPrior::FIXED;
 			}
 		}
 	}
@@ -377,7 +367,7 @@ int main (int argc, const char * argv[])
 
 		cerr << "biphy " << VERSION << "\n";
 		cerr << '\n';
-		cerr << "usage: biphy -d <data file> [-x <every/burnin> ] <run name>\n";
+		cerr << "usage: biphy -d <data file> [-x <every> <until> ] <run name>\n";
 
 		cerr << "\nBranch frequency prior:\n";
 		cerr << "\t-dollo\t\tirreversible stochastic dollo model\n";
@@ -388,10 +378,8 @@ int main (int argc, const char * argv[])
 
 		cerr << "\nBranch length prior:\n";
 		cerr << "\t-lexp\t\thierarchical exponential prior (default)\n";
-
-		cerr << "\nClock models (require fixed input branch lengths via -t option):\n";
-		cerr << "\t-lfixed\t\tfix the branch lengths at their input values (default)\n";
-		cerr << "\t-lstrict\tstrict clock. same as -lfixed, but with a tree-length multiplier\n\n";
+		cerr << "\t-lfixed\t\tfix the branch lengths at input values via the -t option\n";
+		cerr << "\t-lstrict\tsame as -lfixed with a uniform branch multiplier (clock_rate)\n\n";
 
 		cerr << "\nAcross sites mixtures:\n";
 		cerr << "\t-dgam <int>\tdiscrete gamma rates mixture with <int> categories (default: 4)\n";
@@ -412,7 +400,7 @@ int main (int argc, const char * argv[])
 		cerr << "\t     15 = no uninformative sites\n";
 
 		cerr << "\nOptional constraints:\n";
-		cerr << "\t-t <file>\tfixed tree filename\n";
+		cerr << "\t-t <file>\tconstraint tree filename\n";
 		cerr << "\t-o <file>\toutgroup clade file\n";
 		cerr << "\t-rigid\t\trigid root frequency for heterogeneous models\n";
 		cerr << "\t-rp <min> <max>\ttruncate root frequency on (min,max) (asymmetric reversible models only)\n";

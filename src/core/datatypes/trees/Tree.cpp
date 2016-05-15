@@ -659,21 +659,43 @@ void Tree::setRoot( TopologyNode* r, bool resetIndex )
     // bootstrap all nodes from the root and add the in a pre-order traversal
     fillNodesByPhylogeneticTraversal(r);
 
-    if ( resetIndex )
+    binary = true;
+
+    std::vector<bool> used_indices(nodes.size(), false);
+    for (unsigned int i = 0; i < nodes.size(); ++i)
     {
-        for (unsigned int i = 0; i < nodes.size(); ++i)
+        if(nodes[i]->getIndex() != -1)
         {
-            if(nodes[i]->getIndex() == -1)
-            	nodes[i]->setIndex(i);
+            used_indices[nodes[i]->getIndex()] = true;
         }
     }
-    else
+
+    std::vector<size_t> unused_indices;
+    for (unsigned int i = 0; i < nodes.size(); ++i)
     {
-    	orderNodesByIndex();
+        if(!used_indices[i])
+        {
+            unused_indices.push_back(i);
+        }
+    }
+
+    for (unsigned int i = 0; i < nodes.size(); ++i)
+    {
+        if(nodes[i]->getIndex() == -1)
+        {
+            nodes[i]->setIndex(unused_indices.front());
+            unused_indices.erase(unused_indices.begin());
+        }
+
+        if(nodes[i]->getNumberOfChildren() != 2 && !nodes[i]->isRoot() && !nodes[i]->isTip())
+        {
+            binary = false;
+        }
     }
 
     numNodes = nodes.size();
-    
+
+    orderNodesByIndex();
     // count the number of tips
     numTips = 0;
     for (size_t i = 0; i < numNodes; ++i)

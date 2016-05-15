@@ -43,7 +43,7 @@ struct RootPrior {
 };
 
 struct BranchPrior {
-    enum Type {DEFAULT, FIXED, STRICT, EXPONENTIAL, DIRICHLET};
+    enum Type {FIXED, STRICT, EXPONENTIAL};
 };
 
 class Biphy {

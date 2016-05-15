@@ -3,6 +3,7 @@
 #include "BetaSimplexMove.h"
 #include "BinaryCharacterDataReader.h"
 #include "BinaryDivision.h"
+#include "BinaryMultiplication.h"
 #include "BinaryDolloSubstitutionModel.h"
 #include "BinarySubstitutionModel.h"
 #include "ConstantFunction.h"
@@ -330,11 +331,6 @@ void Biphy::printConfiguration( void ) {
         std::cout << "branch lengths ~ iid exponential of mean mu\n";
         std::cout << "mu ~ exponential of mean 0.1\n";
     }
-    else if(branchprior == BranchPrior::DIRICHLET)
-    {
-        std::cout << "branch lengths ~ dirichlet with concentration parameter = 1\n";
-        std::cout << "tree length ~ exponential of mean 1\n";
-    }
     else if(branchprior == BranchPrior::FIXED)
     {
     	std::cout << "fixed branch lengths\n";
@@ -436,25 +432,103 @@ void Biphy::initModel( void ) {
     // constant nodes
     ConstantNode<double> *ten = new ConstantNode<double>("ten", new double(10.0) );
 
+    // tree prior
+    std::vector<std::string> names = data->getTaxonNames();
+
     //number of branches
     bool rooted = modeltype != ModelPrior::HOMOGENEOUS && modeltype != ModelPrior::MK;
-    
+    bool free_topology = true;
+
+    StochasticNode<Tree> *tau;
+    if(!trees.empty())
+    {
+        rooted = trees[0]->isRooted();
+
+        if(trees[0]->isBinary())
+        {
+            tau = new StochasticNode<Tree>( "tau", new UniformTopologyDistribution(names, outgroup, rooted, rootprior == RootPrior::RIGID) );
+            tau->setValue(trees[0]);
+            tau->setIgnoreRedraw(true);
+            free_topology = false;
+        }
+        else
+        {
+            tau = new StochasticNode<Tree>( "tau", new UniformTopologyDistribution(names, outgroup, rooted, rootprior == RootPrior::RIGID, trees[0]) );
+        }
+    }
+    else
+    {
+        tau = new StochasticNode<Tree>( "tau", new UniformTopologyDistribution(names, outgroup, rooted, rootprior == RootPrior::RIGID) );
+    }
+
+    //std::cerr << tau->getValue() << std::endl;
+
     size_t numBranches = 2*data->getNumberOfTaxa() - 2 - !rooted;
     size_t numNodes = numBranches + 1;
-    
+
     size_t w = numNodes > 0 ? (int) log10 ((double) numNodes) + 1 : 1;
 
     if(modeltype == ModelPrior::MIXTURE)
-      w = mixture > 0 ? (int) log10 ((double) mixture) + 1 : 1;
+        w = mixture > 0 ? (int) log10 ((double) mixture) + 1 : 1;
 
-    // tree prior
-    std::vector<std::string> names = data->getTaxonNames();
-    
-    //StochasticNode<TimeTree> *tau = new StochasticNode<TimeTree>( "tau", new UniformConstrainedTimeTreeDistribution(one,names,constraints,outgroup) );
-    StochasticNode<Tree> *tau = new StochasticNode<Tree>( "tau", new UniformTopologyDistribution(names, outgroup, rooted, rootprior == RootPrior::RIGID) );
-    if(trees.size() > 0){
-        tau->setValue(trees[0]);
-        tau->setIgnoreRedraw(true);
+    std::vector<bool> constrained = static_cast<UniformTopologyDistribution&>(tau->getDistribution()).getConstrainedNodes();
+    size_t num_constrained_nodes = 0;
+
+    for(size_t i = 0; i < constrained.size(); i++)
+    {
+        if(constrained[i])
+        {
+            num_constrained_nodes++;
+        }
+    }
+
+
+    size_t num_constrained_branches = 0;
+    constrained = std::vector<bool>(numBranches, false);
+
+    double mean_length = 0.0;
+    ConstantNode<double>* mean_fixed_length;
+
+    if(!trees.empty())
+    {
+        for(size_t i = 0; i < numBranches; i++)
+        {
+            const TopologyNode& node = tau->getValue().getNode(i);
+
+            double b = node.getBranchLength();
+
+            if(b > 0.0)
+            {
+                constrained[i] = true;
+                num_constrained_branches++;
+                mean_length += b;
+            }
+        }
+
+        mean_length /= num_constrained_branches;
+
+        mean_fixed_length = new ConstantNode<double>("mean_input_length", new double(1.0/mean_length));
+    }
+
+    if(branchprior == BranchPrior::EXPONENTIAL)
+    {
+        num_constrained_branches = 0;
+        constrained = std::vector<bool>(numBranches, false);
+    }
+
+    if(num_constrained_nodes > 0)
+    {
+        std::cout << "Found " << num_constrained_nodes << " node constraints\n";
+    }
+
+    if(num_constrained_branches > 0)
+    {
+        std::cout << "Found " << num_constrained_branches << " branch length constraints\n";
+    }
+
+    if(num_constrained_nodes + num_constrained_branches > 0)
+    {
+        std::cout << std::endl;
     }
 
     // base frequencies hyperprior
@@ -580,46 +654,56 @@ void Biphy::initModel( void ) {
     // branch length hyperprior
 
     ContinuousStochasticNode *mu;
+    ContinuousStochasticNode *free_mu;
     DeterministicNode<double> *rec_mu;
     TypedDagNode< std::vector<double> >* br_vector;
 
-    StochasticNode< std::vector<double> >* br_times;
     TypedDagNode<double>* tree_length;
 
     // declaring a vector of clock rates
-    std::vector<const TypedDagNode<double> *> branchRates;
+    std::vector< const TypedDagNode<double> *> branchRates;
     std::vector< ContinuousStochasticNode *> branchRates_nonConst;
 
     // branch length prior
-    if(branchprior == BranchPrior::EXPONENTIAL || branchprior == BranchPrior::STRICT)
+    if( num_constrained_branches != numBranches )
     {
-        if(branchprior == BranchPrior::STRICT)
-        	mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(one) );
-        else
-        	mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(ten) );
-
-        if(branchprior == BranchPrior::EXPONENTIAL)
+        if( branchprior != BranchPrior::STRICT )
         {
-        	rec_mu = new DeterministicNode<double>( "rec_mu", new BinaryDivision<double,double,double>(one,mu));
-            for (size_t i = 0 ; i < numBranches ; i++ )
+            mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(ten) );
+            rec_mu = new DeterministicNode<double>( "rec_mu", new BinaryDivision<double,double,double>(one,mu));
+        }
+        else
+        {
+        	mu = new ContinuousStochasticNode("clock_rate", new ExponentialDistribution(one) );
+        	free_mu = new ContinuousStochasticNode("mu", new ExponentialDistribution(mean_fixed_length) );
+        	rec_mu = new DeterministicNode<double>( "rec_mu", new BinaryDivision<double,double,double>(one, free_mu));
+        }
+
+        for (size_t i = 0 ; i < numBranches ; i++ )
+        {
+            std::ostringstream br_name;
+            br_name << "br(" << std::setfill('0') << std::setw(w) << i << ")";
+
+            TypedDagNode<double>* tmp_branch_rate = NULL;
+
+            if(!constrained[i] )
             {
-                std::ostringstream br_name;
-                br_name << "br(" << std::setfill('0') << std::setw(w) << i << ")";
-    
-                ContinuousStochasticNode* tmp_branch_rate = new ContinuousStochasticNode( br_name.str(), new ExponentialDistribution(rec_mu));
-                branchRates.push_back( tmp_branch_rate );
-                branchRates_nonConst.push_back( tmp_branch_rate );
+                tmp_branch_rate = new ContinuousStochasticNode( br_name.str(), new ExponentialDistribution(rec_mu));
+            }
+            else
+            {
+                tmp_branch_rate = new ConstantNode<double>( br_name.str(), new double(tau->getValue().getNode(i).getBranchLength()));
             }
 
-            br_vector = new DeterministicNode< std::vector< double > >( "br_vector", new VectorFunction< double >( branchRates ) );
+            branchRates.push_back( tmp_branch_rate );
+            branchRates_nonConst.push_back( (ContinuousStochasticNode*)tmp_branch_rate );
         }
+
+        br_vector = new DeterministicNode< std::vector< double > >( "br_vector", new VectorFunction< double >( branchRates ) );
     }
-    else if(branchprior == BranchPrior::DIRICHLET)
+    else if(branchprior == BranchPrior::STRICT)
     {
-        ConstantNode<std::vector<double> > *conc = new ConstantNode<std::vector<double> >("conc", new std::vector<double>(numBranches,1.0) );
-        tree_length = new StochasticNode<double>("length", new GammaDistribution(one,one));
-        br_times = new StochasticNode< std::vector< double > >( "br_times", new DirichletDistribution( conc));
-        br_vector = new DeterministicNode< std::vector< double > >( "br_vector", new VectorScaleFunction<double>(br_times,tree_length) );
+        mu = new ContinuousStochasticNode("clock_rate", new ExponentialDistribution(one) );
     }
 
     // Substitution model
@@ -629,24 +713,33 @@ void Biphy::initModel( void ) {
     StochasticNode<double>* samplingRate;
 
     if(modeltype == ModelPrior::DOLLO)
+    {
         charModel = new BinaryDolloSubstitutionModel(tau, AscertainmentBias::Coding(correction));
+    }
     else
     {
         charModel = new BinarySubstitutionModel(tau, AscertainmentBias::Coding(correction));
     }
     
     if(readstream)
+    {
     	charModel->setVerbose(false);
+    }
 
-    if(branchprior == BranchPrior::EXPONENTIAL || branchprior == BranchPrior::DIRICHLET)
+    if(num_constrained_branches != numBranches)
     {
         charModel->setBranchLengths(br_vector);
     }
-    else if(branchprior == BranchPrior::STRICT)
+
+    if(branchprior == BranchPrior::STRICT)
+    {
         charModel->setClockRate(mu);
+    }
     
     if(modeltype > ModelPrior::HOMOGENEOUS)
+    {
         charModel->setStationaryFrequency( pi_vector );
+    }
     else if(modeltype == ModelPrior::HOMOGENEOUS)
     {
         charModel->setStationaryFrequency( phi );
@@ -670,49 +763,58 @@ void Biphy::initModel( void ) {
     StochasticNode< BinaryCharacterData >* charactermodel = new StochasticNode< BinaryCharacterData >("S", charModel );
     charactermodel->clamp( data );
 
-    if(trees.empty())
+    if(free_topology)
+    {
         moves.push_back( new SubtreePruneRegraft(tau, 0.4 , rootprior == RootPrior::RIGID) );
+    }
 
-    if(branchprior == BranchPrior::EXPONENTIAL || branchprior == BranchPrior::DIRICHLET)
-	{
-		if(branchprior == BranchPrior::EXPONENTIAL)
-		{
-			moves.push_back( new ScaleMove(mu, 0.3, true, 0.02) );
-			monitoredNodes.push_back( mu );
-
-			tree_length = new DeterministicNode<double >("length", new SumFunction<double>(br_vector) );
-			monitoredNodes.push_back( tree_length );
-
-			std::vector<Move*> br_moves;
-
-			for (size_t i = 0 ; i < numBranches ; i ++ )
-				moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0*log(1.6), true, 0.4/float(numBranches) ) );
-
-			moves.push_back( new VectorScaleMove(branchRates_nonConst, 1.386/2, true, 0.3846/15 ) );
-                        moves.push_back( new VectorScaleMove(branchRates_nonConst, 1.386, true, 0.3846/15 ) );
-
-			if(modeltype == ModelPrior::HOMOGENEOUS)
-			{
-			    moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)phi, branchRates_nonConst, 0.1, true, 0.3846/15 ) );
-			    moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)phi, branchRates_nonConst, 0.4, true, 0.3846/15 ) );
-			}
-		}
-		else if(branchprior == BranchPrior::DIRICHLET)
-		{
-			moves.push_back(new ScaleMove((StochasticNode<double>*)tree_length, 1.0, true, 0.1*(0.3846+0.1346+0.0577)));
-			moves.push_back(new SimplexMove(br_times, 100.0, numBranches, 0.0, true, 0.9*(0.3846+0.1346+0.0577)/2));
-			moves.push_back(new SimplexMove(br_times, 100.0, 2, 0.0, true, 0.9*(0.3846+0.1346+0.0577)/2));
-			monitoredNodes.push_back( tree_length );
-		}
-
-	}
-	else if(branchprior == BranchPrior::STRICT)
+    if(num_constrained_branches != numBranches)
 	{
 		moves.push_back( new ScaleMove(mu, 0.3, true, 0.02) );
-		monitoredNodes.push_back( mu );
-	}
+        monitoredNodes.push_back( mu );
 
-        if(modeltype > ModelPrior::HOMOGENEOUS)
+        if(branchprior == BranchPrior::STRICT && num_constrained_branches > 0 )
+        {
+            moves.push_back( new ScaleMove(mu, 0.1, true, 0.02) );
+            moves.push_back( new ScaleMove(free_mu, 0.3, true, 0.02) );
+            monitoredNodes.push_back( free_mu );
+        }
+
+        tree_length = new DeterministicNode<double >("length", new SumFunction<double>(br_vector) );
+        monitoredNodes.push_back( tree_length );
+
+        std::vector<Move*> br_moves;
+
+        for (size_t i = 0 ; i < numBranches ; i ++ )
+        {
+            if(!constrained[i])
+            {
+                moves.push_back( new ScaleMove(branchRates_nonConst[i], 2.0*log(1.6), true, 0.4/float(numBranches) ) );
+            }
+        }
+
+        // no input constraints
+        if(num_constrained_branches == 0)
+        {
+            moves.push_back( new VectorScaleMove(branchRates_nonConst, 1.386/2, true, 0.3846/15 ) );
+            moves.push_back( new VectorScaleMove(branchRates_nonConst, 1.386, true, 0.3846/15 ) );
+
+            if(modeltype == ModelPrior::HOMOGENEOUS)
+            {
+                moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)phi, branchRates_nonConst, 0.1, true, 0.3846/15 ) );
+                moves.push_back( new PartialVectorScaleMove((StochasticNode<double>*)phi, branchRates_nonConst, 0.4, true, 0.3846/15 ) );
+            }
+        }
+
+	}
+    else if(branchprior == BranchPrior::STRICT )
+    {
+        moves.push_back( new ScaleMove(mu, 0.1, true, 0.02) );
+        moves.push_back( new ScaleMove(mu, 0.3, true, 0.02) );
+        monitoredNodes.push_back( mu );
+    }
+
+    if(modeltype > ModelPrior::HOMOGENEOUS)
 	{
 		for (size_t i = 0 ; i < numNodes ; i ++ )
 		{
@@ -740,7 +842,7 @@ void Biphy::initModel( void ) {
 		}
 	}
 
-        if(modeltype == ModelPrior::HOMOGENEOUS || (modeltype > ModelPrior::HOMOGENEOUS && (rootprior == RootPrior::TRUNCATED || rootprior == RootPrior::RIGID)) )
+    if(modeltype == ModelPrior::HOMOGENEOUS || (modeltype > ModelPrior::HOMOGENEOUS && (rootprior == RootPrior::TRUNCATED || rootprior == RootPrior::RIGID)) )
 	{
 		if(modeltype == ModelPrior::MIXTURE)
 			moves.push_back( new MixtureAllocationMove<double>((StochasticNode<double>*)phi, 0.02 ) );
@@ -821,9 +923,10 @@ void Biphy::initModel( void ) {
     }
     else if(steppingStones == 0)
     {
-        if(trees.empty() || branchprior == BranchPrior::EXPONENTIAL || branchprior == BranchPrior::DIRICHLET)
+        if(free_topology || num_constrained_branches != numBranches)
         {
             monitors.push_back( new NewickTreeMonitor( tau, every, name+".treelist", useParallelMcmcmc || restart) );
+
             if(nexus)
             {
                 std::set<TypedDagNode<std::vector<double> > *> piset;

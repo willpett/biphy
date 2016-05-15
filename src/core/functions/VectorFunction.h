@@ -47,7 +47,7 @@ protected:
 private:
     
     // members
-    std::vector<const TypedDagNode<valueType>* >        parameters;
+    std::vector<const TypedDagNode<valueType>* >              parameters;
     
 };
 
