@@ -15,8 +15,7 @@ Tree::Tree(void) :
     root( NULL ),
     binary( true ),
     rooted( false ),
-    numTips( 0 ),
-    numNodes( 0 )
+    numTips( 0 )
 {
     
 }
@@ -28,8 +27,7 @@ Tree::Tree(const Tree& t) :
     root( NULL ),
     binary( t.binary ),
     rooted( t.rooted ),
-    numTips( t.numTips ),
-    numNodes( t.numNodes )
+    numTips( t.numTips )
 {
         
     // need to perform a deep copy of the BranchLengthTree nodes
@@ -76,7 +74,6 @@ Tree& Tree::operator=(const Tree &t)
 
         binary      = t.binary;
         numTips     = t.numTips;
-        numNodes    = t.numNodes;
         rooted      = t.rooted;
         
         TopologyNode* newRoot = t.root->clone();
@@ -273,7 +270,7 @@ size_t Tree::getNumberOfInteriorNodes( void ) const
 size_t Tree::getNumberOfNodes(void) const
 {
     
-    return numNodes;
+    return nodes.size();
 }
 
 
@@ -580,10 +577,10 @@ void Tree::makeInternalNodesBifurcating(void)
 void Tree::orderNodesByIndex()
 {
 
-    std::vector<TopologyNode*> nodes_copy = std::vector<TopologyNode*>(numNodes);
-    for (int i = 0; i < numNodes; i++)
+    std::vector<TopologyNode*> nodes_copy = std::vector<TopologyNode*>(nodes.size());
+    for (int i = 0; i < nodes.size(); i++)
     {
-        for (int j = 0; j < numNodes; j++)
+        for (int j = 0; j < nodes.size(); j++)
         {
             if (i == nodes[j]->getIndex())
             {
@@ -693,12 +690,10 @@ void Tree::setRoot( TopologyNode* r, bool resetIndex )
         }
     }
 
-    numNodes = nodes.size();
-
     orderNodesByIndex();
     // count the number of tips
     numTips = 0;
-    for (size_t i = 0; i < numNodes; ++i)
+    for (size_t i = 0; i < nodes.size(); ++i)
     {
         numTips += ( nodes[i]->isTip() ? 1 : 0);
     }

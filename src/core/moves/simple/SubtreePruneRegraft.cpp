@@ -58,12 +58,18 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
     Tree& tau = variable->getValue();
     
     // pick a random node which is not the root and neithor the direct descendant of the root
-    TopologyNode* node;
+    TopologyNode* node = NULL;
     do {
-        double u = rng->uniform01();
-        size_t index = std::floor(tau.getNumberOfNodes() * u);
-        node = &tau.getNode(index);
-    } while ( node->isRoot() || node->getParent().isRoot() || (node->getParent().getParent().isRoot() && outgroup));
+        try{
+            double u = rng->uniform01();
+            size_t index = std::floor(tau.getNumberOfNodes() * u);
+            node = &tau.getNode(index);
+        }
+        catch(...)
+        {
+            continue;
+        }
+    } while ( node == NULL || node->isRoot() || node->getParent().isRoot() || (node->getParent().getParent().isRoot() && outgroup));
     
     // now we store all necessary values
     storedChoosenNode   = node;
@@ -77,12 +83,20 @@ double SubtreePruneRegraft::performSimpleMove( void ) {
     }
     
     // pick a random new parent node
-    TopologyNode* newBrother;
+    TopologyNode* newBrother = NULL;
     do {
-        double u = rng->uniform01();
-        size_t index = std::floor(tau.getNumberOfNodes() * u);
-        newBrother = &tau.getNode(index);
-    } while ( newBrother->isRoot() ||
+        try
+        {
+            double u = rng->uniform01();
+            size_t index = std::floor(tau.getNumberOfNodes() * u);
+            newBrother = &tau.getNode(index);
+        }
+        catch(...)
+        {
+            continue;
+        }
+    } while ( newBrother == NULL ||
+            newBrother->isRoot() ||
     		newBrother == &parent ||
 			newBrother == storedBrother ||
 			newBrother == storedChoosenNode ||
