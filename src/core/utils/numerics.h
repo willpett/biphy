@@ -260,21 +260,6 @@ namespace {
       std::ifstream ifile(filename.c_str());
       return ifile;
     }
-
-    void our_terminate (void);
-    
-    static const bool SET_TERMINATE = std::set_terminate(our_terminate);
-
-    void our_terminate (void) { // try 1
-        static bool tried_throw = false;
-        try {
-            if(!tried_throw++) throw;
-        }
-        catch (Exception& e) {
-            std::cerr << "Exception:\t" << e.getMessage() << '\n';
-        }
-    }
-
 }
 
 #endif /* SRC_NUMERICS_H_ */

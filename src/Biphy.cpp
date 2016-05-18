@@ -133,8 +133,7 @@ Biphy::Biphy(const std::string n, size_t stepping) :
 void Biphy::open( void ) {
     std::ifstream is((name + ".param").c_str());
     if (!is)        {
-        std::cerr << "error : cannot find file : " << name << ".param\n";
-        exit(1);
+        throw Exception("cannot find file : "+name+".param");
     }
 
     is >> dataFile;
@@ -228,17 +227,12 @@ void Biphy::readInputFiles( void ) {
     
     // data checks
     if(data == NULL || data->getNumberOfTaxa() == 0){
-        std::cerr << "Error: failed to read datafile" << std::endl;
-        exit(1);
+        throw Exception("failed to read datafile");
     }
 
     NewickTreeReader reader;
     if(treeFile != "None"){
         trees = *(reader.readTrees(treeFile));
-        /*if(trees.size() != data.size()){
-            std::cerr << "Error: number of matrices (" << data.size() << ") does not match number of trees (" << trees.size() << ")\n";
-            exit(1);
-        }*/
     }
 
     if(trees.size() > 0)
@@ -250,8 +244,7 @@ void Biphy::readInputFiles( void ) {
     
         // data checks
         if(cvdata == NULL || cvdata->getNumberOfTaxa() == 0){
-            std::cerr << "Error: failed to read cv datafile" << std::endl;
-            exit(1);
+            throw Exception("failed to read cv datafile");
         }
     }
     
@@ -958,8 +951,7 @@ void Biphy::initMCMC( void ) {
 void Biphy::run( void ) {
     if(readstream){
         if(!saveall){
-            std::cerr << "Error: "+name+".stream does not contain complete output. run again with -s option\n\n";
-            exit(1);
+            throw Exception("Error: "+name+".stream does not contain complete output. run again with -s option");
         }
         std::cout << "reading from stream\n";
         if(until > 0)

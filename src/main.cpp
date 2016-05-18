@@ -48,37 +48,23 @@ int main (int argc, const char * argv[])
 	bool ancestral = false;
 	bool asymmbeta = false;
 
+	size_t num_stones = 0;
+
 	Biphy *chain = NULL;
 
 	try	{
-		if (argc == 4 || argc == 2)	{
-		    size_t ss = 0;
-
-			name = argv[1];
+		if (argc == 2)	{
+		    name = argv[1];
 			if (name == "-help" || name == "--help" || name == "-h")	{
-				throw(0);
-			}
-			else if(name == "-ss")
-			{
-			    if (argc != 4)  {
-                    cerr << "error in command: -ss <int>\n\n";
-                    exit(1);
-                }
-                if (! IsInt(argv[2])) {
-                    cerr << "error in command: -ss <int>\n\n";
-                    exit(1);
-                }
-                ss = atoi(argv[2]);
-                name = argv[3];
+				throw 0;
 			}
 			if(!fexists(name+".stream")){
-				cerr << "run '" << name << "' does not exist\n";
-				exit(1);
+				throw Exception("run '"+name+"' does not exist");
 			}
 
-			chain = new Biphy(name,ss);
+			chain = new Biphy(name,num_stones);
 		}else if (argc == 1){
-			throw(0);
+			throw 0;
 		}else{
 
 			int i = 1;
@@ -113,26 +99,33 @@ int main (int argc, const char * argv[])
 				else if (s == "-dgam"){
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -dgam <int>\n\n";
-						exit(1);
+					    throw Exception("-dgam <int>");
 					}
 					s = argv[i];
 					if (! IsInt(s))	{
-						cerr << "error in command: -dgam <int>\n\n";
-						exit(1);
+					    throw Exception("-dgam <int>");
 					}
 					dgam = atoi(argv[i]);
 				}
+				else if (s == "-ss"){
+                    i++;
+                    if (i == argc)  {
+                        throw Exception("-ss <int>");
+                    }
+                    s = argv[i];
+                    if (! IsInt(s)) {
+                        throw Exception("-ss <int>");
+                    }
+                    num_stones = atoi(argv[i]);
+                }
 				else if (s == "-dbeta"){
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -dbeta <int>\n\n";
-						exit(1);
+					    throw Exception("-dbeta <int>");
 					}
 					s = argv[i];
 					if (! IsInt(s))	{
-						cerr << "error in command: -dbeta <int>\n\n";
-						exit(1);
+					    throw Exception("-dbeta <int>");
 					}
 					dbeta = atoi(argv[i]);
 				}
@@ -175,42 +168,35 @@ int main (int argc, const char * argv[])
 				else if (s == "-n")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -n <int>\n\n";
-						exit(1);
+					    throw Exception("-n <int>");
 					}
 					s = argv[i];
 					if (! IsInt(s))	{
-						cerr << "error in command: -n <int>\n\n";
-						exit(1);
+					    throw Exception("-n <int>");
 					}
 					numChains = atoi(argv[i]);
 				}
 				else if (s == "-u")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -u <int>\n\n";
-						exit(1);
+					    throw Exception("-u <int>");
 					}
 					s = argv[i];
 					if (! IsInt(s))	{
-						cerr << "error in command: -u <int>\n\n";
-						exit(1);
+					    throw Exception("-u <int>");
 					}
 					correction = AscertainmentBias::Coding(atoi(argv[i]));
 					if(correction < 0 || (correction > 15 && correction != 17))	{
-						cerr << "error in command: -u <int>\n\n";
-						exit(1);
+						throw Exception("-u <int>");
 					}
 				}else if (s == "-mix")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -mix <int>\n\n";
-						exit(1);
+					    throw Exception("-mix <int>");
 					}
 					s = argv[i];
 					if (! IsInt(s))	{
-						cerr << "error in command: -mix <int>\n\n";
-						exit(1);
+					    throw Exception("-mix <int>");
 					}
 					mixture = atoi(argv[i]);
 					if(mixture > 1){
@@ -223,51 +209,43 @@ int main (int argc, const char * argv[])
 				else if (s == "-delta")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -delta <float>\n\n";
-						exit(1);
+					    throw Exception("-delta <float>");
 					}
 					s = argv[i];
 					if (! IsFloat(s))	{
-						cerr << "error in command: -delta <float>\n\n";
-						exit(1);
+					    throw Exception("-delta <float>");
 					}
 					delta = atof(argv[i]);
 				}
 				else if (s == "-sigma")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -sigma <float>\n\n";
-						exit(1);
+					    throw Exception("-sigma <float>");
 					}
 					s = argv[i];
 					if (! IsFloat(s))	{
-						cerr << "error in command: -sigma <float>\n\n";
-						exit(1);
+					    throw Exception("-sigma <float>");
 					}
 					sigma = atof(argv[i]);
 				}
 				else if (s == "-si")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -si <int>\n\n";
-						exit(1);
+					    throw Exception("-si <int>");
 					}
 					s = argv[i];
 					if (!IsInt(s))	{
-						cerr << "error in command: -si <int>\n\n";
-						exit(1);
+					    throw Exception("-si <int>");
 					}
 					swapInterval = atoi(argv[i]);
 				}else if (s == "-x")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -x <every> <until>\n\n";
-						exit(1);
+					    throw Exception("-x <every> <until>");
 					}
 					s = argv[i];
 					if (!IsInt(s))	{
-						cerr << "error in command: -x <every> <until>\n\n";
-						exit(1);
+					    throw Exception("-x <every> <until>");
 					}
 					every = atoi(argv[i]);
 					i++;
@@ -283,46 +261,39 @@ int main (int argc, const char * argv[])
 				}else if (s == "-rp")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -rp <min> <max>\n\n";
-						exit(1);
+					    throw Exception("-rp <min> <max>");
 					}
 					s = argv[i];
 					if (!IsFloat(s))	{
-						cerr << "error in command: -rp <min> <max>\n\n";
-						exit(1);
+					    throw Exception("-rp <min> <max>");
 					}
 					rootmin = atof(argv[i]);
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -rp <min> <max>\n\n";
-						exit(1);
+					    throw Exception("-rp <min> <max>");
 					}
 					s = argv[i];
 					if (!IsFloat(s))	{
-						cerr << "error in command: -rp <min> <max>\n\n";
-						exit(1);
+					    throw Exception("-rp <min> <max>");
 					}
 					rootmax = atof(argv[i]);
 					if(rootmin < 0 || rootmax > 1.0 || rootmin > rootmax){
-						cerr << "error in command: -rp <min> <max>\n\n";
-						exit(1);
+					    throw Exception("-rp <min> <max>");
 					}
 					rootprior = RootPrior::TRUNCATED;
 				}else if (s == "-ppred")	{
 					i++;
 					if (i == argc)	{
-						cerr << "error in command: -ppred <int>\n\n";
-						exit(1);
+					    throw Exception("-ppred <int>");
 					}
 					s = argv[i];
 					if (!IsInt(s))	{
-						cerr << "error in command: -ppred <int>\n\n";
-						exit(1);
+					    throw Exception("-ppred <int>");
 					}
 					ppred = atoi(argv[i]);
 				}else{
 					if (i != (argc -1))	{
-						throw(0);
+						throw 0;
 					}
 					name = argv[i];
 				}
@@ -330,14 +301,12 @@ int main (int argc, const char * argv[])
 			}
 
 			if(name == ""){
-				cerr << "error: could not determine run name\n\n";
-				exit(1);
+			    throw Exception("could not determine run name");
 			}
 
 			if(dbeta > 1 && modeltype != ModelPrior::MK)
 			{
-				cerr << "error: -dbeta only used with Mk model\n\n";
-				exit(1);
+			    throw Exception("-dbeta only used with Mk model");
 			}
 
 			if(rootprior == RootPrior::RIGID && (modeltype < ModelPrior::HIERARCHICAL))
@@ -345,144 +314,155 @@ int main (int argc, const char * argv[])
 
 			if(rootprior == RootPrior::TRUNCATED && (modeltype == ModelPrior::MIXTURE))
 			{
-				cerr << "error: truncated root prior incompatible with branch mixture model\n\n";
-				exit(1);
+			    throw Exception("truncated root prior incompatible with branch mixture model");
 			}
 
 			if((branchprior == BranchPrior::FIXED || branchprior == BranchPrior::STRICT) && treefile == "None")
 			{
-				cerr << "error: ";
+			    stringstream ss;
+				ss << "";
 				if(branchprior == BranchPrior::FIXED)
-					cerr << "fixed branch length";
+					ss << "fixed branch length";
 				else if(branchprior == BranchPrior::STRICT)
-					cerr << "strict clock";
-				cerr << " prior is used only with input tree file\n\n";
-				exit(1);
+					ss << "strict clock";
+				ss << " prior is used only with input tree file";
+				throw Exception(ss.str());
 			}
 		}
 	}
-	catch(Exception &e){
-		throw(e);
-	}catch(...){
-
-		cerr << "biphy " << VERSION << "\n";
-		cerr << '\n';
-		cerr << "usage: biphy -d <data file> [-x <every> <until> ] <run name>\n";
-
-		cerr << "\nBranch frequency prior:\n";
-		cerr << "\t-dollo\t\tirreversible stochastic dollo model\n";
-		cerr << "\t-mk\t\tsymmetric reversible Mk model\n";
-		cerr << "\t-h\t\tasymmetric reversible model (default)\n";
-		cerr << "\t-nh\t\tbranch-heterogeneous asymmetric reversible model\n";
-		//cerr << "\t-mix <int>\tbeta mixture with <int> components\n";
-
-		cerr << "\nBranch length prior:\n";
-		cerr << "\t-lexp\t\thierarchical exponential prior (default)\n";
-		cerr << "\t-lfixed\t\tfix the branch lengths at input values via the -t option\n";
-		cerr << "\t-lstrict\tsame as -lfixed with a uniform branch multiplier (clock_rate)\n\n";
-
-		cerr << "\nAcross sites mixtures:\n";
-		cerr << "\t-dgam <int>\tdiscrete gamma rates mixture with <int> categories (default: 4)\n";
-		cerr << "\t-dbeta <int>\tbeta frequency mixture with <int> categories (Mk model only)\n";
-		cerr << "\t\t0 or 1 = across sites mixture disabled\n";
-		cerr << "\t-asymmbeta\tasymmetric beta mixture\n\n";
-
-		cerr << "\nCorrections for unobservable site patterns:\n";
-		cerr << "\t-u <int>\twhere <int> is one of:\n";
-		cerr << "\t\t0 = all site patterns are observable (default)\n";
-		cerr << "\t\t1 = no constant absence sites\n";
-		cerr << "\t\t2 = no constant presence sites\n";
-		cerr << "\t\t4 = no singleton presence sites\n";
-		cerr << "\t\t8 = no singleton absence sites\n";
-
-		cerr << "\tcombinations are achieved by adding the above values\n";
-		cerr << "\te.g.  3 = no constant sites\n";
-		cerr << "\t     15 = no uninformative sites\n";
-
-		cerr << "\nOptional constraints:\n";
-		cerr << "\t-t <file>\tconstraint tree filename\n";
-		cerr << "\t-o <file>\toutgroup clade file\n";
-		cerr << "\t-rigid\t\trigid root frequency for heterogeneous models\n";
-		cerr << "\t-rp <min> <max>\ttruncate root frequency on (min,max) (asymmetric reversible models only)\n";
-
-		cerr << "\nMCMCMC options:\n";
-		cerr << "\t-n <int>\tnumber of chains (default = 1)\n";
-		cerr << "\t-si <int>\tchain swap interval (default = 10)\n";
-		cerr << "\t-delta <float>\t(default = 0.05)\n";
-
-		cerr << "\nOutput options:\n";
-		cerr << "\t-s\t\tdo not save entire output\n";
-		cerr << "\t-e\t\tsave nexus treefile\n";
-
-		cerr << "\nStream-reading options:\n";
-		cerr << "\t-ppred <int>\tposterior predictive simulation (0 or 1)\n";
-		cerr << "\t-cv <file>\tcross-validation test alignment\n";
-		cerr << "\t-a\t\tsimulate ancestral states\n";
-		cerr << "\t-ss <int>\tinitialize steppingstone sampler with <int> chains\n";
-
-		exit(1);
+	catch(Exception &e)
+	{
+	    cerr << "Error: " << e.getMessage() << std::endl;
+	    return 1;
 	}
+	catch(...)
+	{
+	    stringstream ss;
+		ss << "biphy " << VERSION << "\n";
+		ss << '\n';
+		ss << "usage: biphy -d <data file> [-x <every> <until> ] <run name>\n";
 
-	if(chain == NULL)
-		if(datafile != "None"){
-			if(datafile.at(0) != '.' && datafile.at(0) != '/'){
-				datafile = "./"+datafile;
-			}
-			if(treefile != "None" && treefile.at(0) != '.' && treefile.at(0) != '/'){
-				treefile = "./"+treefile;
-			}
-			if(outgroupfile != "None" && outgroupfile.at(0) != '.' && outgroupfile.at(0) != '/'){
-				outgroupfile = "./"+outgroupfile;
-			}
+		ss << "\nBranch frequency prior:\n";
+		ss << "\t-dollo\t\tirreversible stochastic dollo model\n";
+		ss << "\t-mk\t\tsymmetric reversible Mk model\n";
+		ss << "\t-h\t\tasymmetric reversible model (default)\n";
+		ss << "\t-nh\t\tbranch-heterogeneous asymmetric reversible model\n";
+		//ss << "\t-mix <int>\tbeta mixture with <int> components\n";
 
-			if(fexists(name+".param") && !overwrite){
-				cerr << "run '" << name << "' exists. use overwrite option -f\n";
-				exit(1);
-			}else if(overwrite){
-				remove((name+".stream").c_str());
-				remove((name+".param").c_str());
-				remove((name+".trace").c_str());
-				remove((name+".treelist").c_str());
-				if(nexus)
-					remove((name+".treelist.nex").c_str());
-			}
+		ss << "\nBranch length prior:\n";
+		ss << "\t-lexp\t\thierarchical exponential prior (default)\n";
+		ss << "\t-lfixed\t\tfix the branch lengths at input values via the -t option\n";
+		ss << "\t-lstrict\tsame as -lfixed with a uniform branch multiplier (clock_rate)\n\n";
 
-			chain = new Biphy(name,datafile,cvfile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,dbeta,asymmbeta,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
-		}else{
-			if(!fexists(name+".stream")){
-				cerr << "run '" << name << "' does not exist\n";
-				exit(1);
-			}
-			if(cvfile != "None" && cvfile.at(0) != '.' && cvfile.at(0) != '/'){
-				cvfile = "./"+cvfile;
-			}
-			if(ppred)
-			{
-				stringstream ss;
-				ss << name << ".ppred" << ppred;
-				remove(ss.str().c_str());
-			}
-			if(cvfile != "None")
-				remove((name+".cv").c_str());
-			if(persite)
-			    remove((name+".lnprobs").c_str());
-			if(dolloMapping)
-				remove((name+".dollo.fa").c_str());
-			if(ancestral)
-			    remove((name+".mapping").c_str());
-			chain = new Biphy(name,cvfile,ppred,dolloMapping,persite,ancestral,every,until);
-		}
+		ss << "\nAcross sites mixtures:\n";
+		ss << "\t-dgam <int>\tdiscrete gamma rates mixture with <int> categories (default: 4)\n";
+		ss << "\t-dbeta <int>\tbeta frequency mixture with <int> categories (Mk model only)\n";
+		ss << "\t\t0 or 1 = across sites mixture disabled\n";
+		ss << "\t-asymmbeta\tasymmetric beta mixture\n\n";
+
+		ss << "\nCorrections for unobservable site patterns:\n";
+		ss << "\t-u <int>\twhere <int> is one of:\n";
+		ss << "\t\t0 = all site patterns are observable (default)\n";
+		ss << "\t\t1 = no constant absence sites\n";
+		ss << "\t\t2 = no constant presence sites\n";
+		ss << "\t\t4 = no singleton presence sites\n";
+		ss << "\t\t8 = no singleton absence sites\n";
+
+		ss << "\tcombinations are achieved by adding the above values\n";
+		ss << "\te.g.  3 = no constant sites\n";
+		ss << "\t     15 = no uninformative sites\n";
+
+		ss << "\nOptional constraints:\n";
+		ss << "\t-t <file>\tconstraint tree filename\n";
+		ss << "\t-o <file>\toutgroup clade file\n";
+		ss << "\t-rigid\t\trigid root frequency for heterogeneous models\n";
+		ss << "\t-rp <min> <max>\ttruncate root frequency on (min,max) (asymmetric reversible models only)\n";
+
+		ss << "\nMCMCMC options:\n";
+		ss << "\t-n <int>\tnumber of chains (default = 1)\n";
+		ss << "\t-si <int>\tchain swap interval (default = 10)\n";
+		ss << "\t-delta <float>\t(default = 0.05)\n";
+
+		ss << "\nOutput options:\n";
+		ss << "\t-s\t\tdo not save entire output\n";
+		ss << "\t-e\t\tsave nexus treefile\n";
+
+		ss << "\nStream-reading options:\n";
+		ss << "\t-ppred <int>\tposterior predictive simulation (0 or 1)\n";
+		ss << "\t-cv <file>\tcross-validation test alignment\n";
+		ss << "\t-a\t\tsimulate ancestral states\n";
+		ss << "\t-ss <int>\tinitialize steppingstone sampler with <int> chains\n";
+
+		cerr << ss.str();
+
+		return 1;
+	}
 
 	try
 	{
-		chain->init();
-		chain->run();
+        if(chain == NULL)
+            if(datafile == "None" && num_stones > 0)
+            {
+                if(!fexists(name+".param"))
+                {
+                    throw Exception("run '"+name+"' does not exist");
+                }
+
+                chain = new Biphy(name,num_stones);
+            }
+            else if(datafile != "None")
+            {
+                if(datafile.at(0) != '.' && datafile.at(0) != '/'){
+                    datafile = "./"+datafile;
+                }
+                if(treefile != "None" && treefile.at(0) != '.' && treefile.at(0) != '/'){
+                    treefile = "./"+treefile;
+                }
+                if(outgroupfile != "None" && outgroupfile.at(0) != '.' && outgroupfile.at(0) != '/'){
+                    outgroupfile = "./"+outgroupfile;
+                }
+
+                if(fexists(name+".param") && !overwrite){
+                    throw Exception("run '"+name+"' exists. use overwrite option -f");
+                }else if(overwrite){
+                    remove((name+".stream").c_str());
+                    remove((name+".param").c_str());
+                    remove((name+".trace").c_str());
+                    remove((name+".treelist").c_str());
+                    if(nexus)
+                        remove((name+".treelist.nex").c_str());
+                }
+
+                chain = new Biphy(name,datafile,cvfile,treefile,outgroupfile,modeltype,branchprior,rootprior,correction,dgam,dbeta,asymmbeta,mixture,rootmin,rootmax,every,until,numChains,swapInterval,delta,sigma,saveall,nexus);
+            }
+            else
+            {
+                if(!fexists(name+".stream")){
+                    throw Exception("run '"+name+"' does not exist");
+                }
+                if(cvfile != "None" && cvfile.at(0) != '.' && cvfile.at(0) != '/'){
+                    cvfile = "./"+cvfile;
+                }
+                if(ppred)
+                {
+                    remove((name+".ppred").c_str());
+                }
+                if(cvfile != "None")
+                    remove((name+".cv").c_str());
+                if(persite)
+                    remove((name+".lnprobs").c_str());
+                if(dolloMapping)
+                    remove((name+".dollo.fa").c_str());
+                if(ancestral)
+                    remove((name+".mapping").c_str());
+                chain = new Biphy(name,cvfile,ppred,dolloMapping,persite,ancestral,every,until);
+            }
+
+        chain->init();
+        chain->run();
 	}
-	catch (Exception& e)
+	catch(Exception& e)
 	{
-		cerr << "Error:\t" << e.getMessage() << '\n';
-		exit(1);
+	    cerr << "Error: " << e.getMessage() << std::endl;
 	}
-    
-    exit(0);
 }

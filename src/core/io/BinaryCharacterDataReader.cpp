@@ -99,7 +99,7 @@ bool BinaryCharacterDataReader::isFastaFile(std::string& fn) {
                     numSequences++;
                 }
                 else{
-                    std::cerr << lineNum << "\t" << lastCarotLine << std::endl;
+                    //std::cerr << lineNum << "\t" << lastCarotLine << std::endl;
                     return false;
                 }
             }
@@ -127,7 +127,6 @@ bool BinaryCharacterDataReader::isFastaFile(std::string& fn) {
     
     if (numSequences < 1)
     {
-        std::cerr << numSequences << " < 1" << std::endl;
         return false;
     }
     
@@ -167,7 +166,7 @@ bool BinaryCharacterDataReader::isPastaFile(std::string& fn) {
                     numSequences++;
                 }
                 else{
-                    std::cerr << lineNum << "\t" << lastCarotLine << std::endl;
+                    //std::cerr << lineNum << "\t" << lastCarotLine << std::endl;
                     return false;
                 }
             }
@@ -204,7 +203,7 @@ bool BinaryCharacterDataReader::isPastaFile(std::string& fn) {
     
     if (numSequences < 1)
     {
-        std::cerr << numSequences << " < 1" << std::endl;
+        //std::cerr << numSequences << " < 1" << std::endl;
         return false;
     }
     
@@ -395,9 +394,7 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadNexus(std::string filespec) 
 
 
         if (!EquivalentStrings(type,"restriction") && !EquivalentStrings(type,"standard") && !EquivalentStrings(type,"binary"))  {
-            std::cerr << "error cannot recognize data type\n";
-            std::cerr << type << "\n";
-            exit(1);
+            throw Exception("cannot recognize data type '"+type+"'");
         }
         
         for(size_t i =0; i < Ntaxa; i++)
@@ -426,8 +423,9 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadNexus(std::string filespec) 
                 }
                 else    {
                     if (temp != Data[i]->getTaxonName())    {
-                        std::cerr << "error when reading tree base: " << temp << '\t' << Data[i]->getTaxonName() << '\n';
-                        exit(1);
+                        std::stringstream ss;
+                        ss << "when reading tree base: " << temp << '\t' << Data[i]->getTaxonName();
+                        throw Exception(ss.str());
                     }
                 }
 
@@ -469,8 +467,9 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadNexus(std::string filespec) 
                 while ((!theStream.eof()) && (c != '\n') && (c != 13));
                 if (theStream.eof())    {
                     if (i < Ntaxa-1)    {
-                        std::cerr << "error : found " << i << " taxa instead of " << Ntaxa << " in datafile\n";
-                        exit(1);
+                        std::stringstream ss;
+                        ss << "found " << i << " taxa instead of " << Ntaxa << " in datafile";
+                        throw Exception(ss.str());
                     }
                 }
                 if (!m) {
@@ -478,8 +477,9 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadNexus(std::string filespec) 
                 }
                 else    {
                     if (m != k) {
-                        std::cerr << "error when reading nexus : " << m << '\t' << k << '\n';
-                        std::cerr << "taxa : " << i << '\t' << Data[i]->getTaxonName() << '\n';
+                        //std::stringstream ss;
+                        //ss << "when reading nexus : " << m << '\t' << k << '\n';
+                        //ss << "taxa : " << i << '\t' << Data[i]->getTaxonName() << '\n';
                         if (m > k)  {
                             while (k != m)  {
                                 Data[i]->setGap(k,true);
@@ -493,8 +493,7 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadNexus(std::string filespec) 
         }
     }
     catch(...)  {
-        std::cerr << "error while reading data file\n";
-        return 0;
+        throw Exception("error while reading data file");
     }
     
     BinaryCharacterData rt;
@@ -513,32 +512,30 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadPhylipSequential(std::string
     
     try {
 
-        // std::cerr << "beware: phylip data sets only for amino acids for the moment\n";
+        // std::cerr << "beware: phylip data sets only for amino acids for the moment";
         // std::cerr.flush();
     
         std::string temp;
         theStream >> temp;
         if (!IsInt(temp))   {
-            std::cerr << "error when reading data\n";
-            std::cerr << "data should be formatted as follows:\n";
-            std::cerr << "#taxa #sites\n";
-            std::cerr << "name1 seq1.....\n";
-            std::cerr << "name2 seq2.....\n";
-            std::cerr << "...\n";
-            std::cerr << '\n';
-            exit(1);
+            std::stringstream ss;
+            ss << "data should be formatted as follows:\n";
+            ss << "#taxa #sites\n";
+            ss << "name1 seq1.....\n";
+            ss << "name2 seq2.....\n";
+            ss << "...\n";
+            throw Exception(ss.str());
         }
         size_t Ntaxa = Int(temp);
         theStream >> temp;
         if (!IsInt(temp))   {
-            std::cerr << "error when reading data\n";
-            std::cerr << "data should be formatted as follows:\n";
-            std::cerr << "#taxa #sites\n";
-            std::cerr << "name1 seq1.....\n";
-            std::cerr << "name2 seq2.....\n";
-            std::cerr << "...\n";
-            std::cerr << '\n';
-            exit(1);
+            std::stringstream ss;
+            ss << "data should be formatted as follows:\n";
+            ss << "#taxa #sites\n";
+            ss << "name1 seq1.....\n";
+            ss << "name2 seq2.....\n";
+            ss << "...\n";
+            throw Exception(ss.str());
         }
         size_t Nsite = Int(temp);
 
@@ -587,8 +584,7 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadPhylipSequential(std::string
         }
     }
     catch(...)  {
-        std::cerr << "error while reading data file\n";
-        exit(1);
+        throw Exception("error while reading data file");
     }
     
     return Data.clone();
@@ -681,8 +677,7 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadFasta(std::string filespec) 
         Data.addTaxonData(td);
     }
     catch(...)  {
-        std::cerr << "error while reading data file\n";
-        exit(1);
+        throw Exception("error while reading data file");
     }
                 
     return Data.clone();
@@ -699,29 +694,26 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadPhylip (std::string filespec
         std::string temp;
         theStream >> temp;
         if (!IsInt(temp))   {
-            std::cerr << "error when reading data\n";
-            std::cerr << "data should be formatted as follows:\n";
-            std::cerr << "#taxa #sites\n";
-            std::cerr << "name1 seq1.....\n";
-            std::cerr << "name2 seq2.....\n";
-            std::cerr << "...\n";
-            std::cerr << '\n';
-            exit(1);
+            std::stringstream ss;
+            ss << "data should be formatted as follows:\n";
+            ss << "#taxa #sites\n";
+            ss << "name1 seq1.....\n";
+            ss << "name2 seq2.....\n";
+            ss << "...\n";
+            throw Exception(ss.str());
         }
         size_t Ntaxa = Int(temp);
         theStream >> temp;
         if (!IsInt(temp))   {
-            std::cerr << "error when reading data\n";
-            std::cerr << "data should be formatted as follows:\n";
-            std::cerr << "#taxa #sites\n";
-            std::cerr << "name1 seq1.....\n";
-            std::cerr << "name2 seq2.....\n";
-            std::cerr << "...\n";
-            std::cerr << '\n';
-            exit(1);
+            std::stringstream ss;
+            ss << "data should be formatted as follows:\n";
+            ss << "#taxa #sites\n";
+            ss << "name1 seq1.....\n";
+            ss << "name2 seq2.....\n";
+            ss << "...\n";
+            throw Exception(ss.str());
         }
         size_t Nsite = Int(temp);
-        std::cerr << Ntaxa << '\t' << Nsite << '\n';
 
         for(size_t i = 0; i < Ntaxa; i++)
         {
@@ -742,8 +734,9 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadPhylip (std::string filespec
                     }
                     else    {
                         if (temp != Data[i]->getTaxonName())    {
-                            std::cerr << "error when reading data: read " << temp << " instead of " << Data[i]->getTaxonName() << '\n';
-                            exit(1);
+                            std::stringstream ss;
+                            ss << "read " << temp << " instead of " << Data[i]->getTaxonName();
+                            throw Exception(ss.str());
                         }
                     }
                 }
@@ -782,8 +775,9 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadPhylip (std::string filespec
                 while ((!theStream.eof()) && (c != '\n') && (c != 13));
                 if (theStream.eof())    {
                     if (i < Ntaxa-1)    {
-                        std::cerr << "error : found " << i << " taxa instead of " << Ntaxa << " in datafile\n";
-                        exit(1);
+                        std::stringstream ss;
+                        ss << "found " << i << " taxa instead of " << Ntaxa << " in datafile";
+                        throw Exception(ss.str());
                     }
                 }
                 c = theStream.peek();
@@ -797,28 +791,29 @@ BinaryCharacterData* BinaryCharacterDataReader::ReadPhylip (std::string filespec
                 }
                 else    {
                     if (m != k) {
-                        std::cerr << "error when reading data non matching number of sequences in block number " << block << " for taxon " << i << " " << Data[i]->getTaxonName() << '\n';
-                        std::cerr << "taxa : " << i << '\t' << Data[i]->getTaxonName() << '\n';
-                        std::cerr << "read " << k << " instead of " << m << "characters\n";
-                        exit(1);
+                        std::stringstream ss;
+                        ss << "non matching number of sequences in block number " << block << " for taxon " << i << " " << Data[i]->getTaxonName() << '\n';
+                        ss << "taxa : " << i << '\t' << Data[i]->getTaxonName() << '\n';
+                        ss << "read " << k << " instead of " << m << "characters";
+                        throw Exception(ss.str());
                     }
                 }
             }
             l= m;
         }
         if (l<Nsite)    {
-            std::cerr << "error : reached end of stream \n";
-            std::cerr << "data should be formatted as follows:\n";
-            std::cerr << "#taxa #sites\n";
-            std::cerr << "name1 seq1.....\n";
-            std::cerr << "name2 seq2.....\n";
-            std::cerr << "...\n";
-            std::cerr << '\n';
-            exit(1);
+            std::stringstream ss;
+            ss << "reached end of stream \n";
+            ss << "data should be formatted as follows:\n";
+            ss << "#taxa #sites\n";
+            ss << "name1 seq1.....\n";
+            ss << "name2 seq2.....\n";
+            ss << "...\n";
+            throw Exception(ss.str());
         }
     }
     catch(...)  {
-        std::cerr << "error while reading data file\n";
+        throw Exception("error while reading data file");
     }
     
     BinaryCharacterData rt;
@@ -895,8 +890,7 @@ ContinuousBinaryCharacterData* BinaryCharacterDataReader::ReadPasta(std::string 
         Data.addTaxonData(td);
     }
     catch(...)  {
-        std::cerr << "error while reading data file\n";
-        exit(1);
+        throw Exception("error while reading data file");
     }
                 
     return Data.clone();
