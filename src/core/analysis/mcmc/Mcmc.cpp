@@ -323,7 +323,7 @@ void Mcmc::initializeChain( void ) {
     }
 
     int numTries    = 0;
-    int maxNumTries = 10;
+    int maxNumTries = 100;
     size_t density = 10;
     for ( ; numTries < maxNumTries; numTries ++ )
     {
