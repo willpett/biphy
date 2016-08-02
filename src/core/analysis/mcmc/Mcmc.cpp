@@ -323,8 +323,8 @@ void Mcmc::initializeChain( void ) {
     }
 
     int numTries    = 0;
-    int maxNumTries = 100;
-    int maxNumScaledTries = 200;
+    int maxNumTries = 10;
+    size_t density = 10;
     for ( ; numTries < maxNumTries; numTries ++ )
     {
         lnProbability = 0.0;
@@ -342,12 +342,26 @@ void Mcmc::initializeChain( void ) {
                     StochasticNode<BinaryCharacterData>* snode = dynamic_cast<StochasticNode<BinaryCharacterData>* >(node);
                     if(snode)
                     {
-                        std::cerr << "Warning: Unable to find a starting state with computable probability after " << maxNumTries << " tries" << std::endl;
-                        std::cerr << "Enabling numerical scaling and retrying..." << std::endl;
-                        
-                        BinarySubstitutionModel* model = (BinarySubstitutionModel*)&snode->getDistribution();
-                        model->setUseScaling(true);
-                        maxNumTries = maxNumScaledTries;
+                    	BinarySubstitutionModel* model = (BinarySubstitutionModel*)&snode->getDistribution();
+                    	if(! model->getUseScaling())
+                    	{
+                    		std::cerr << "Warning: Unable to find a starting state with computable probability after " << maxNumTries << " tries" << std::endl;
+                    		std::cerr << "Enabling numerical scaling (frequency = 1/" << density << ") and retrying..." << std::endl;
+
+                    		model->setUseScaling(true);
+                    		model->setScalingDensity(density);
+                    		numTries = 0;
+                    	}
+                    	else if(model->getScalingDensity() > 1)
+                    	{
+                    		density = std::max(model->getScalingDensity()/2,size_t(1));
+                    		model->setScalingDensity(density);
+
+                    		std::cerr << "Warning: Unable to find a starting state with computable probability after " << maxNumTries << " tries" << std::endl;
+                    		std::cerr << "Increasing numerical scaling frequency (= 1/" << density << ") and retrying..." << std::endl;
+
+                    		numTries = 0;
+                    	}
                     }
                 }
             }
@@ -385,7 +399,7 @@ void Mcmc::initializeChain( void ) {
             break;
     }
 
-    if ( numTries == maxNumScaledTries || numTries == maxNumTries )
+    if ( numTries == maxNumTries )
     {
         throw Exception( "Unable to find a starting state with computable probability" );
     }

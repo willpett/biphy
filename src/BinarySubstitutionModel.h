@@ -66,6 +66,9 @@ public:
     
     void                                                                setVerbose(bool v);
     void                                                                setUseScaling(bool s);
+    bool                                                                getUseScaling(void);
+    void                                                                setScalingDensity(size_t s);
+    size_t                                                              getScalingDensity(void);
     double                                                              getClockRate(size_t n);
     double                                                              getBranchLength(size_t n);
     virtual double                                                  	getStationaryFrequency(size_t n, size_t mixture);

@@ -28,7 +28,7 @@ BinarySubstitutionModel::BinarySubstitutionModel(const TypedDagNode<Tree> *t, As
     numCorrectionMasks(0),
     verbose(true),
     continuous(false),
-    scalingDensity(10)
+    scalingDensity(4)
 {
     for(size_t i = 0; i < numNodes - 1; i++)
     {
@@ -1774,6 +1774,25 @@ void BinarySubstitutionModel::setUseScaling(bool s) {
         this->resizeLikelihoodVectors();
     }
 }
+
+bool BinarySubstitutionModel::getUseScaling() {
+
+    return useScaling;
+}
+
+void BinarySubstitutionModel::setScalingDensity(size_t s) {
+
+    if(s != scalingDensity)
+    {
+    	scalingDensity = s;
+    }
+}
+
+size_t BinarySubstitutionModel::getScalingDensity() {
+
+    return scalingDensity;
+}
+
 
 
 void BinarySubstitutionModel::updateTransitionProbabilities() {

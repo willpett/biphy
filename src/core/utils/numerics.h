@@ -255,11 +255,4 @@ class aligned_allocator
     typedef std::vector<RealNumber> RealVector;
 #endif
 
-namespace {
-    bool fexists(const std::string& filename) {
-      std::ifstream ifile(filename.c_str());
-      return ifile;
-    }
-}
-
 #endif /* SRC_NUMERICS_H_ */
