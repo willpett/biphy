@@ -324,7 +324,7 @@ void Mcmc::initializeChain( void ) {
 
     int numTries    = 0;
     int maxNumTries = 100;
-    size_t density = 10;
+    size_t density = 16;
     for ( ; numTries < maxNumTries; numTries ++ )
     {
         lnProbability = 0.0;
@@ -345,6 +345,11 @@ void Mcmc::initializeChain( void ) {
                     	BinarySubstitutionModel* model = (BinarySubstitutionModel*)&snode->getDistribution();
                     	if(! model->getUseScaling())
                     	{
+                    		while(density > model->getTree()->getNumberOfInteriorNodes())
+                    		{
+                    			density /= 2;
+                    		}
+
                     		std::cerr << "Warning: Unable to find a starting state with computable probability after " << maxNumTries << " tries" << std::endl;
                     		std::cerr << "Enabling numerical scaling (frequency = 1/" << density << ") and retrying..." << std::endl;
 
