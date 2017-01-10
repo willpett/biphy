@@ -1208,32 +1208,25 @@ RealNumber BinarySubstitutionModel::sumRootLikelihood( void )
 					// invert singleton likelihoods
 					RealVector::const_iterator         uI_i = uC_i + 4;
 
-					for(size_t c = 0; c < 2; c++)
-					{
-						// c is the character state of the correction pattern
-						if(c == 0)
-						{
-							if(coding & AscertainmentBias::NOABSENCESITES)
-							    prob += uC_i[c];
+					if(coding & AscertainmentBias::NOABSENCESITES)
+                        prob += uC_i[0];
 
-							if(coding & AscertainmentBias::NOSINGLETONPRESENCE)
-							    prob += uI_i[c];
-							else
-							    prob += uI_i[c] * sampling;
-						}
+                    if(coding & AscertainmentBias::NOSINGLETONPRESENCE)
+                        prob += uI_i[0];
+                    else
+                        prob += uI_i[0] * sampling;
 
-						if(c == 1)
-						{
-							// if there is only one observed tip, then don't double-count singleton gains
-							if((coding & AscertainmentBias::NOPRESENCESITES) && maskObservationCounts[mask] > 1)
-							    prob += uC_i[c];
+                    // if there is only one observed tip, then don't double-count singleton gains
+                    if((coding & AscertainmentBias::NOPRESENCESITES)
+                            && (maskObservationCounts[mask] > 1 || !(coding & AscertainmentBias::NOSINGLETONPRESENCE)) )
+                        prob += uC_i[1];
 
-							// if there are only two observed tips, then don't double-count singleton gains
-							// if there is only one observed tip, then don't double-count absence sites
-							if((coding & AscertainmentBias::NOSINGLETONABSENCE) && maskObservationCounts[mask] > 2)
-							    prob += uI_i[c];
-						}
-					}
+                    // if there are only two observed tips, then don't double-count singleton gains
+                    // if there is only one observed tip, then don't double-count absence sites
+                    if((coding & AscertainmentBias::NOSINGLETONABSENCE)
+                            && (maskObservationCounts[mask] > 1 || !(coding & AscertainmentBias::NOABSENCESITES))
+                            && (maskObservationCounts[mask] > 2 || !(coding & AscertainmentBias::NOSINGLETONPRESENCE)) )
+                        prob += uI_i[1];
 				}
 				
 				// impose a per-mixture boundary
