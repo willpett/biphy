@@ -20,3 +20,8 @@ To build biphy, simply type
 then to install, type
 
 ```sudo sh build.sh install```
+
+
+### Citation
+
+[doi.org/10.1093/molbev/msz013](https://doi.org/10.1093/molbev/msz013
