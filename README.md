@@ -24,4 +24,4 @@ then to install, type
 
 ### Citation
 
-[doi.org/10.1093/molbev/msz013](https://doi.org/10.1093/molbev/msz013
+[doi.org/10.1093/molbev/msz013](https://doi.org/10.1093/molbev/msz013)
